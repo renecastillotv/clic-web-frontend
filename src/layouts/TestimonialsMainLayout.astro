@@ -1,0 +1,533 @@
+---
+// src/layouts/TestimonialsMainLayout.astro - Layout para página principal de testimonios
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
+}
+
+// Función para obtener iniciales
+function getInitials(name = '') {
+  if (!name || typeof name !== 'string') return 'CN';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'CN';
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// ===================================================================
+// PROCESAMIENTO DE DATOS DE LA EDGE FUNCTION
+// ===================================================================
+
+// Usar datos reales de la edge function
+const testimonialsData = safeObject(data);
+
+// Extraer testimonios recientes desde la edge
+const recentTestimonials = safeArray(testimonialsData.recentTestimonials).map((testimonial) => ({
+  id: safeString(testimonial.id),
+  title: safeString(testimonial.title, 'Testimonio'),
+  excerpt: safeString(testimonial.excerpt, ''),
+  subtitle: safeString(testimonial.subtitle, ''),
+  rating: safeNumber(testimonial.rating, 5),
+  clientName: safeString(testimonial.clientName, 'Cliente CLIC'),
+  clientAvatar: safeString(testimonial.clientAvatar, ''),
+  clientLocation: safeString(testimonial.clientLocation, 'República Dominicana'),
+  clientVerified: Boolean(testimonial.clientVerified),
+  clientProfession: safeString(testimonial.clientProfession, ''),
+  transactionLocation: safeString(testimonial.transactionLocation, ''),
+  category: safeString(testimonial.category, 'general'),
+  featured: Boolean(testimonial.featured),
+  publishedAt: safeString(testimonial.publishedAt),
+  views: safeString(testimonial.views, '0'),
+  readTime: safeString(testimonial.readTime, '3 min'),
+  url: safeString(testimonial.url, '#'),
+  slug: safeString(testimonial.slug),
+  agent: safeObject(testimonial.agent, {
+    name: 'Equipo CLIC',
+    avatar: '',
+    slug: '',
+    position: 'Asesor Inmobiliario'
+  })
+}));
+
+// Extraer categorías desde la edge
+const categories = safeArray(testimonialsData.categories).map((cat) => ({
+  name: safeString(cat.name, 'General'),
+  slug: safeString(cat.slug, 'general'),
+  url: safeString(cat.url, '#'),
+  count: safeNumber(cat.count, 0),
+  icon: cat.slug === 'compradores' ? 'fa-home' : 
+        cat.slug === 'vendedores' ? 'fa-hand-holding-usd' :
+        cat.slug === 'inversionistas' ? 'fa-chart-line' :
+        cat.slug === 'desarrolladores' ? 'fa-building' :
+        'fa-user'
+}));
+
+// Obtener estadísticas reales de la edge
+const stats = safeObject(testimonialsData.stats, {
+  totalTestimonials: 0,
+  averageRating: 0,
+  totalCategories: 0,
+  totalViews: 0,
+  verifiedClients: 0
+});
+
+// Calcular valores de estadísticas
+const totalTestimonials = safeNumber(stats.totalTestimonials, recentTestimonials.length);
+const averageRating = safeNumber(stats.averageRating, 4.9);
+const totalCategories = safeNumber(stats.totalCategories, categories.length);
+const verifiedClients = safeNumber(stats.verifiedClients, 0);
+
+// SEO Data desde la edge
+const seo = safeObject(testimonialsData.seo);
+
+// Global config y otros datos necesarios para Layout
+const globalConfig = safeObject(testimonialsData.globalConfig);
+const country = safeObject(testimonialsData.country);
+const hotItems = safeObject(testimonialsData.hotItems);
+
+// ===================================================================
+// RUTAS PARA ENLACES
+// ===================================================================
+
+const currentRoutes = {
+  testimonialsBase: language === 'es' ? '/testimonios' :
+                     language === 'en' ? '/en/testimonials' :
+                     '/fr/temoignages',
+  buyRoute: language === 'es' ? '/comprar' :
+            language === 'en' ? '/en/buy' :
+            '/fr/acheter',
+  contactRoute: language === 'es' ? '/contacto' :
+                language === 'en' ? '/en/contact' :
+                '/fr/contact'
+};
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    title: safeString(seo.h1, 'Historias Reales de Éxito'),
+    subtitle: safeString(seo.h2, `Más de ${totalTestimonials} clientes satisfechos confían en CLIC`),
+    recentTitle: 'Testimonios Recientes',
+    viewTestimonials: 'Ver Testimonios',
+    readMore: 'Leer testimonio completo',
+    verified: 'Verificado',
+    rating: 'Calificación',
+    statsLabels: {
+      satisfaction: 'Satisfacción',
+      testimonials: 'Testimonios',
+      rating: 'Calificación',
+      verified: 'Verificados'
+    },
+    noTestimonials: 'No hay testimonios disponibles en este momento.',
+    by: 'Por',
+    in: 'en',
+    whyTrustTitle: '¿Por qué nuestros clientes confían en CLIC?',
+    whyTrustSubtitle: 'Valores que nos distinguen y generan confianza año tras año',
+    trustReasons: [
+      {
+        icon: 'fa-shield-alt',
+        title: 'Transparencia Total',
+        description: 'Procesos claros y honestos en cada transacción inmobiliaria'
+      },
+      {
+        icon: 'fa-clock',
+        title: 'Respuesta Rápida',
+        description: 'Cerramos operaciones en tiempo récord con eficiencia'
+      },
+      {
+        icon: 'fa-award',
+        title: 'Experiencia Comprobada',
+        description: 'Más de 15 años de trayectoria en el mercado dominicano'
+      },
+      {
+        icon: 'fa-heart',
+        title: 'Pasión por el Servicio',
+        description: 'Tratamos a cada cliente como parte de nuestra familia'
+      }
+    ],
+    ctaTitle: '¿Listo para ser nuestro próximo testimonio de éxito?',
+    ctaSubtitle: 'Únete a cientos de clientes satisfechos que encontraron su propiedad ideal',
+    ctaButton1: 'Comenzar mi historia',
+    ctaButton2: 'Ver propiedades'
+  },
+  en: {
+    title: safeString(seo.h1, 'Real Success Stories'),
+    subtitle: safeString(seo.h2, `More than ${totalTestimonials} satisfied clients trust CLIC`),
+    recentTitle: 'Recent Testimonials',
+    viewTestimonials: 'View Testimonials',
+    readMore: 'Read full testimonial',
+    verified: 'Verified',
+    rating: 'Rating',
+    statsLabels: {
+      satisfaction: 'Satisfaction',
+      testimonials: 'Testimonials',
+      rating: 'Rating',
+      verified: 'Verified'
+    },
+    noTestimonials: 'No testimonials available at this time.',
+    by: 'By',
+    in: 'in',
+    whyTrustTitle: 'Why do our clients trust CLIC?',
+    whyTrustSubtitle: 'Values that distinguish us and generate trust year after year',
+    trustReasons: [
+      {
+        icon: 'fa-shield-alt',
+        title: 'Total Transparency',
+        description: 'Clear and honest processes in every real estate transaction'
+      },
+      {
+        icon: 'fa-clock',
+        title: 'Fast Response',
+        description: 'We close operations in record time with efficiency'
+      },
+      {
+        icon: 'fa-award',
+        title: 'Proven Experience',
+        description: 'More than 15 years of experience in the Dominican market'
+      },
+      {
+        icon: 'fa-heart',
+        title: 'Passion for Service',
+        description: 'We treat each client as part of our family'
+      }
+    ],
+    ctaTitle: 'Ready to be our next success story?',
+    ctaSubtitle: 'Join hundreds of satisfied clients who found their ideal property',
+    ctaButton1: 'Start my story',
+    ctaButton2: 'View properties'
+  },
+  fr: {
+    title: safeString(seo.h1, 'Vraies Histoires de Succès'),
+    subtitle: safeString(seo.h2, `Plus de ${totalTestimonials} clients satisfaits font confiance à CLIC`),
+    recentTitle: 'Témoignages Récents',
+    viewTestimonials: 'Voir Témoignages',
+    readMore: 'Lire le témoignage complet',
+    verified: 'Vérifié',
+    rating: 'Note',
+    statsLabels: {
+      satisfaction: 'Satisfaction',
+      testimonials: 'Témoignages',
+      rating: 'Note',
+      verified: 'Vérifiés'
+    },
+    noTestimonials: 'Aucun témoignage disponible pour le moment.',
+    by: 'Par',
+    in: 'à',
+    whyTrustTitle: 'Pourquoi nos clients font-ils confiance à CLIC?',
+    whyTrustSubtitle: 'Des valeurs qui nous distinguent et génèrent la confiance année après année',
+    trustReasons: [
+      {
+        icon: 'fa-shield-alt',
+        title: 'Transparence Totale',
+        description: 'Processus clairs et honnêtes dans chaque transaction immobilière'
+      },
+      {
+        icon: 'fa-clock',
+        title: 'Réponse Rapide',
+        description: 'Nous clôturons les opérations en un temps record avec efficacité'
+      },
+      {
+        icon: 'fa-award',
+        title: 'Expérience Prouvée',
+        description: 'Plus de 15 ans d\'expérience sur le marché dominicain'
+      },
+      {
+        icon: 'fa-heart',
+        title: 'Passion pour le Service',
+        description: 'Nous traitons chaque client comme un membre de notre famille'
+      }
+    ],
+    ctaTitle: 'Prêt à être notre prochaine histoire de succès?',
+    ctaSubtitle: 'Rejoignez des centaines de clients satisfaits qui ont trouvé leur propriété idéale',
+    ctaButton1: 'Commencer mon histoire',
+    ctaButton2: 'Voir les propriétés'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// Props para el Layout (como en otros layouts)
+const layoutProps = {
+  title: safeString(seo.title, text.title),
+  description: safeString(seo.description, text.subtitle),
+  ogImage: safeString(seo.ogImage || seo.open_graph?.image, '/og-testimonials.jpg'),
+  canonical: safeString(seo.canonical_url),
+  keywords: safeString(seo.keywords),
+  hreflangData: safeObject(seo.hreflang),
+  globalConfig: globalConfig,
+  language: language,
+  trackingString: safeString(testimonialsData.trackingString, ''),
+  hotItems: hotItems,
+  country: country,
+  breadcrumbs: safeArray(seo.breadcrumbs),
+  structuredData: safeObject(seo.structured_data),
+  openGraph: safeObject(seo.open_graph),
+  twitterCard: safeObject(seo.twitter_card)
+};
+
+// ===================================================================
+// RENDER
+// ===================================================================
+---
+
+<Layout {...layoutProps}>
+  <!-- Hero Section - Diseño oscuro premium compacto -->
+  <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+    <!-- Efectos de fondo decorativos -->
+    <div class="absolute inset-0">
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+    </div>
+    
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="text-center">
+        <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
+          {text.title}
+        </h1>
+        <p class="text-base md:text-lg text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
+          {text.subtitle}
+        </p>
+        
+        <!-- Estadísticas en línea más compactas usando datos reales -->
+        <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16 mb-12">
+          {totalTestimonials > 0 && (
+            <div class="text-center">
+              <div class="text-3xl md:text-4xl font-bold text-[#f04e00]">{totalTestimonials}</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.testimonials}</div>
+            </div>
+          )}
+          {averageRating > 0 && (
+            <div class="text-center">
+              <div class="text-3xl md:text-4xl font-bold text-[#f04e00]">{averageRating}/5</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.rating}</div>
+            </div>
+          )}
+          {verifiedClients > 0 && (
+            <div class="text-center">
+              <div class="text-3xl md:text-4xl font-bold text-[#f04e00]">{verifiedClients}</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.verified}</div>
+            </div>
+          )}
+          <div class="text-center">
+            <div class="text-3xl md:text-4xl font-bold text-[#f04e00]">98%</div>
+            <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.satisfaction}</div>
+          </div>
+        </div>
+
+        <!-- Categorías con datos reales si existen -->
+        {categories.length > 0 && (
+          <div class="max-w-4xl mx-auto">
+            <div class="flex flex-wrap justify-center gap-3">
+              {categories.map((category) => (
+                <a 
+                  href={category.url}
+                  class="group relative flex items-center gap-2 bg-white/5 hover:bg-[#f04e00]/20 backdrop-blur-sm border border-white/10 hover:border-[#f04e00]/50 rounded-lg px-4 py-2.5 transition-all duration-300"
+                >
+                  <i class={`fas ${category.icon} text-[#f04e00]`}></i>
+                  <div class="flex items-center gap-2">
+                    <span class="text-white text-sm font-medium">{category.name}</span>
+                    <span class="text-xs text-gray-400">({category.count})</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonios Recientes con diseño profesional -->
+  {recentTestimonials.length > 0 ? (
+    <section class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-10 text-center">
+          {text.recentTitle}
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {recentTestimonials.map((testimonial) => (
+            <article class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300">
+              <!-- Header con avatar o iniciales -->
+              <div class="p-6 pb-4">
+                <div class="flex items-start gap-4">
+                  {/* Avatar o Iniciales */}
+                  <div class="flex-shrink-0">
+                    {testimonial.clientAvatar && testimonial.clientAvatar !== '/images/default-avatar.jpg' ? (
+                      <img 
+                        src={testimonial.clientAvatar} 
+                        alt={testimonial.clientName}
+                        class="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div class="w-12 h-12 rounded-full bg-[#f04e00] text-white flex items-center justify-center font-semibold">
+                        {getInitials(testimonial.clientName)}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Info del cliente */}
+                  <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900">{testimonial.clientName}</h3>
+                    {testimonial.clientProfession && (
+                      <p class="text-sm text-gray-600">{testimonial.clientProfession}</p>
+                    )}
+                    {testimonial.transactionLocation && (
+                      <p class="text-xs text-gray-500 mt-1">{testimonial.transactionLocation}</p>
+                    )}
+                  </div>
+                  
+                  {/* Badge verificado */}
+                  {testimonial.clientVerified && (
+                    <div class="flex-shrink-0">
+                      <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {text.verified}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Rating */}
+                <div class="flex items-center gap-1 mt-3">
+                  {[...Array(5)].map((_, i) => (
+                    <svg 
+                      key={i} 
+                      class={`w-4 h-4 ${i < Math.floor(testimonial.rating) ? 'text-yellow-400' : 'text-gray-300'}`} 
+                      fill="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  ))}
+                  <span class="text-sm text-gray-600 ml-1">{testimonial.rating}.0</span>
+                </div>
+              </div>
+              
+              {/* Contenido del testimonio */}
+              <div class="px-6 pb-4">
+                <h4 class="font-semibold text-gray-900 mb-2">
+                  {testimonial.title}
+                </h4>
+                {testimonial.subtitle && (
+                  <p class="text-sm text-gray-700 mb-2">{testimonial.subtitle}</p>
+                )}
+                {testimonial.excerpt && (
+                  <p class="text-sm text-gray-600 italic" set:html={`"${testimonial.excerpt}"`} />
+                )}
+              </div>
+              
+              {/* Footer con agente y link */}
+              <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                <div class="flex items-center justify-between">
+                  <div class="text-xs text-gray-500">
+                    {text.by} {testimonial.agent.name}
+                  </div>
+                  <a 
+                    href={testimonial.url}
+                    class="text-[#f04e00] hover:text-[#d63e00] text-sm font-medium inline-flex items-center gap-1 transition-colors"
+                  >
+                    {text.readMore}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+        
+      </div>
+    </section>
+  ) : (
+    <section class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <p class="text-center text-gray-600">{text.noTestimonials}</p>
+      </div>
+    </section>
+  )}
+
+  <!-- Por qué confían en CLIC -->
+  <section class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{text.whyTrustTitle}</h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">{text.whyTrustSubtitle}</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {text.trustReasons.map((reason) => (
+          <div class="text-center">
+            <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-[#f04e00] to-[#ff7a3d] rounded-full flex items-center justify-center text-white">
+              <i class={`fas ${reason.icon} text-xl`}></i>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">{reason.title}</h3>
+            <p class="text-gray-600 text-sm">{reason.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">{text.ctaTitle}</h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">{text.ctaSubtitle}</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a 
+          href={currentRoutes.contactRoute}
+          class="bg-white text-[#f04e00] px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors"
+        >
+          {text.ctaButton1}
+        </a>
+        <a 
+          href={currentRoutes.buyRoute}
+          class="bg-transparent text-white px-8 py-3 rounded-lg font-bold border-2 border-white hover:bg-white hover:text-[#f04e00] transition-all"
+        >
+          {text.ctaButton2}
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,903 @@
+---
+// src/layouts/AdvisorSingleLayout.astro - Layout para página de asesor individual
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+const advisorSlug = safeString(data?.advisorSlug || data?.slug, Astro.url.pathname.split('/').pop() || 'asesor');
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+let advisorData = safeObject(data);
+
+// Datos del asesor
+const rawAdvisor = safeObject(advisorData.advisor);
+const rawProperties = safeArray(advisorData.properties);
+const testimonials = safeArray(advisorData.testimonials);
+const articles = safeArray(advisorData.articles);
+const videos = safeArray(advisorData.videos);
+const stats = safeObject(advisorData.stats);
+const timeline = safeArray(advisorData.timeline); // Aunque se elimina la sección, se mantiene por si se usa en otro lado
+const services = safeArray(advisorData.services);
+const contactMethods = safeArray(advisorData.contactMethods);
+
+// Calcular cuántos items mostrar en sidebar según la cantidad de propiedades
+let sidebarItemsToShow = 3; // Por defecto
+const propertiesCount = rawProperties.length;
+
+if (propertiesCount >= 32) {
+  sidebarItemsToShow = 6;
+} else if (propertiesCount >= 25) {
+  sidebarItemsToShow = 5;
+} else if (propertiesCount >= 18) {
+  sidebarItemsToShow = 4;
+}
+
+// Transformar propiedades al formato esperado por PropertyCarousel
+const properties = rawProperties.map(prop => {
+  // Formatear precio
+  let precio = 'Precio a consultar';
+  if (prop.mainPrice && prop.mainCurrency) {
+    const symbol = prop.mainCurrency === 'USD' ? 'USD$' : prop.mainCurrency === 'DOP' ? 'DOP$' : `${prop.mainCurrency}$`;
+    precio = `${symbol}${new Intl.NumberFormat('es-DO').format(prop.mainPrice)}`;
+
+    // Agregar "/mes" si es renta
+    if (prop.operation === 'rental' || prop.operation === 'furnished_rental' || prop.operation === 'temp_rental') {
+      precio += '/mes';
+    }
+  }
+
+  return {
+    id: prop.id,
+    slug: prop.url?.replace(/^\//, '').split('?')[0] || '',
+    titulo: prop.name || 'Propiedad sin nombre',
+    precio: precio,
+    imagen: prop.mainImage || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen',
+    imagenes: [prop.mainImage || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'],
+    sector: prop.sector || prop.city || 'Ubicación no especificada',
+    habitaciones: prop.bedrooms || 0,
+    banos: prop.bathrooms || 0,
+    metros: prop.builtArea || prop.landArea || 0,
+    tipo: prop.categoryDisplay || prop.category || 'Propiedad',
+    bedrooms: prop.bedrooms || 0,
+    bathrooms: prop.bathrooms || 0,
+    parking_spots: prop.parkingSpots || 0,
+    built_area: prop.builtArea || 0,
+    land_area: prop.landArea || 0,
+    url: prop.url || '#'
+  };
+});
+
+// ===================================================================
+// TEXTOS Y TRADUCCIONES SEGÚN IDIOMA
+// ===================================================================
+
+const texts = {
+  es: {
+    metaTitle: `${rawAdvisor.name || 'Asesor'} - Asesor Inmobiliario | CLIC`,
+    metaDescription: `Conoce a ${rawAdvisor.name || 'nuestro asesor'}, asesor inmobiliario experto en República Dominicana. Contáctalo para encontrar tu propiedad ideal.`,
+    stats: 'Estadísticas',
+    experience: 'Experiencia',
+    sales: 'Ventas',
+    satisfaction: 'Satisfacción',
+    languages: 'Idiomas',
+    specialties: 'Especialidades',
+    about: 'Sobre Mí',
+    properties: 'Propiedades',
+    viewAll: 'Ver Todas',
+    noProperties: 'No hay propiedades disponibles en este momento',
+    testimonials: 'Testimonios de Clientes',
+    noTestimonials: 'No hay testimonios disponibles en este momento',
+    articles: 'Artículos de Blog',
+    noArticles: 'No hay artículos disponibles en este momento',
+    services: 'Servicios',
+    includedServices: 'Servicios Incluidos',
+    premiumServices: 'Servicios Premium',
+    contact: 'Contactar',
+    contactMe: 'Contáctame',
+    backToAdvisors: 'Volver a Asesores',
+    readMore: 'Leer más',
+    recentPosts: 'Publicaciones Recientes',
+    seeAllArticles: 'Ver todos los artículos',
+    viewProperty: 'Ver Propiedad',
+    contactInfo: 'Información de Contacto',
+    expertIn: 'Experto en',
+    ctaTitle: '¿Buscas Propiedades?',
+    ctaSubtitle: 'Contáctame y te ayudaré a encontrar tu propiedad ideal',
+    ctaButton1: 'Contactar',
+    ctaButton2: 'Ver propiedades',
+    home: 'Inicio',
+    advisors: 'Asesores'
+  },
+  en: {
+    metaTitle: `${rawAdvisor.name || 'Advisor'} - Real Estate Advisor | CLIC`,
+    metaDescription: `Meet ${rawAdvisor.name || 'our advisor'}, expert real estate advisor in Dominican Republic. Contact for finding your ideal property.`,
+    stats: 'Statistics',
+    experience: 'Experience',
+    sales: 'Sales',
+    satisfaction: 'Satisfaction',
+    languages: 'Languages',
+    specialties: 'Specialties',
+    about: 'About Me',
+    properties: 'Properties',
+    viewAll: 'View All',
+    noProperties: 'No properties available at this time',
+    testimonials: 'Client Testimonials',
+    noTestimonials: 'No testimonials available at this time',
+    articles: 'Blog Articles',
+    noArticles: 'No articles available at this time',
+    services: 'Services',
+    includedServices: 'Included Services',
+    premiumServices: 'Premium Services',
+    contact: 'Contact',
+    contactMe: 'Contact Me',
+    backToAdvisors: 'Back to Advisors',
+    readMore: 'Read more',
+    recentPosts: 'Recent Posts',
+    seeAllArticles: 'See all articles',
+    viewProperty: 'View Property',
+    contactInfo: 'Contact Information',
+    expertIn: 'Expert in',
+    ctaTitle: 'Looking for Properties?',
+    ctaSubtitle: 'Contact me and I will help you find your ideal property',
+    ctaButton1: 'Contact',
+    ctaButton2: 'View properties',
+    home: 'Home',
+    advisors: 'Advisors'
+  },
+  fr: {
+    metaTitle: `${rawAdvisor.name || 'Conseiller'} - Conseiller Immobilier | CLIC`,
+    metaDescription: `Découvrez ${rawAdvisor.name || 'notre conseiller'}, conseiller immobilier expert en République Dominicaine. Contactez pour trouver votre propriété idéale.`,
+    stats: 'Statistiques',
+    experience: 'Expérience',
+    sales: 'Ventes',
+    satisfaction: 'Satisfaction',
+    languages: 'Langues',
+    specialties: 'Spécialités',
+    about: 'À Propos de Moi',
+    properties: 'Propriétés',
+    viewAll: 'Voir Tout',
+    noProperties: 'Pas de propriétés disponibles en ce moment',
+    testimonials: 'Témoignages des Clients',
+    noTestimonials: 'Pas de témoignages disponibles en ce moment',
+    articles: 'Articles de Blog',
+    noArticles: 'Pas d\'articles disponibles en ce moment',
+    services: 'Services',
+    includedServices: 'Services Inclus',
+    premiumServices: 'Services Premium',
+    contact: 'Contact',
+    contactMe: 'Contactez-Moi',
+    backToAdvisors: 'Retour aux Conseillers',
+    readMore: 'Lire plus',
+    recentPosts: 'Publications Récentes',
+    seeAllArticles: 'Voir tous les articles',
+    viewProperty: 'Voir Propriété',
+    contactInfo: 'Informations de Contact',
+    expertIn: 'Expert en',
+    ctaTitle: 'Vous cherchez des propriétés?',
+    ctaSubtitle: 'Contactez-moi et je vous aiderai à trouver votre propriété idéale',
+    ctaButton1: 'Contacter',
+    ctaButton2: 'Voir les propriétés',
+    home: 'Accueil',
+    advisors: 'Conseillers'
+  }
+};
+
+// Seleccionar los textos según el idioma
+const text = texts[language] || texts.es;
+
+// ===================================================================
+// URLS Y RUTAS
+// ===================================================================
+
+const currentRoutes = {
+  home: language === 'es' ? '/' : language === 'en' ? '/en' : '/fr',
+  contact: language === 'es' ? '/contacto' : language === 'en' ? '/en/contact' : '/fr/contact',
+  properties: language === 'es' ? '/propiedades' : language === 'en' ? '/en/properties' : '/fr/proprietes',
+  advisors: language === 'es' ? '/asesores' : language === 'en' ? '/en/advisors' : '/fr/conseillers',
+  blog: language === 'es' ? '/articulos' : language === 'en' ? '/en/articles' : '/fr/articles'
+};
+
+// ===================================================================
+// PREPARACIÓN DE DATOS PARA EL LAYOUT
+// ===================================================================
+
+// Obtener SEO data de manera segura
+const safeSeo = safeObject(advisorData.seo, {
+  title: text.metaTitle,
+  description: text.metaDescription,
+  canonical_url: `${currentRoutes.advisors}/${advisorSlug}`,
+  breadcrumbs: [
+    {
+      name: text.home,
+      url: currentRoutes.home
+    },
+    {
+      name: text.advisors,
+      url: currentRoutes.advisors
+    },
+    {
+      name: rawAdvisor.name || 'Asesor',
+      url: `${currentRoutes.advisors}/${advisorSlug}`
+    }
+  ],
+  hreflang: {
+    es: `https://clicinmobiliaria.com/asesores/${advisorSlug}`,
+    en: `https://clicinmobiliaria.com/en/advisors/${advisorSlug}`,
+    fr: `https://clicinmobiliaria.com/fr/conseillers/${advisorSlug}`
+  },
+  ogImage: rawAdvisor.avatar || '/og-advisor.jpg'
+});
+
+// Construir datos para Layout
+const layoutProps = {
+  title: safeSeo.title || text.metaTitle,
+  description: safeSeo.description || text.metaDescription,
+  ogImage: safeSeo.ogImage || '/og-advisor.jpg',
+  canonical: safeSeo.canonical_url,
+  keywords: safeSeo.keywords,
+  hreflangData: safeSeo.hreflang || {},
+  globalConfig: advisorData?.globalConfig || {},
+  language: language,
+  trackingString: advisorData?.trackingString || '',
+  hotItems: advisorData?.hotItems || {},
+  country: advisorData?.country || {},
+  breadcrumbs: safeSeo.breadcrumbs,
+  structuredData: safeSeo.structured_data,
+  openGraph: safeSeo.open_graph,
+  twitterCard: safeSeo.twitter_card
+};
+
+// Log de estado para debugging
+console.log('✅ AdvisorSingleLayout preparado:', {
+  language,
+  advisorName: rawAdvisor.name,
+  propertiesCount: properties.length,
+  testimonialsCount: testimonials.length,
+  articlesCount: articles.length
+});
+
+// ===================================================================
+// FUNCIONES AUXILIARES
+// ===================================================================
+
+// Función para formatear número con separadores de miles
+function formatNumber(number) {
+  return new Intl.NumberFormat().format(number);
+}
+
+// Función para formatear fecha
+function formatDate(dateStr, locale = language) {
+  try {
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : locale === 'fr' ? 'fr-FR' : 'en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  } catch (error) {
+    console.warn('Error formatting date:', error);
+    return dateStr;
+  }
+}
+
+// ===================================================================
+// COMPONENTE LAYOUT
+// ===================================================================
+---
+
+<Layout {...layoutProps}>
+  <div class="advisor-single-layout">
+    
+    <!-- Hero Section minimalista y horizontal -->
+    <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden">
+      <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-0 left-0 w-96 h-96 bg-[#f04e00] rounded-full filter blur-3xl"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl"></div>
+      </div>
+
+      <div class="container mx-auto px-4 relative z-10 py-8">
+        <div class="max-w-7xl mx-auto">
+
+          <!-- Layout horizontal: Avatar | Info | Stats | Contact -->
+          <div class="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">
+
+            <!-- Avatar + Badge -->
+            <div class="relative flex-shrink-0">
+              <div class="w-32 h-32 lg:w-40 lg:h-40 rounded-2xl overflow-hidden ring-4 ring-[#f04e00]/30 shadow-2xl">
+                <img
+                  src={rawAdvisor.avatar || '/images/team/default-advisor.jpg'}
+                  alt={rawAdvisor.name}
+                  class="w-full h-full object-cover"
+                />
+              </div>
+              {(rawAdvisor.stats?.totalSales > 10 || rawAdvisor.yearsExperience > 5) && (
+                <div class="absolute -bottom-2 -right-2 bg-gradient-to-r from-[#f04e00] to-[#ff6b35] text-white px-3 py-1 rounded-full text-xs font-bold shadow-xl">
+                  <i class="fas fa-star mr-1"></i>
+                  {rawAdvisor.stats?.totalSales > 10 ? 'Top' : 'Pro'}
+                </div>
+              )}
+            </div>
+
+            <!-- Info Principal -->
+            <div class="flex-1 text-center lg:text-left space-y-2">
+              <div class="inline-flex items-center gap-2 bg-[#f04e00]/20 px-3 py-1 rounded-full text-xs font-semibold mb-1">
+                <i class="fas fa-user-tie text-[#f04e00]"></i>
+                <span>{rawAdvisor.position || 'Agente Inmobiliario'}</span>
+              </div>
+
+              <h1 class="text-3xl lg:text-4xl font-bold">{rawAdvisor.name}</h1>
+
+              <!-- Badges de info -->
+              <div class="flex flex-wrap gap-2 justify-center lg:justify-start">
+                {safeArray(rawAdvisor.specialties).length > 0 && (
+                  <span class="inline-flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-lg text-sm">
+                    <i class="fas fa-star text-yellow-400 text-xs"></i>
+                    {safeArray(rawAdvisor.specialties)[0]}
+                  </span>
+                )}
+                {safeArray(rawAdvisor.languagesSpoken).length > 0 && (
+                  <span class="inline-flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-lg text-sm">
+                    <i class="fas fa-language text-[#f04e00] text-xs"></i>
+                    {safeArray(rawAdvisor.languagesSpoken).join(', ')}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <!-- Stats compactos -->
+            <div class="flex lg:flex-col gap-4 lg:gap-2 items-center lg:items-end">
+              {rawAdvisor.yearsExperience && (
+                <div class="text-center lg:text-right">
+                  <div class="text-2xl font-bold text-[#f04e00]">{rawAdvisor.yearsExperience}+</div>
+                  <div class="text-xs text-white/60 uppercase">{language === 'en' ? 'Years' : 'Años'}</div>
+                </div>
+              )}
+
+              {rawAdvisor.stats?.activeListings > 0 && (
+                <div class="text-center lg:text-right">
+                  <div class="text-2xl font-bold text-blue-400">{rawAdvisor.stats.activeListings}</div>
+                  <div class="text-xs text-white/60 uppercase">{language === 'en' ? 'Properties' : 'Propiedades'}</div>
+                </div>
+              )}
+
+              {rawAdvisor.stats?.totalSales > 0 && (
+                <div class="text-center lg:text-right">
+                  <div class="text-2xl font-bold text-green-400">{rawAdvisor.stats.totalSales}+</div>
+                  <div class="text-xs text-white/60 uppercase">{language === 'en' ? 'Sales' : 'Ventas'}</div>
+                </div>
+              )}
+            </div>
+
+            <!-- Botones de contacto compactos -->
+            <div class="flex flex-col gap-2 flex-shrink-0">
+              {rawAdvisor.phone && (
+                <a
+                  href={`tel:${rawAdvisor.phone}`}
+                  class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#f04e00] to-[#ff6b35] text-white rounded-lg hover:shadow-lg transition-all font-semibold text-sm whitespace-nowrap"
+                >
+                  <i class="fas fa-phone"></i>
+                  <span class="hidden lg:inline">{text.contactMe}</span>
+                </a>
+              )}
+
+              {rawAdvisor.phone && (
+                <a
+                  href={`https://wa.me/${rawAdvisor.phone.replace(/[^\d]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#25D366] text-white rounded-lg hover:shadow-lg transition-all font-semibold text-sm whitespace-nowrap"
+                >
+                  <i class="fab fa-whatsapp"></i>
+                  <span class="hidden lg:inline">WhatsApp</span>
+                </a>
+              )}
+
+              {rawAdvisor.email && (
+                <a
+                  href={`mailto:${rawAdvisor.email}`}
+                  class="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/20 transition-all font-semibold text-sm whitespace-nowrap"
+                >
+                  <i class="fas fa-envelope"></i>
+                  <span class="hidden lg:inline">Email</span>
+                </a>
+              )}
+            </div>
+          </div>
+
+          <!-- Redes sociales en línea debajo -->
+          {(rawAdvisor.socialLinks?.facebook || rawAdvisor.socialLinks?.instagram || rawAdvisor.socialLinks?.linkedin || rawAdvisor.socialLinks?.twitter || rawAdvisor.socialLinks?.youtube) && (
+            <div class="flex justify-center lg:justify-start gap-2 mt-4 pt-4 border-t border-white/10">
+              {rawAdvisor.socialLinks?.facebook && (
+                <a
+                  href={rawAdvisor.socialLinks.facebook.startsWith('http')
+                    ? rawAdvisor.socialLinks.facebook 
+                    : `https://facebook.com/${rawAdvisor.socialLinks.facebook}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="w-10 h-10 rounded-full bg-gray-800/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-gray-700/50 transition-colors"
+                  aria-label="Facebook"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"></path>
+                  </svg>
+                </a>
+              )}
+              
+              {rawAdvisor.socialLinks?.instagram && (
+                <a 
+                  href={rawAdvisor.socialLinks.instagram.startsWith('http') 
+                    ? rawAdvisor.socialLinks.instagram 
+                    : `https://instagram.com/${rawAdvisor.socialLinks.instagram.replace('@', '')}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="w-10 h-10 rounded-full bg-gray-800/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-gray-700/50 transition-colors"
+                  aria-label="Instagram"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"></path>
+                  </svg>
+                </a>
+              )}
+              
+              {rawAdvisor.socialLinks?.twitter && (
+                <a 
+                  href={rawAdvisor.socialLinks.twitter.startsWith('http') 
+                    ? rawAdvisor.socialLinks.twitter 
+                    : `https://twitter.com/${rawAdvisor.socialLinks.twitter.replace('@', '')}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="w-10 h-10 rounded-full bg-gray-800/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-gray-700/50 transition-colors"
+                  aria-label="Twitter"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"></path>
+                  </svg>
+                </a>
+              )}
+              
+              {rawAdvisor.socialLinks?.linkedin && (
+                <a 
+                  href={rawAdvisor.socialLinks.linkedin.startsWith('http') 
+                    ? rawAdvisor.socialLinks.linkedin 
+                    : `https://linkedin.com/in/${rawAdvisor.socialLinks.linkedin}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="w-10 h-10 rounded-full bg-gray-800/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-gray-700/50 transition-colors"
+                  aria-label="LinkedIn"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"></path>
+                  </svg>
+                </a>
+              )}
+              
+              {rawAdvisor.socialLinks?.youtube && (
+                <a
+                  href={rawAdvisor.socialLinks.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-colors border border-white/20"
+                  aria-label="YouTube"
+                >
+                  <i class="fab fa-youtube"></i>
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+          {(stats && Object.keys(stats).length > 0 && false) && (
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
+              {stats.yearsExperience && (
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center border border-white/20">
+                  <div class="text-3xl md:text-4xl font-bold text-white mb-1">
+                    {stats.yearsExperience}+
+                  </div>
+                  <div class="text-sm text-white/80">
+                    {text.experience}
+                  </div>
+                </div>
+              )}
+              
+              {stats.propertiesSold && (
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center border border-white/20">
+                  <div class="text-3xl md:text-4xl font-bold text-white mb-1">
+                    {stats.propertiesSold}+
+                  </div>
+                  <div class="text-sm text-white/80">
+                    {text.sales}
+                  </div>
+                </div>
+              )}
+              
+              {stats.clientSatisfaction && (
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center border border-white/20">
+                  <div class="text-3xl md:text-4xl font-bold text-white mb-1">
+                    {stats.clientSatisfaction}%
+                  </div>
+                  <div class="text-sm text-white/80">
+                    {text.satisfaction}
+                  </div>
+                </div>
+              )}
+              
+              {stats.languages && (
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center border border-white/20">
+                  <div class="text-3xl md:text-4xl font-bold text-white mb-1">
+                    {stats.languages}
+                  </div>
+                  <div class="text-sm text-white/80">
+                    {text.languages}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+    
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <div class="flex flex-col lg:flex-row gap-8">
+          <div class="lg:w-2/3">
+            {rawAdvisor.bio && (
+              <div class="bg-white rounded-lg shadow-md p-6 md:p-8 mb-8">
+                <h2 class="text-2xl font-bold mb-4 border-b pb-2">{text.about}</h2>
+                <div class="text-justify leading-relaxed" set:html={rawAdvisor.bio}></div>
+              </div>
+            )}
+
+            {properties.length > 0 && (
+              <div class="mb-8">
+                <div class="flex justify-between items-center mb-6">
+                  <h2 class="text-2xl md:text-3xl font-bold flex items-center gap-3">
+                    <i class="fas fa-home text-[#f04e00]"></i>
+                    <span>{text.properties} <span class="text-lg text-gray-500 font-normal">({properties.length})</span></span>
+                  </h2>
+                </div>
+
+                <!-- Grid de propiedades (mostrar todas) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {properties.map((property) => (
+                    <a
+                      href={property.url || '#'}
+                      class="group cursor-pointer block"
+                    >
+                      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-xl hover:-translate-y-1">
+                        <!-- Imagen -->
+                        <div class="relative aspect-[4/3] overflow-hidden bg-gray-200">
+                          <img
+                            src={property.imagen || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'}
+                            alt={property.titulo}
+                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            loading="lazy"
+                            onerror="this.src='https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen';"
+                          />
+
+                          <!-- Badge de tipo -->
+                          {property.tipo && (
+                            <span class="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-gray-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md">
+                              {property.tipo}
+                            </span>
+                          )}
+                        </div>
+
+                        <!-- Contenido -->
+                        <div class="p-4">
+                          <!-- Precio -->
+                          <div class="text-xl font-bold text-[#f04e00] mb-2">
+                            {property.precio}
+                          </div>
+
+                          <!-- Ubicación -->
+                          <div class="flex items-center gap-1.5 mb-2">
+                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <p class="text-sm text-gray-600 truncate">{property.sector}</p>
+                          </div>
+
+                          <!-- Título -->
+                          <h3 class="font-semibold text-gray-800 line-clamp-2 group-hover:text-[#f04e00] transition-colors mb-3 text-base leading-snug min-h-[3rem]">
+                            {property.titulo}
+                          </h3>
+
+                          <!-- Características -->
+                          <div class="flex items-center justify-between text-gray-700 text-sm pt-3 border-t border-gray-100">
+                            {(property.bedrooms > 0 || property.habitaciones > 0) && (
+                              <span class="flex items-center gap-1.5">
+                                <i class="fas fa-bed text-[#f04e00]"></i>
+                                <span class="font-semibold">{property.bedrooms || property.habitaciones}</span>
+                              </span>
+                            )}
+
+                            {(property.bathrooms > 0 || property.banos > 0) && (
+                              <span class="flex items-center gap-1.5">
+                                <i class="fas fa-bath text-[#f04e00]"></i>
+                                <span class="font-semibold">{property.bathrooms || property.banos}</span>
+                              </span>
+                            )}
+
+                            {((property.built_area > 0) || (property.land_area > 0) || (property.metros > 0)) && (
+                              <span class="flex items-center gap-1.5">
+                                <i class="fas fa-th-large text-[#f04e00]"></i>
+                                <span class="font-semibold">
+                                  {property.built_area > 0 ? `${property.built_area}m²` :
+                                   property.land_area > 0 ? `${property.land_area}m²` :
+                                   property.metros > 0 ? `${property.metros}m²` : ''}
+                                </span>
+                              </span>
+                            )}
+
+                            {(property.parking_spots > 0 || property.parqueos > 0) && (
+                              <span class="flex items-center gap-1.5">
+                                <i class="fas fa-car text-[#f04e00]"></i>
+                                <span class="font-semibold">{property.parking_spots || property.parqueos}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+
+          </div>
+          
+          <div class="lg:w-1/3">
+            {articles.length > 0 && (
+              <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div class="flex justify-between items-center mb-6">
+                  <h2 class="text-xl font-bold">{text.recentPosts}</h2>
+                  <a href={currentRoutes.blog} class="text-[#f04e00] font-medium hover:underline text-sm">
+                    {text.seeAllArticles}
+                  </a>
+                </div>
+
+                <div class="space-y-4">
+                  {articles.slice(0, sidebarItemsToShow).map(article => (
+                    <a href={article.url} class="group block">
+                      <div class="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                        <div class="relative aspect-video overflow-hidden h-32">
+                          <img
+                            src={article.featuredImage || '/images/blog/default.jpg'}
+                            alt={article.title}
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                        <div class="p-3">
+                          <div class="flex items-center text-xs text-gray-500 mb-1">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            {formatDate(article.publishedAt)}
+                          </div>
+                          <h3 class="font-bold text-sm mb-1 group-hover:text-[#f04e00] transition-colors line-clamp-2">
+                            {article.title}
+                          </h3>
+                          <p class="text-gray-600 text-xs line-clamp-2">{article.excerpt}</p>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {testimonials.length > 0 && (
+              <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-xl font-bold mb-4">{text.testimonials}</h2>
+                <div class="space-y-4">
+                  {testimonials.slice(0, sidebarItemsToShow).map(testimonial => (
+                    <div class="bg-gray-50 p-5 rounded-lg shadow-sm relative">
+                      <div class="absolute top-2 right-3 text-5xl text-[#f04e00]/10 font-serif">
+                        &ldquo;
+                      </div>
+                      
+                      {/* Rating Stars */}
+                      <div class="flex mb-3">
+                        {[...Array(testimonial.rating || 5)].map(() => (
+                          <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
+                          </svg>
+                        ))}
+                      </div>
+                      
+                      {/* Testimonial Title */}
+                      {testimonial.title && (
+                        <h3 class="font-bold text-lg mb-2">{testimonial.title}</h3>
+                      )}
+                      
+                      {/* Testimonial Content */}
+                      <div class="text-gray-700 text-sm mb-4" set:html={testimonial.excerpt || testimonial.full_testimonial || ''}></div>
+                      
+                      {/* Client Info */}
+                      <div class="flex items-center mt-2">
+                        {testimonial.clientAvatar && (
+                          <img 
+                            src={testimonial.clientAvatar} 
+                            alt={testimonial.clientName}
+                            class="w-10 h-10 rounded-full object-cover mr-3"
+                          />
+                        )}
+                        <div>
+                          <div class="font-medium">{testimonial.clientName}</div>
+                          {testimonial.clientLocation && (
+                            <div class="text-xs text-gray-500">{testimonial.clientLocation}</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {videos.length > 0 && (
+              <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                  <i class="fas fa-video text-[#f04e00]"></i>
+                  {language === 'en' ? 'Videos' : language === 'fr' ? 'Vidéos' : 'Videos'}
+                  <span class="text-sm text-gray-500 font-normal">({Math.min(videos.length, sidebarItemsToShow)})</span>
+                </h2>
+                <div class="space-y-4">
+                  {videos.slice(0, sidebarItemsToShow).map(video => (
+                    <a href={video.url} class="group block">
+                      <div class="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                        <div class="relative aspect-video overflow-hidden">
+                          <img
+                            src={video.thumbnail || 'https://via.placeholder.com/320x180/e5e7eb/9ca3af?text=Video'}
+                            alt={video.title}
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          {/* Play button overlay */}
+                          <div class="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                            <div class="w-12 h-12 rounded-full bg-[#f04e00] flex items-center justify-center shadow-lg">
+                              <i class="fas fa-play text-white ml-1"></i>
+                            </div>
+                          </div>
+                          {/* Duration badge */}
+                          {video.duration && (
+                            <div class="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium">
+                              {video.duration}
+                            </div>
+                          )}
+                        </div>
+                        <div class="p-3">
+                          <h3 class="font-bold text-sm mb-1 group-hover:text-[#f04e00] transition-colors line-clamp-2">
+                            {video.title}
+                          </h3>
+                          {video.views > 0 && (
+                            <div class="flex items-center gap-1 text-xs text-gray-500 mt-2">
+                              <i class="fas fa-eye"></i>
+                              <span>{video.views.toLocaleString()} {language === 'en' ? 'views' : language === 'fr' ? 'vues' : 'vistas'}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section class="py-16 bg-[#f04e00]">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+          {text.ctaTitle}
+        </h2>
+        <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+          {text.ctaSubtitle}
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          {rawAdvisor.phone && (
+            <a 
+              href={`tel:${rawAdvisor.phone}`}
+              class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium"
+            >
+              {text.ctaButton1}
+            </a>
+          )}
+          
+          <a 
+            href={`${currentRoutes.properties}?advisor=${rawAdvisor.slug}`}
+            class="inline-block px-8 py-3 bg-white/20 text-white border border-white rounded-lg hover:bg-white/30 transition-colors font-medium"
+          >
+            {text.ctaButton2}
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<style>
+  /* Estilos para texto justificado en la bio */
+  [set\:html] {
+    text-align: justify;
+    line-height: 1.6;
+  }
+  
+  /* Estilos para enlaces dentro de la bio */
+  [set\:html] a {
+    @apply text-[#f04e00] hover:underline;
+  }
+  
+  /* Estilos para párrafos dentro de la bio */
+  [set\:html] p {
+    @apply mb-4;
+  }
+  
+  /* Estilos para encabezados dentro de la bio */
+  [set\:html] h1, [set\:html] h2, [set\:html] h3, [set\:html] h4, [set\:html] h5, [set\:html] h6 {
+    @apply font-bold mb-2 mt-4;
+  }
+  
+  /* Estilos para listas dentro de la bio */
+  [set\:html] ul, [set\:html] ol {
+    @apply pl-6 mb-4;
+  }
+  
+  [set\:html] li {
+    @apply mb-1;
+  }
+  
+  /* Estilos para negritas e italicas */
+  [set\:html] strong, [set\:html] b {
+    @apply font-bold;
+  }
+  
+  [set\:html] em, [set\:html] i {
+    @apply italic;
+  }
+</style>

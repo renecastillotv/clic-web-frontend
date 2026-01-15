@@ -1,0 +1,614 @@
+---
+// src/layouts/VacationRentalsMainLayout.astro - Layout principal para huéspedes que buscan rentar
+import Layout from './Layout.astro';
+import RentalCarousel from '../components/RentalCarousel.astro';
+import RentalSearchBox from '../components/RentalSearchBox.astro';
+import RentalTypeGrid from '../components/RentalTypeGrid.astro';
+import DestinationGrid from '../components/DestinationGrid.astro';
+import RentalStats from '../components/RentalStats.astro';
+import RentalFeatures from '../components/RentalFeatures.astro';
+import SEODescription from '../components/SEODescription.astro';
+import DynamicFAQs from '../components/DynamicFAQs.astro';
+import Testimonials from '../components/Testimonials.astro';
+import VideoGallery from '../components/VideoGallery.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK 
+// ===================================================================
+
+let rentalsMainData = data;
+
+// Si no hay datos, usar fallback estático
+if (!rentalsMainData || !rentalsMainData.properties) {
+  console.log('🏖️ VacationRentalsMainLayout: Usando datos estáticos de fallback');
+  
+  rentalsMainData = {
+    language: language,
+    properties: [
+      {
+        slug: 'villa-paradiso',
+        titulo: language === 'es' ? 'Villa Paradiso - Punta Cana' :
+                language === 'en' ? 'Villa Paradiso - Punta Cana' :
+                'Villa Paradiso - Punta Cana',
+        precio: '$320/noche',
+        imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+        sector: 'Punta Cana',
+        habitaciones: 4,
+        banos: 4,
+        capacidad: 8,
+        tipo: 'Villa',
+        rating: 4.9,
+        destacado: true,
+        descuento: language === 'es' ? 'Disponible ahora' : language === 'en' ? 'Available now' : 'Disponible maintenant'
+      },
+      {
+        slug: 'penthouse-bavaro',
+        titulo: language === 'es' ? 'Penthouse Bávaro Beach' :
+                language === 'en' ? 'Penthouse Bavaro Beach' :
+                'Penthouse Bavaro Beach',
+        precio: '$180/noche',
+        imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        sector: 'Bávaro',
+        habitaciones: 3,
+        banos: 2,
+        capacidad: 6,
+        tipo: 'Apartamento',
+        rating: 4.7,
+        nuevo: true
+      },
+      {
+        slug: 'villa-lujo-cap-cana',
+        titulo: language === 'es' ? 'Villa de Lujo Cap Cana' :
+                language === 'en' ? 'Luxury Villa Cap Cana' :
+                'Villa de Luxe Cap Cana',
+        precio: '$580/noche',
+        imagen: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+        sector: 'Cap Cana',
+        habitaciones: 5,
+        banos: 5,
+        capacidad: 10,
+        tipo: language === 'es' ? 'Villa de Lujo' : language === 'en' ? 'Luxury Villa' : 'Villa de Luxe',
+        rating: 5.0
+      },
+      {
+        slug: 'apartamento-las-terrenas',
+        titulo: language === 'es' ? 'Apartamento Frente al Mar Las Terrenas' :
+                language === 'en' ? 'Oceanfront Apartment Las Terrenas' :
+                'Appartement Face à la Mer Las Terrenas',
+        precio: '$150/noche',
+        imagen: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=600&fit=crop',
+        sector: 'Las Terrenas',
+        habitaciones: 2,
+        banos: 2,
+        capacidad: 4,
+        tipo: 'Apartamento',
+        rating: 4.6
+      },
+      {
+        slug: 'casa-samana-playa',
+        titulo: language === 'es' ? 'Casa Familiar Samaná' :
+                language === 'en' ? 'Family House Samana' :
+                'Maison Familiale Samana',
+        precio: '$280/noche',
+        imagen: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
+        sector: 'Samaná',
+        habitaciones: 3,
+        banos: 3,
+        capacidad: 6,
+        tipo: 'Casa',
+        rating: 4.8
+      }
+    ],
+    searchParams: data?.searchParams || {},
+    isSearchPage: data?.isSearchPage || false,
+    totalProperties: data?.totalProperties || 5,
+    stats: [
+      { 
+        number: '500+', 
+        label: language === 'es' ? 'Propiedades verificadas' :
+               language === 'en' ? 'Verified properties' :
+               'Propriétés vérifiées',
+        icon: 'properties',
+        color: 'text-[#f04e00]'
+      },
+      { 
+        number: '98%', 
+        label: language === 'es' ? 'Huéspedes satisfechos' :
+               language === 'en' ? 'Satisfied guests' :
+               'Hôtes satisfaits',
+        icon: 'rating',
+        color: 'text-yellow-500'
+      },
+      { 
+        number: '24/7', 
+        label: language === 'es' ? 'Soporte local real' :
+               language === 'en' ? 'Real local support' :
+               'Support local réel',
+        icon: 'support',
+        color: 'text-blue-600'
+      },
+      { 
+        number: '15+', 
+        label: language === 'es' ? 'Años de experiencia' :
+               language === 'en' ? 'Years of experience' :
+               'Années d\'expérience',
+        icon: 'experience',
+        color: 'text-green-600'
+      }
+    ],
+    rentalFAQs: [
+      {
+        id: 'que-incluye-renta-vacacional',
+        question: language === 'es' ? '¿Qué incluye una renta vacacional en República Dominicana?' :
+                  language === 'en' ? 'What does a vacation rental in Dominican Republic include?' :
+                  'Qu\'est-ce qui est inclus dans une location de vacances en République Dominicaine?',
+        answer: language === 'es' ? 'Nuestras rentas vacacionales incluyen WiFi gratuito, ropa de cama y toallas de calidad hotelera, limpieza inicial, aire acondicionado, cocina equipada, y soporte 24/7 en español. Dependiendo de la propiedad, también incluyen piscina, parking, servicios de conserjería y amenidades premium.' :
+                language === 'en' ? 'Our vacation rentals include free WiFi, hotel-quality bedding and towels, initial cleaning, air conditioning, equipped kitchen, and 24/7 support in Spanish. Depending on the property, they also include pool, parking, concierge services and premium amenities.' :
+                'Nos locations de vacances incluent WiFi gratuit, literie et serviettes de qualité hôtelière, nettoyage initial, climatisation, cuisine équipée, et support 24/7 en espagnol. Selon la propriété, elles incluent aussi piscine, parking, services de conciergerie et équipements premium.',
+        category: 'servicios',
+        tags: ['incluido', 'amenidades', 'servicios']
+      },
+      {
+        id: 'mejor-epoca-visitar-rd',
+        question: language === 'es' ? '¿Cuál es la mejor época para rentar vacacional en RD?' :
+                  language === 'en' ? 'What\'s the best time to rent vacation property in DR?' :
+                  'Quelle est la meilleure période pour louer une propriété de vacances en RD?',
+        answer: language === 'es' ? 'República Dominicana tiene clima tropical todo el año. La temporada alta (diciembre-abril) ofrece menos lluvia pero más demanda. La temporada baja (mayo-noviembre) tiene precios hasta 40% más económicos y menos turistas, ideal para quienes buscan tranquilidad.' :
+                language === 'en' ? 'Dominican Republic has tropical climate year-round. High season (December-April) offers less rain but more demand. Low season (May-November) has prices up to 40% cheaper and fewer tourists, ideal for those seeking tranquility.' :
+                'La République Dominicaine a un climat tropical toute l\'année. La haute saison (décembre-avril) offre moins de pluie mais plus de demande. La basse saison (mai-novembre) a des prix jusqu\'à 40% moins chers et moins de touristes, idéal pour ceux qui cherchent la tranquillité.',
+        category: 'viaje',
+        tags: ['temporada', 'clima', 'precios']
+      }
+    ],
+    rentalTestimonials: [
+      {
+        id: 'familia-garcia-punta-cana',
+        category: 'familias',
+        author: {
+          name: 'María García',
+          location: 'Madrid, España',
+          verified: true,
+          avatar: 'https://i.pravatar.cc/150?img=7'
+        },
+        rating: 5,
+        text: language === 'es' ? 'Increíble experiencia en Villa Paradiso, Punta Cana. La propiedad superó todas nuestras expectativas. La piscina privada fue perfecta para los niños y la ubicación nos permitió caminar a la playa. CLIC nos ayudó desde el primer contacto hasta el check-out.' :
+              language === 'en' ? 'Incredible experience at Villa Paradiso, Punta Cana. The property exceeded all our expectations. The private pool was perfect for the kids and the location allowed us to walk to the beach. CLIC helped us from first contact to check-out.' :
+              'Expérience incroyable à Villa Paradiso, Punta Cana. La propriété a dépassé toutes nos attentes. La piscine privée était parfaite pour les enfants et l\'emplacement nous a permis de marcher jusqu\'à la plage. CLIC nous a aidés du premier contact au check-out.',
+        excerpt: language === 'es' ? 'La mejor experiencia vacacional que hemos tenido. Punta Cana es realmente mágico.' :
+                 language === 'en' ? 'The best vacation experience we\'ve had. Punta Cana is truly magical.' :
+                 'La meilleure expérience de vacances que nous ayons eue. Punta Cana est vraiment magique.',
+        propertyType: 'Villa',
+        location: 'Punta Cana',
+        date: '2024-03-15',
+        views: '1,2K',
+        readTime: '3 min',
+        stayDuration: language === 'es' ? '7 noches' : language === 'en' ? '7 nights' : '7 nuits',
+        groupSize: language === 'es' ? '6 personas' : language === 'en' ? '6 people' : '6 personnes'
+      }
+    ],
+    seo: {
+      title: language === 'es' ? 'Rentas Vacacionales en República Dominicana - CLIC' :
+             language === 'en' ? 'Vacation Rentals in Dominican Republic - CLIC' :
+             'Locations de Vacances en République Dominicaine - CLIC',
+      description: language === 'es' ? 'Encuentra la propiedad vacacional perfecta en Punta Cana, Cap Cana, Las Terrenas y más. Villas, apartamentos y casas de lujo para tus vacaciones.' :
+                   language === 'en' ? 'Find the perfect vacation property in Punta Cana, Cap Cana, Las Terrenas and more. Villas, apartments and luxury houses for your vacation.' :
+                   'Trouvez la propriété de vacances parfaite à Punta Cana, Cap Cana, Las Terrenas et plus. Villas, appartements et maisons de luxe pour vos vacances.'
+    }
+  };
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const properties = rentalsMainData.properties || [];
+const searchParams = rentalsMainData.searchParams || {};
+const isSearchPage = rentalsMainData.isSearchPage || false;
+const totalProperties = rentalsMainData.totalProperties || properties.length;
+const stats = rentalsMainData.stats || [];
+const rentalFAQs = rentalsMainData.rentalFAQs || [];
+const rentalTestimonials = rentalsMainData.rentalTestimonials || [];
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    heroTitle: 'Encuentra tu Hogar Vacacional Perfecto',
+    heroSubtitle: 'Villas, apartamentos y casas de lujo en los mejores destinos de República Dominicana',
+    searchResultsTitle: 'Resultados de búsqueda',
+    searchResultsSubtitle: (count) => `Encontramos ${count} ${count === 1 ? 'propiedad' : 'propiedades'} que coinciden con tu búsqueda`,
+    featuredTitle: 'Propiedades Destacadas',
+    featuredSubtitle: 'Las rentas vacacionales más populares y mejor valoradas',
+    whyChooseTitle: '¿Por qué CLIC es #1 en Rentas Vacacionales en República Dominicana?',
+    whyChooseSubtitle: 'Más de 15 años especializados en el mercado dominicano nos han enseñado qué necesitan realmente los huéspedes',
+    noResultsTitle: 'No encontramos propiedades',
+    noResultsText: 'No hay propiedades que coincidan con tus criterios de búsqueda. Intenta ajustar los filtros o explora nuestras opciones disponibles.',
+    noResultsButton: 'Ver todas las propiedades',
+    ownersCtaTitle: '¿Tienes una propiedad vacacional?',
+    ownersCtaText: 'Únete a nuestra plataforma y maximiza tus ingresos por rentas vacacionales',
+    ownersCtaButton: 'Conocer nuestros planes',
+    finalCtaTitle: '¿Listo para unas vacaciones inolvidables?',
+    finalCtaSubtitle: 'Encuentra y reserva la propiedad vacacional perfecta en República Dominicana',
+    finalCtaButton1: 'Ver todas las propiedades',
+    finalCtaButton2: 'Ayuda personalizada',
+    faqTitle: 'Preguntas Frecuentes sobre Rentas Vacacionales en República Dominicana',
+    faqSubtitle: 'Resolvemos todas tus dudas para que tengas las mejores vacaciones',
+    testimonialsTitle: 'Experiencias Reales de Nuestros Huéspedes',
+    testimonialsSubtitle: 'Miles de familias han creado recuerdos inolvidables con CLIC'
+  },
+  en: {
+    heroTitle: 'Find Your Perfect Vacation Home',
+    heroSubtitle: 'Villas, apartments and luxury houses in the best destinations of Dominican Republic',
+    searchResultsTitle: 'Search results',
+    searchResultsSubtitle: (count) => `We found ${count} ${count === 1 ? 'property' : 'properties'} that match your search`,
+    featuredTitle: 'Featured Properties',
+    featuredSubtitle: 'The most popular and best rated vacation rentals',
+    whyChooseTitle: 'Why CLIC is #1 in Vacation Rentals in Dominican Republic?',
+    whyChooseSubtitle: 'More than 15 years specialized in the Dominican market have taught us what guests really need',
+    noResultsTitle: 'No properties found',
+    noResultsText: 'There are no properties that match your search criteria. Try adjusting the filters or explore our available options.',
+    noResultsButton: 'View all properties',
+    ownersCtaTitle: 'Do you have a vacation property?',
+    ownersCtaText: 'Join our platform and maximize your vacation rental income',
+    ownersCtaButton: 'Learn about our plans',
+    finalCtaTitle: 'Ready for an unforgettable vacation?',
+    finalCtaSubtitle: 'Find and book the perfect vacation property in Dominican Republic',
+    finalCtaButton1: 'View all properties',
+    finalCtaButton2: 'Personalized help',
+    faqTitle: 'Frequently Asked Questions about Vacation Rentals in Dominican Republic',
+    faqSubtitle: 'We solve all your doubts so you have the best vacation',
+    testimonialsTitle: 'Real Experiences from Our Guests',
+    testimonialsSubtitle: 'Thousands of families have created unforgettable memories with CLIC'
+  },
+  fr: {
+    heroTitle: 'Trouvez votre Maison de Vacances Parfaite',
+    heroSubtitle: 'Villas, appartements et maisons de luxe dans les meilleures destinations de République Dominicaine',
+    searchResultsTitle: 'Résultats de recherche',
+    searchResultsSubtitle: (count) => `Nous avons trouvé ${count} ${count === 1 ? 'propriété' : 'propriétés'} qui correspondent à votre recherche`,
+    featuredTitle: 'Propriétés en Vedette',
+    featuredSubtitle: 'Les locations de vacances les plus populaires et les mieux notées',
+    whyChooseTitle: 'Pourquoi CLIC est #1 dans les Locations de Vacances en République Dominicaine?',
+    whyChooseSubtitle: 'Plus de 15 ans spécialisés dans le marché dominicain nous ont appris ce dont les hôtes ont vraiment besoin',
+    noResultsTitle: 'Aucune propriété trouvée',
+    noResultsText: 'Il n\'y a pas de propriétés qui correspondent à vos critères de recherche. Essayez d\'ajuster les filtres ou explorez nos options disponibles.',
+    noResultsButton: 'Voir toutes les propriétés',
+    ownersCtaTitle: 'Avez-vous une propriété de vacances?',
+    ownersCtaText: 'Rejoignez notre plateforme et maximisez vos revenus de location de vacances',
+    ownersCtaButton: 'Découvrir nos plans',
+    finalCtaTitle: 'Prêt pour des vacances inoubliables?',
+    finalCtaSubtitle: 'Trouvez et réservez la propriété de vacances parfaite en République Dominicaine',
+    finalCtaButton1: 'Voir toutes les propriétés',
+    finalCtaButton2: 'Aide personnalisée',
+    faqTitle: 'Questions Fréquemment Posées sur les Locations de Vacances en République Dominicaine',
+    faqSubtitle: 'Nous résolvons tous vos doutes pour que vous ayez les meilleures vacances',
+    testimonialsTitle: 'Expériences Réelles de nos Hôtes',
+    testimonialsSubtitle: 'Des milliers de familles ont créé des souvenirs inoubliables avec CLIC'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    allRentals: '/rentas-vacacionales',
+    plans: '/rentas-vacacionales/planes',
+    contact: '/contacto'
+  },
+  en: {
+    allRentals: '/en/vacation-rentals',
+    plans: '/en/vacation-rentals/plans',
+    contact: '/en/contact'
+  },
+  fr: {
+    allRentals: '/fr/locations-vacances',
+    plans: '/fr/locations-vacances/plans',
+    contact: '/fr/contact'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+console.log('✅ VacationRentalsMainLayout preparado:', {
+  language,
+  propertiesCount: properties.length,
+  isSearchPage,
+  totalProperties
+});
+
+---
+
+<Layout 
+  title={rentalsMainData.seo?.title || text.heroTitle}
+  description={rentalsMainData.seo?.description || text.heroSubtitle}
+  language={language}
+>
+  <!-- Hero Section with Search (solo en página principal) -->
+  {!isSearchPage && (
+    <section class="relative h-[700px] flex items-center justify-center">
+      <!-- Background Image -->
+      <div class="absolute inset-0">
+        <img 
+          src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2073&q=80" 
+          alt="Playa tropical paradisíaca con aguas cristalinas"
+          class="w-full h-full object-cover"
+        />
+        <div class="absolute inset-0 bg-black/30"></div>
+      </div>
+      
+      <!-- Content -->
+      <div class="relative z-10 container mx-auto px-4">
+        <RentalSearchBox style="hero" />
+      </div>
+    </section>
+  )}
+
+  <!-- Search Results Header (solo en páginas de búsqueda) -->
+  {isSearchPage && (
+    <section class="bg-gray-50 py-8">
+      <div class="container mx-auto px-4">
+        <!-- Buscador compacto -->
+        <RentalSearchBox 
+          style="compact" 
+          showTitle={false}
+          currentDestination={searchParams.destino || ''}
+          currentCategory={searchParams.tipo || ''}
+          currentBudget={searchParams.presupuesto || ''}
+          currentGuests={searchParams.huespedes || ''}
+        />
+      </div>
+    </section>
+  )}
+
+  <!-- SEO Content (solo en páginas de búsqueda) -->
+  {isSearchPage && (
+    <section class="container mx-auto px-4 py-12">
+      <SEODescription 
+        destino={searchParams.destino || ''}
+        tipo={searchParams.tipo || ''}
+        presupuesto={searchParams.presupuesto || ''}
+        huespedes={searchParams.huespedes || ''}
+        totalProperties={totalProperties}
+      />
+    </section>
+  )}
+
+  <!-- Stats Section (solo en página principal) -->
+  {!isSearchPage && (
+    <RentalStats background="light" animated={true} stats={stats} />
+  )}
+
+  <!-- Featured Properties / Search Results -->
+  <RentalCarousel 
+    title={isSearchPage ? text.searchResultsTitle : text.featuredTitle}
+    subtitle={isSearchPage 
+      ? text.searchResultsSubtitle(totalProperties)
+      : text.featuredSubtitle
+    }
+    properties={properties}
+    viewAllLink={isSearchPage ? null : `${currentRoutes.allRentals}/destacadas`}
+    showAll={isSearchPage}
+  />
+
+  <!-- No results message -->
+  {isSearchPage && totalProperties === 0 && (
+    <section class="container mx-auto px-4 py-12 text-center">
+      <div class="max-w-2xl mx-auto">
+        <div class="bg-gray-100 rounded-lg p-8">
+          <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <h3 class="text-xl font-semibold text-gray-900 mb-2">{text.noResultsTitle}</h3>
+          <p class="text-gray-600 mb-6">
+            {text.noResultsText}
+          </p>
+          <a 
+            href={currentRoutes.allRentals}
+            class="inline-block px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold"
+          >
+            {text.noResultsButton}
+          </a>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Types Section (solo en página principal) -->
+  {!isSearchPage && (
+    <RentalTypeGrid />
+  )}
+
+  <!-- Destinations Section (solo en página principal) -->
+  {!isSearchPage && (
+    <DestinationGrid layout="grid" />
+  )}
+
+  <!-- Why Choose Us Section (solo en página principal) -->
+  {!isSearchPage && (
+    <section class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="max-w-6xl mx-auto">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">
+              {text.whyChooseTitle}
+            </h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+              {text.whyChooseSubtitle}
+            </p>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Ventaja 1: Verificación Personal -->
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                {language === 'es' ? '100% Verificadas Personalmente' :
+                 language === 'en' ? '100% Personally Verified' :
+                 '100% Vérifiées Personnellement'}
+              </h3>
+              <p class="text-gray-600">
+                {language === 'es' ? 'Nuestro equipo visita y verifica cada propiedad. No subimos nada que no hayamos visto con nuestros propios ojos. Garantía de lo que ves es lo que obtienes.' :
+                 language === 'en' ? 'Our team visits and verifies each property. We don\'t upload anything we haven\'t seen with our own eyes. Guarantee that what you see is what you get.' :
+                 'Notre équipe visite et vérifie chaque propriété. Nous ne téléchargeons rien que nous n\'ayons pas vu de nos propres yeux. Garantie que ce que vous voyez est ce que vous obtenez.'}
+              </p>
+            </div>
+
+            <!-- Ventaja 2: Soporte Local Real -->
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a2 2 0 01-2-2v-6a2 2 0 012-2h8z"/>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                {language === 'es' ? 'Soporte Local 24/7 Real' :
+                 language === 'en' ? 'Real Local Support 24/7' :
+                 'Support Local Réel 24/7'}
+              </h3>
+              <p class="text-gray-600">
+                {language === 'es' ? 'No call centers en el extranjero. Equipo dominicano que conoce cada rincón del país y puede resolver cualquier situación en tiempo real durante tu estadía.' :
+                 language === 'en' ? 'No foreign call centers. Dominican team that knows every corner of the country and can solve any situation in real time during your stay.' :
+                 'Pas de centres d\'appels étrangers. Équipe dominicaine qui connaît chaque coin du pays et peut résoudre toute situation en temps réel pendant votre séjour.'}
+              </p>
+            </div>
+
+            <!-- Ventaja 3: Precios Directos -->
+            <div class="text-center">
+              <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 mb-3">
+                {language === 'es' ? 'Precios Directos del Propietario' :
+                 language === 'en' ? 'Direct Owner Prices' :
+                 'Prix Directs du Propriétaire'}
+              </h3>
+              <p class="text-gray-600">
+                {language === 'es' ? 'Sin intermediarios ni comisiones ocultas. Trabajamos directamente con propietarios para ofrecerte los mejores precios, hasta 30% menos que otras plataformas.' :
+                 language === 'en' ? 'No intermediaries or hidden commissions. We work directly with owners to offer you the best prices, up to 30% less than other platforms.' :
+                 'Pas d\'intermédiaires ni de commissions cachées. Nous travaillons directement avec les propriétaires pour vous offrir les meilleurs prix, jusqu\'à 30% de moins que les autres plateformes.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- FAQs específicas (solo en página principal) -->
+  {!isSearchPage && rentalFAQs.length > 0 && (
+    <DynamicFAQs 
+      faqs={rentalFAQs}
+      title={text.faqTitle}
+      subtitle={text.faqSubtitle}
+      context={{
+        location: language === 'es' ? 'República Dominicana' : language === 'en' ? 'Dominican Republic' : 'République Dominicaine',
+        propertyType: language === 'es' ? 'Rentas Vacacionales' : language === 'en' ? 'Vacation Rentals' : 'Locations de Vacances'
+      }}
+    />
+  )}
+
+  <!-- Testimonios (solo en página principal) -->
+  {!isSearchPage && rentalTestimonials.length > 0 && (
+    <Testimonials 
+      testimonials={rentalTestimonials}
+      title={text.testimonialsTitle}
+      subtitle={text.testimonialsSubtitle}
+      layout="carousel"
+      categoryPrefix="/testimonios/rentas-vacacionales"
+    />
+  )}
+
+  <!-- Owners CTA -->
+  <section class="py-12 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">
+          {text.ownersCtaTitle}
+        </h2>
+        <p class="text-lg text-gray-600 mb-6">
+          {text.ownersCtaText}
+        </p>
+        <a 
+          href={currentRoutes.plans}
+          class="inline-block px-8 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold"
+        >
+          {text.ownersCtaButton}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <div class="max-w-3xl mx-auto text-white">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">
+          {isSearchPage ? 
+            (language === 'es' ? '¿No encontraste lo que buscabas?' :
+             language === 'en' ? 'Didn\'t find what you were looking for?' :
+             'Vous n\'avez pas trouvé ce que vous cherchiez?') :
+            text.finalCtaTitle
+          }
+        </h2>
+        <p class="text-xl mb-8 text-white/90">
+          {isSearchPage ? 
+            (language === 'es' ? 'Contáctanos y te ayudamos a encontrar la propiedad perfecta para tus vacaciones' :
+             language === 'en' ? 'Contact us and we\'ll help you find the perfect property for your vacation' :
+             'Contactez-nous et nous vous aiderons à trouver la propriété parfaite pour vos vacances') :
+            text.finalCtaSubtitle
+          }
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          {isSearchPage ? (
+            <>
+              <a 
+                href={`${currentRoutes.contact}?servicio=rentas-huesped`}
+                class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              >
+                {text.finalCtaButton2}
+              </a>
+              <a 
+                href={currentRoutes.allRentals}
+                class="inline-block px-8 py-3 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+              >
+                {text.finalCtaButton1}
+              </a>
+            </>
+          ) : (
+            <>
+              <a 
+                href="#tipos-propiedades"
+                class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+              >
+                {text.finalCtaButton1}
+              </a>
+              <a 
+                href={`${currentRoutes.contact}?servicio=rentas-huesped`}
+                class="inline-block px-8 py-3 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+              >
+                {text.finalCtaButton2}
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

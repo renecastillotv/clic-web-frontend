@@ -1,0 +1,236 @@
+---
+// DestinationGrid.astro
+export interface Props {
+  title?: string;
+  subtitle?: string;
+  destinations?: Array<{
+    slug: string;
+    title: string;
+    description: string;
+    image: string;
+    propertyCount: number;
+    avgPrice: string;
+    season: string;
+    highlights: string[];
+  }>;
+  layout?: 'grid' | 'masonry';
+}
+
+const { 
+  title = "Destinos populares",
+  subtitle = "Descubre los rincones mÃ¡s hermosos de RepÃºblica Dominicana",
+  destinations = [],
+  layout = 'grid'
+} = Astro.props;
+
+// Datos por defecto si no se pasan props
+const defaultDestinations = [
+  {
+    slug: 'punta-cana',
+    title: 'Punta Cana',
+    description: 'El destino turÃ­stico #1 del Caribe',
+    image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop',
+    propertyCount: 89,
+    avgPrice: '$150-350',
+    season: 'Todo el aÃ±o',
+    highlights: ['Playas paradisÃ­acas', 'Aeropuerto internacional', 'Golf de clase mundial']
+  },
+  {
+    slug: 'cap-cana',
+    title: 'Cap Cana',
+    description: 'Lujo exclusivo en la costa este',
+    image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop',
+    propertyCount: 34,
+    avgPrice: '$200-600',
+    season: 'Nov - Abr',
+    highlights: ['Resort de lujo', 'Marina exclusiva', 'Golf Punta Espada']
+  },
+  {
+    slug: 'las-terrenas',
+    title: 'Las Terrenas',
+    description: 'Encanto bohemio en la penÃ­nsula de SamanÃ¡',
+    image: 'https://images.unsplash.com/photo-1520637836862-4d197d17c13a?w=800&h=600&fit=crop',
+    propertyCount: 28,
+    avgPrice: '$120-280',
+    season: 'Dic - Mar',
+    highlights: ['Playa Bonita', 'Ambiente bohemio', 'Restaurantes franceses']
+  },
+  {
+    slug: 'casa-de-campo',
+    title: 'Casa de Campo',
+    description: 'El resort mÃ¡s exclusivo del paÃ­s',
+    image: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=800&h=600&fit=crop',
+    propertyCount: 22,
+    avgPrice: '$300-800',
+    season: 'Todo el aÃ±o',
+    highlights: ['Teeth of the Dog', 'Marina', 'Polo']
+  },
+  {
+    slug: 'samana',
+    title: 'SamanÃ¡',
+    description: 'Naturaleza pura y ballenas jorobadas',
+    image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=600&fit=crop',
+    propertyCount: 15,
+    avgPrice: '$100-250',
+    season: 'Ene - Mar',
+    highlights: ['Avistamiento de ballenas', 'Cascadas', 'Ecoturismo']
+  },
+  {
+    slug: 'bavaro',
+    title: 'BÃ¡varo',
+    description: 'La zona hotelera mÃ¡s desarrollada',
+    image: 'https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=800&h=600&fit=crop',
+    propertyCount: 52,
+    avgPrice: '$90-280',
+    season: 'Todo el aÃ±o',
+    highlights: ['Playa BÃ¡varo', 'Vida nocturna', 'Centros comerciales']
+  }
+];
+
+const finalDestinations = destinations.length > 0 ? destinations : defaultDestinations;
+---
+
+<section id="destinos" class="py-16 bg-gray-50">
+  <div class="container mx-auto px-4">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        {title}
+      </h2>
+      <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+        {subtitle}
+      </p>
+    </div>
+    
+    <div class={`grid gap-6 ${layout === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'destination-masonry'}`}>
+      {finalDestinations.map((destino, index) => (
+        <article class="destination-card group">
+          <a 
+            href={`/rentas-vacacionales/${destino.slug}`}
+            class="block relative overflow-hidden rounded-xl shadow-sm hover:shadow-lg transition-all duration-300"
+            aria-label={`Explorar rentas vacacionales en ${destino.title}`}
+          >
+            <div class={`relative ${layout === 'masonry' && index % 3 === 1 ? 'aspect-[4/5]' : 'aspect-[4/3]'}`}>
+              <img 
+                src={destino.image} 
+                alt={`${destino.title} - ${destino.description}`}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                loading="lazy"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+              
+              <!-- Seasonal badge -->
+              {destino.season !== 'Todo el aÃ±o' && (
+                <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-gray-900 px-3 py-1 rounded-full text-sm font-medium">
+                  <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                  </svg>
+                  {destino.season}
+                </div>
+              )}
+              
+              <!-- Content overlay -->
+              <div class="absolute bottom-0 left-0 right-0 p-6 text-white">
+                <header class="mb-4">
+                  <h3 class="text-2xl font-bold mb-2">{destino.title}</h3>
+                  <p class="text-white/90 mb-3">{destino.description}</p>
+                </header>
+                
+                <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+                  <div>
+                    <span class="text-white/70 block">Propiedades:</span>
+                    <span class="font-medium text-lg">{destino.propertyCount}</span>
+                  </div>
+                  <div>
+                    <span class="text-white/70 block">Desde:</span>
+                    <span class="font-medium text-lg">{destino.avgPrice}/noche</span>
+                  </div>
+                </div>
+                
+                <footer>
+                  <div class="flex flex-wrap gap-1">
+                    {destino.highlights.slice(0, 2).map(highlight => (
+                      <span class="text-xs bg-white/20 backdrop-blur text-white px-2 py-1 rounded-md border border-white/20">
+                        {highlight}
+                      </span>
+                    ))}
+                    {destino.highlights.length > 2 && (
+                      <span class="text-xs text-white/80">+{destino.highlights.length - 2} mÃ¡s</span>
+                    )}
+                  </div>
+                </footer>
+              </div>
+            </div>
+          </a>
+        </article>
+      ))}
+    </div>
+    
+    <!-- Call to action -->
+    <div class="text-center mt-12">
+      <a 
+        href="/rentas-vacacionales/todos-los-destinos"
+        class="inline-flex items-center gap-2 px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold"
+      >
+        Ver todos los destinos
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+    
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": title,
+      "description": subtitle,
+      "itemListElement": finalDestinations.map((destino, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "item": {
+          "@type": "Place",
+          "name": destino.title,
+          "description": destino.description,
+          "image": destino.image,
+          "geo": {
+            "@type": "GeoCoordinates",
+            "addressCountry": "DO"
+          },
+          "containsPlace": {
+            "@type": "LodgingBusiness",
+            "name": `Rentas Vacacionales en ${destino.title}`,
+            "aggregateRating": {
+              "@type": "AggregateRating", 
+              "ratingValue": "4.8",
+              "reviewCount": destino.propertyCount
+            }
+          }
+        }
+      }))
+    })} />
+  </div>
+</section>
+
+<style>
+  .destination-masonry {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  @media (min-width: 768px) {
+    .destination-masonry {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .destination-masonry {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  .destination-card {
+    break-inside: avoid;
+  }
+</style>

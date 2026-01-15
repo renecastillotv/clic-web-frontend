@@ -1,0 +1,496 @@
+---
+// src/components/PropertySeoContent.astro - ESTILO NATIVO PARA SEO
+export interface Props {
+  data: any;
+  searchContext?: {
+    location?: string;
+    propertyType?: string;
+    operation?: string;
+  };
+}
+
+const { data, searchContext = {} } = Astro.props;
+
+// Función para limpiar texto SEO
+function cleanSeoText(text) {
+  if (!text) return '';
+  
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/<[^>]*>/g, '') // Remover TODAS las etiquetas HTML del texto
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Función para limpiar HTML manteniendo estructura semántica
+function cleanSeoContent(htmlContent) {
+  if (!htmlContent) return '';
+  
+  return htmlContent
+    .replace(/\r\n/g, '\n')
+    .replace(/\n\n+/g, '\n\n')
+    .replace(/style\s*=\s*["'][^"']*["']/gi, '') // Remover estilos
+    .replace(/class\s*=\s*["'][^"']*["']/gi, '') // Remover clases
+    .replace(/<span[^>]*>/gi, '') // Remover spans
+    .replace(/<\/span>/gi, '')
+    .replace(/<div[^>]*>/gi, '<p>') // Convertir divs a párrafos
+    .replace(/<\/div>/gi, '</p>')
+    .replace(/<p><\/p>/gi, '') // Remover párrafos vacíos
+    .trim();
+}
+
+// Buscar contenido SEO en múltiples ubicaciones
+let seoContentItems = [];
+
+if (data?.content?.seo_content && Array.isArray(data.content.seo_content)) {
+  seoContentItems = data.content.seo_content;
+} else if (data?.relatedContent?.seo_content && Array.isArray(data.relatedContent.seo_content)) {
+  seoContentItems = data.relatedContent.seo_content;
+} else if (data?.seo_content && Array.isArray(data.seo_content)) {
+  seoContentItems = data.seo_content;
+}
+
+// Filtrar y validar contenido
+const validSeoItems = seoContentItems
+  .filter(item => {
+    const hasContent = item?.content || item?.seo_content;
+    const hasTitle = item?.title || item?.h1_title;
+    const isRightType = !item.content_type || 
+                       item.content_type === 'seo_content' || 
+                       item.content_type === 'article';
+    
+    return hasContent && hasTitle && isRightType;
+  })
+  .slice(0, 3); // Máximo 3 artículos
+
+// Limpiar y estructurar contenido
+const cleanedSeoItems = validSeoItems.map((item, index) => {
+  const cleanContent = cleanSeoContent(item.seo_content || item.content);
+  const cleanTitle = cleanSeoText(item.title || item.h1_title);
+  
+  return {
+    ...item,
+    title: cleanTitle,
+    h2_subtitle: cleanSeoText(item.h2_subtitle),
+    description: cleanSeoText(item.description),
+    content: cleanContent,
+    wordCount: cleanContent.replace(/<[^>]*>/g, '').split(/\s+/).length,
+    readingTime: Math.ceil(cleanContent.replace(/<[^>]*>/g, '').split(/\s+/).length / 200)
+  };
+});
+
+// Generar título contextual único para cada combinación
+function generateContextualTitle() {
+  const { location, propertyType, operation } = searchContext;
+  
+  if (location && propertyType && operation) {
+    return `${operation === 'comprar' ? 'Comprar' : 'Alquilar'} ${propertyType}s en ${location}: Guía Especializada 2024`;
+  } else if (location && propertyType) {
+    return `${propertyType}s en ${location}: Todo lo que Necesitas Saber`;
+  } else if (location && operation) {
+    return `${operation === 'comprar' ? 'Comprar' : 'Alquilar'} Propiedades en ${location}: Guía Completa`;
+  } else if (propertyType && operation) {
+    return `${operation === 'comprar' ? 'Comprar' : 'Alquilar'} ${propertyType}s: Análisis del Mercado`;
+  } else if (location) {
+    return `Mercado Inmobiliario en ${location}: Oportunidades y Tendencias`;
+  } else if (propertyType) {
+    return `${propertyType}s en República Dominicana: Guía de Inversión`;
+  } else {
+    return 'Mercado Inmobiliario: Análisis y Oportunidades';
+  }
+}
+
+const contextualTitle = generateContextualTitle();
+---
+
+{cleanedSeoItems.length > 0 && (
+  <!-- Contenido SEO nativo - sin bordes ni fondos especiales -->
+  <section 
+    class="py-16 bg-gray-50" 
+    itemscope 
+    itemtype="https://schema.org/Article"
+  >
+    <div class="container mx-auto px-4">
+      <!-- ✅ USAR TODO EL ANCHO DISPONIBLE -->
+      <div class="max-w-7xl mx-auto">
+        
+        <!-- ✅ TÍTULO CONTEXTUAL SIN DECORACIONES EXTRA -->
+        <header class="mb-12">
+          <h2 
+            class="text-3xl md:text-4xl font-bold text-gray-900 mb-6"
+            itemprop="headline"
+          >
+            {contextualTitle}
+          </h2>
+          
+          {cleanedSeoItems.length > 1 && (
+            <nav class="mb-8" aria-label="Contenidos de esta página">
+              <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                <h3 class="text-lg font-semibold text-blue-900 mb-3">En esta página encontrarás:</h3>
+                <ul class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {cleanedSeoItems.map((item, index) => (
+                    <li>
+                      <a 
+                        href={`#seccion-${index + 1}`}
+                        class="text-blue-700 hover:text-blue-900 transition-colors inline-flex items-start gap-2 text-sm"
+                      >
+                        <span class="w-5 h-5 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium mt-0.5 flex-shrink-0">
+                          {index + 1}
+                        </span>
+                        <span class="leading-tight">{item.title}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </nav>
+          )}
+        </header>
+
+        <!-- ✅ CONTENIDO EN GRID PARA APROVECHAR EL ANCHO -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          <!-- Contenido principal -->
+          <main class="lg:col-span-8 space-y-12">
+            {cleanedSeoItems.map((seoItem, index) => (
+              <article 
+                id={`seccion-${index + 1}`}
+                class="scroll-mt-24"
+                itemscope 
+                itemtype="https://schema.org/Article"
+              >
+                <!-- ✅ TÍTULOS NATIVOS SIN CAJAS -->
+                <header class="mb-6">
+                  <h3 
+                    class="text-2xl md:text-3xl font-bold text-gray-900 mb-4 leading-tight"
+                    itemprop="headline"
+                  >
+                    {seoItem.title}
+                  </h3>
+                  
+                  {seoItem.h2_subtitle && (
+                    <p class="text-xl text-gray-700 mb-4 font-medium" itemprop="alternativeHeadline">
+                      {seoItem.h2_subtitle}
+                    </p>
+                  )}
+                  
+                  {seoItem.description && (
+                    <p class="text-lg text-gray-600 mb-4" itemprop="description">
+                      {seoItem.description}
+                    </p>
+                  )}
+
+                  <!-- Meta información discreta -->
+                  <div class="flex items-center gap-4 text-sm text-gray-500 border-b border-gray-200 pb-4">
+                    <span class="inline-flex items-center gap-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      {seoItem.readingTime} min
+                    </span>
+                    <span class="inline-flex items-center gap-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                      {seoItem.wordCount} palabras
+                    </span>
+                    <span class="text-blue-600 font-medium">Información especializada</span>
+                  </div>
+                </header>
+                
+                <!-- ✅ CONTENIDO NATIVO SIN CAJAS -->
+                <div itemprop="articleBody">
+                  <div class="prose prose-lg prose-gray max-w-none">
+                    <!-- Preview del contenido -->
+                    <div id={`content-preview-${index}`} class="native-content">
+                      <div 
+                        class="text-gray-700 leading-relaxed"
+                        set:html={seoItem.content.length > 1000 ? 
+                          seoItem.content.substring(0, 1000) + '...' : 
+                          seoItem.content
+                        }
+                      ></div>
+                    </div>
+                    
+                    <!-- Contenido completo (oculto inicialmente) -->
+                    {seoItem.content.length > 1000 && (
+                      <div id={`content-full-${index}`} class="hidden native-content">
+                        <div 
+                          class="text-gray-700 leading-relaxed"
+                          set:html={seoItem.content}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <!-- ✅ BOTÓN DISCRETO PARA EXPANDIR -->
+                  {seoItem.content.length > 1000 && (
+                    <div class="mt-6">
+                      <button 
+                        id={`toggle-${index}`}
+                        onclick={`toggleContent(${index})`}
+                        class="text-blue-600 hover:text-blue-800 font-medium transition-colors inline-flex items-center gap-2 group"
+                        aria-expanded="false"
+                        aria-controls={`content-full-${index}`}
+                      >
+                        <span>Continuar leyendo</span>
+                        <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <!-- Schema.org metadata -->
+                <script type="application/ld+json" set:html={JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "Article",
+                  "headline": seoItem.title,
+                  "description": seoItem.description,
+                  "wordCount": seoItem.wordCount,
+                  "timeRequired": `PT${seoItem.readingTime}M`,
+                  "articleSection": "Real Estate Guide",
+                  "inLanguage": "es-DO",
+                  "about": {
+                    "@type": "Thing",
+                    "name": searchContext.propertyType || "Propiedades",
+                    "description": `Información sobre ${searchContext.propertyType || 'propiedades'} ${searchContext.location ? `en ${searchContext.location}` : ''}`
+                  }
+                })} />
+              </article>
+            ))}
+          </main>
+
+          <!-- ✅ SIDEBAR CON INFORMACIÓN RELACIONADA -->
+          <aside class="lg:col-span-4">
+            <div class="sticky top-24 space-y-6">
+              
+              <!-- Información rápida del mercado -->
+              <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Datos del Mercado</h4>
+                <div class="space-y-3 text-sm">
+                  {searchContext.location && (
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+                      <span class="text-gray-600">Ubicación:</span>
+                      <span class="font-medium text-gray-900">{searchContext.location}</span>
+                    </div>
+                  )}
+                  {searchContext.propertyType && (
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+                      <span class="text-gray-600">Tipo:</span>
+                      <span class="font-medium text-gray-900">{searchContext.propertyType}s</span>
+                    </div>
+                  )}
+                  <div class="flex justify-between items-center pb-2 border-b border-gray-100">
+                    <span class="text-gray-600">Mercado:</span>
+                    <span class="font-medium text-green-600">Activo</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Tendencia:</span>
+                    <span class="font-medium text-blue-600">Creciente</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Enlaces relacionados -->
+              <div class="bg-gray-50 rounded-lg p-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">También te puede interesar</h4>
+                <ul class="space-y-3">
+                  <li>
+                    <a href="/guias/financiamiento" class="text-blue-600 hover:text-blue-800 text-sm block transition-colors">
+                      → Opciones de financiamiento disponibles
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/calculadora" class="text-blue-600 hover:text-blue-800 text-sm block transition-colors">
+                      → Calculadora de hipoteca
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/guias/proceso-compra" class="text-blue-600 hover:text-blue-800 text-sm block transition-colors">
+                      → Proceso completo de compra
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/asesoria" class="text-blue-600 hover:text-blue-800 text-sm block transition-colors">
+                      → Asesoría personalizada gratuita
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+<script>
+  // Función para toggle del contenido con smooth scroll
+  window.toggleContent = function(index) {
+    const preview = document.getElementById(`content-preview-${index}`);
+    const full = document.getElementById(`content-full-${index}`);
+    const btn = document.getElementById(`toggle-${index}`);
+    
+    if (full && full.classList.contains('hidden')) {
+      if (preview) preview.style.display = 'none';
+      full.classList.remove('hidden');
+      if (btn) {
+        btn.setAttribute('aria-expanded', 'true');
+        btn.innerHTML = `
+          <span>Mostrar menos</span>
+          <svg class="w-4 h-4 transition-transform group-hover:translate-x-1 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+          </svg>
+        `;
+      }
+    } else if (full) {
+      if (preview) preview.style.display = 'block';
+      full.classList.add('hidden');
+      if (btn) {
+        btn.setAttribute('aria-expanded', 'false');
+        btn.innerHTML = `
+          <span>Continuar leyendo</span>
+          <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        `;
+      }
+      // Scroll suave de vuelta al inicio de la sección
+      document.getElementById(`seccion-${index + 1}`).scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
+  };
+</script>
+
+<style>
+  /* ✅ ESTILOS NATIVOS PARA QUE PAREZCA CONTENIDO PROPIO */
+  .prose {
+    color: #374151;
+    max-width: none;
+  }
+  
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    color: #1f2937;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+  }
+  
+  .prose h1 {
+    font-size: 2rem;
+    border-bottom: 2px solid #f04e00;
+    padding-bottom: 0.5rem;
+  }
+  
+  .prose h2 {
+    font-size: 1.75rem;
+    color: #f04e00;
+  }
+  
+  .prose h3 {
+    font-size: 1.5rem;
+    color: #374151;
+  }
+  
+  .prose h4 {
+    font-size: 1.25rem;
+    color: #374151;
+  }
+  
+  .prose p {
+    margin-bottom: 1.5rem;
+    line-height: 1.8;
+    color: #374151;
+  }
+  
+  .prose ul, .prose ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .prose li {
+    margin-bottom: 0.5rem;
+    line-height: 1.7;
+  }
+  
+  .prose strong, .prose b {
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  .prose a {
+    color: #f04e00;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  
+  .prose a:hover {
+    color: #d94400;
+  }
+  
+  .prose blockquote {
+    border-left: 4px solid #f04e00;
+    padding-left: 1rem;
+    margin: 2rem 0;
+    font-style: italic;
+    color: #6b7280;
+    background-color: #f9fafb;
+    padding: 1rem;
+    border-radius: 0 0.5rem 0.5rem 0;
+  }
+  
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    font-size: 0.9rem;
+  }
+  
+  .prose th, .prose td {
+    border: 1px solid #e5e7eb;
+    padding: 0.75rem;
+    text-align: left;
+  }
+  
+  .prose th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+  }
+  
+  .native-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 2rem 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Focus para accesibilidad */
+  button:focus, a:focus {
+    outline: 2px solid #f04e00;
+    outline-offset: 2px;
+  }
+
+  /* Offset para anclas con header fijo */
+  .scroll-mt-24 {
+    scroll-margin-top: 6rem;
+  }
+</style>

@@ -1,0 +1,853 @@
+---
+// src/layouts/VideosSingleLayout.astro - Layout para video individual con contenido cruzado completo
+import Layout from './Layout.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
+}
+
+// Función para limpiar HTML y convertir a texto plano
+function stripHtml(html) {
+  if (!html) return '';
+  const text = html.replace(/<[^>]*>/g, '');
+  const decoded = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+  return decoded.trim();
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+let videoData = safeObject(data);
+
+// Procesar video principal de forma defensiva
+const rawVideo = safeObject(videoData.video);
+const safeVideoData = {
+  language: language,
+  id: safeString(rawVideo.id, 'video-default'),
+  title: safeString(rawVideo.title, 'Video sin título'),
+  subtitle: safeString(rawVideo.subtitle),
+  description: safeString(rawVideo.description, 'Descripción no disponible'),
+  thumbnail: safeString(rawVideo.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
+  videoSlug: safeString(rawVideo.videoSlug || rawVideo.slug, 'video-default'),
+  videoId: safeString(rawVideo.videoId, ''),
+  platform: safeString(rawVideo.platform, 'youtube'),
+  duration: safeString(rawVideo.duration, '0:00'),
+  publishedAt: safeString(rawVideo.publishedAt, new Date().toISOString()),
+  views: safeNumber(rawVideo.views, 0),
+  featured: Boolean(rawVideo.featured),
+  url: safeString(rawVideo.url, '#'),
+  slug: safeString(rawVideo.slug, 'video-default'),
+  author: safeObject(rawVideo.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    slug: 'equipo-clic',
+    position: 'Especialista Inmobiliario',
+    bio: ''
+  })
+};
+
+// Procesar categoría de forma defensiva
+const rawCategory = safeObject(videoData.category);
+const safeCategoryData = {
+  id: safeString(rawCategory.id, 'category-default'),
+  name: safeString(rawCategory.name, 'Videos'),
+  slug: safeString(rawCategory.slug, 'videos')
+};
+
+// Procesar contenido cruzado
+const safeRelatedVideos = safeArray(data?.crossContent?.videos || data?.relatedVideos, []).map((video, index) => ({
+  id: safeString(video.id, `related-${index}`),
+  title: safeString(video.title, 'Video sin título'),
+  thumbnail: safeString(video.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
+  duration: safeString(video.duration, '0:00'),
+  views: safeNumber(video.views, 0),
+  url: safeString(video.url, '#'),
+  slug: safeString(video.slug, `video-${index}`),
+  author: safeObject(video.author, { name: 'CLIC', avatar: '/images/team/clic-experts.jpg' })
+}));
+
+const safeRelatedArticles = safeArray(data?.crossContent?.articles || data?.relatedArticles, []).map((article, index) => ({
+  id: safeString(article.id, `article-${index}`),
+  title: safeString(article.title, 'Artículo relacionado'),
+  excerpt: safeString(article.excerpt, 'Extracto no disponible'),
+  featuredImage: safeString(article.featuredImage || article.image, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'),
+  url: safeString(article.url, '#'),
+  publishedAt: safeString(article.publishedAt, new Date().toISOString()),
+  readTime: safeString(article.readTime, '5 min'),
+  views: safeNumber(article.views, 0),
+  author: safeObject(article.author, { name: 'CLIC', avatar: safeVideoData.author.avatar })
+}));
+
+const safeRelatedProperties = safeArray(data?.crossContent?.properties || data?.relatedProperties, []).map((property, index) => ({
+  id: safeString(property.id, `property-${index}`),
+  name: safeString(property.name, 'Propiedad disponible'),
+  price: safeString(property.price, 'Consultar'),
+  image: safeString(property.image, 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop'),
+  location: safeString(property.location, 'República Dominicana'),
+  category: safeString(property.category, 'Propiedad'),
+  bedrooms: safeNumber(property.bedrooms, 0),
+  bathrooms: safeNumber(property.bathrooms, 0),
+  area: safeNumber(property.area, 0),
+  url: safeString(property.url, '#')
+}));
+
+const safeRelatedTestimonials = safeArray(data?.crossContent?.testimonials || data?.relatedTestimonials, []).map((testimonial, index) => ({
+  id: safeString(testimonial.id, `testimonial-${index}`),
+  title: safeString(testimonial.title, 'Testimonio'),
+  excerpt: safeString(testimonial.excerpt, 'Historia de éxito'),
+  clientName: safeString(testimonial.clientName, 'Cliente'),
+  clientAvatar: safeString(testimonial.clientAvatar, '/images/default-avatar.jpg'),
+  clientLocation: safeString(testimonial.clientLocation, 'República Dominicana'),
+  rating: safeNumber(testimonial.rating, 5),
+  url: safeString(testimonial.url, '#'),
+  publishedAt: safeString(testimonial.publishedAt, new Date().toISOString())
+}));
+
+// Breadcrumbs seguros
+const rawSeo = safeObject(data?.seo, {});
+const safeBreadcrumbs = safeArray(safeGet(rawSeo, 'breadcrumbs'), [
+  {
+    name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+    url: language === 'es' ? '/' : `/${language}/`
+  },
+  {
+    name: language === 'en' ? 'Videos' : language === 'fr' ? 'Vidéos' : 'Videos',
+    url: language === 'es' ? '/videos' : `/${language}/videos`
+  },
+  {
+    name: safeCategoryData.name,
+    url: language === 'es' ? `/videos/${safeCategoryData.slug}` : `/${language}/videos/${safeCategoryData.slug}`
+  },
+  {
+    name: safeVideoData.title,
+    url: safeVideoData.url
+  }
+]);
+
+// SEO Data
+const canonicalUrl = safeString(rawSeo.canonical_url, safeVideoData.url);
+const safeOpenGraph = {
+  title: rawSeo.title || safeVideoData.title,
+  description: rawSeo.description || stripHtml(safeVideoData.description),
+  url: `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${canonicalUrl}`,
+  type: 'video.other',
+  image: rawSeo.ogImage || safeVideoData.thumbnail
+};
+
+// Layout Props
+const layoutProps = {
+  title: rawSeo.title || safeVideoData.title,
+  description: rawSeo.description || stripHtml(safeVideoData.description),
+  ogImage: safeOpenGraph.image,
+  canonical: canonicalUrl,
+  keywords: safeString(rawSeo.keywords, `${safeVideoData.title}, videos inmobiliarios`),
+  globalConfig: data?.globalConfig || {},
+  language: language,
+  breadcrumbs: safeBreadcrumbs,
+  structuredData: safeGet(rawSeo, 'structured_data', {}),
+  openGraph: safeOpenGraph
+};
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    shareVideo: 'Compartir este video',
+    aboutAuthor: 'Sobre el autor',
+    sendEmail: 'Enviar email',
+    contactWhatsApp: 'Contactar por WhatsApp',
+    callNow: 'Llamar ahora',
+    relatedVideosTitle: 'Videos relacionados',
+    relatedArticlesTitle: 'Artículos relacionados',
+    relatedArticlesDesc: 'Profundiza más con nuestros artículos sobre el tema',
+    relatedTestimonialsTitle: 'Historias de éxito',
+    relatedTestimonialsDesc: 'Conoce las experiencias de nuestros clientes',
+    relatedPropertiesTitle: 'Propiedades destacadas',
+    relatedPropertiesDesc: 'Descubre propiedades que te pueden interesar',
+    minRead: 'min de lectura',
+    views: 'vistas',
+    author: 'Por',
+    facebook: 'Facebook',
+    twitter: 'Twitter',
+    linkedin: 'LinkedIn',
+    share: 'Compartir',
+    publishedOn: 'Publicado el',
+    watchNow: 'Ver ahora',
+    viewProperty: 'Ver propiedad',
+    readMore: 'Leer más',
+    bedrooms: 'hab',
+    bathrooms: 'baño',
+    clientVerified: 'Cliente verificado'
+  },
+  en: {
+    shareVideo: 'Share this video',
+    aboutAuthor: 'About the author',
+    sendEmail: 'Send email',
+    contactWhatsApp: 'Contact via WhatsApp',
+    callNow: 'Call now',
+    relatedVideosTitle: 'Related videos',
+    relatedArticlesTitle: 'Related articles',
+    relatedArticlesDesc: 'Dive deeper with our articles on the topic',
+    relatedTestimonialsTitle: 'Success stories',
+    relatedTestimonialsDesc: 'Learn about our clients\' experiences',
+    relatedPropertiesTitle: 'Featured properties',
+    relatedPropertiesDesc: 'Discover properties that might interest you',
+    minRead: 'min read',
+    views: 'views',
+    author: 'By',
+    facebook: 'Facebook',
+    twitter: 'Twitter',
+    linkedin: 'LinkedIn',
+    share: 'Share',
+    publishedOn: 'Published on',
+    watchNow: 'Watch now',
+    viewProperty: 'View property',
+    readMore: 'Read more',
+    bedrooms: 'bed',
+    bathrooms: 'bath',
+    clientVerified: 'Verified client'
+  },
+  fr: {
+    shareVideo: 'Partager cette vidéo',
+    aboutAuthor: 'À propos de l\'auteur',
+    sendEmail: 'Envoyer un email',
+    contactWhatsApp: 'Contacter par WhatsApp',
+    callNow: 'Appeler maintenant',
+    relatedVideosTitle: 'Vidéos connexes',
+    relatedArticlesTitle: 'Articles connexes',
+    relatedArticlesDesc: 'Approfondissez avec nos articles sur le sujet',
+    relatedTestimonialsTitle: 'Histoires de réussite',
+    relatedTestimonialsDesc: 'Découvrez les expériences de nos clients',
+    relatedPropertiesTitle: 'Propriétés en vedette',
+    relatedPropertiesDesc: 'Découvrez les propriétés qui pourraient vous intéresser',
+    minRead: 'min de lecture',
+    views: 'vues',
+    author: 'Par',
+    facebook: 'Facebook',
+    twitter: 'Twitter',
+    linkedin: 'LinkedIn',
+    share: 'Partager',
+    publishedOn: 'Publié le',
+    watchNow: 'Regarder',
+    viewProperty: 'Voir la propriété',
+    readMore: 'Lire la suite',
+    bedrooms: 'chambre',
+    bathrooms: 'salle de bain',
+    clientVerified: 'Client vérifié'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: { articlesBase: '/articulos', videosBase: '/videos', testimonialsBase: '/testimonios' },
+  en: { articlesBase: '/en/articles', videosBase: '/en/videos', testimonialsBase: '/en/testimonials' },
+  fr: { articlesBase: '/fr/articles', videosBase: '/fr/videos', testimonialsBase: '/fr/temoignages' }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+    }
+
+    const months = {
+      es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+    };
+
+    const monthNames = months[language] || months.es;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} de ${date.getFullYear()}`;
+  } catch (error) {
+    return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+  }
+}
+
+console.log('✅ VideosSingleLayout preparado:', {
+  language,
+  videoTitle: safeVideoData.title,
+  categoryName: safeCategoryData.name,
+  hasRelatedVideos: safeRelatedVideos.length > 0,
+  hasRelatedArticles: safeRelatedArticles.length > 0,
+  hasRelatedProperties: safeRelatedProperties.length > 0,
+  hasRelatedTestimonials: safeRelatedTestimonials.length > 0
+});
+---
+
+<Layout {...layoutProps}>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+  <div class="min-h-screen bg-white">
+
+    <!-- Hero Section with Breadcrumbs and Video Info -->
+    <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+
+      <div class="w-full px-4 relative z-10">
+        <div class="max-w-5xl mx-auto">
+
+          <!-- Breadcrumbs -->
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {safeBreadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === safeBreadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+
+          <!-- Title and Subtitle -->
+          <div class="mb-4 text-center">
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+              {safeVideoData.title}
+            </h1>
+            {safeVideoData.subtitle && (
+              <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed font-light">
+                {safeVideoData.subtitle}
+              </p>
+            )}
+          </div>
+
+          <!-- Video Meta -->
+          <div class="flex flex-col gap-3 items-center">
+            <div class="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-300">
+              <div class="flex items-center gap-3">
+                <img
+                  src={safeVideoData.author.avatar}
+                  alt={safeVideoData.author.name}
+                  class="w-10 h-10 rounded-full border border-gray-600"
+                />
+                <div class="text-center md:text-left">
+                  <p class="font-medium text-white">{safeVideoData.author.name}</p>
+                  <p class="text-gray-400 text-xs">{safeVideoData.author.position}</p>
+                </div>
+              </div>
+
+              <span class="w-px h-6 bg-gray-600"></span>
+
+              <span class="flex items-center gap-2">
+                <i class="far fa-calendar text-gray-400"></i>
+                {formatDate(safeVideoData.publishedAt)}
+              </span>
+
+              <span class="flex items-center gap-2">
+                <i class="far fa-clock text-gray-400"></i>
+                {safeVideoData.duration}
+              </span>
+
+              <span class="flex items-center gap-2">
+                <i class="far fa-eye text-gray-400"></i>
+                {safeVideoData.views.toLocaleString()} {text.views}
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Video Player Section -->
+    <section class="py-16 md:py-20 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="max-w-6xl mx-auto">
+
+          <!-- Video Embed -->
+          <div class="aspect-video bg-black rounded-xl overflow-hidden shadow-2xl mb-8">
+            {safeVideoData.videoId && (
+              <iframe
+                src={`https://www.youtube.com/embed/${safeVideoData.videoId}`}
+                title={safeVideoData.title}
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+                class="w-full h-full"
+              ></iframe>
+            )}
+          </div>
+
+          <!-- Description -->
+          {safeVideoData.description && (
+            <div class="prose prose-lg max-w-none mb-12">
+              <div class="text-gray-700 leading-relaxed" set:html={safeVideoData.description}></div>
+            </div>
+          )}
+
+          <!-- Share buttons -->
+          <div class="mt-12 pt-8 border-t border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.shareVideo}</h3>
+            <div class="flex flex-wrap gap-3">
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${safeVideoData.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                <i class="fab fa-facebook"></i>
+                {text.facebook}
+              </a>
+
+              <a
+                href={`https://twitter.com/intent/tweet?url=${safeVideoData.url}&text=${safeVideoData.title}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors text-sm"
+              >
+                <i class="fab fa-twitter"></i>
+                {text.twitter}
+              </a>
+
+              <a
+                href={`https://www.linkedin.com/sharing/share-offsite/?url=${safeVideoData.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm"
+              >
+                <i class="fab fa-linkedin"></i>
+                {text.linkedin}
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Properties Section - Compact Grid -->
+    {safeRelatedProperties.length > 0 && (
+      <section class="py-16 bg-gradient-to-b from-white to-gray-50">
+        <div class="container mx-auto px-4">
+          <div class="max-w-7xl mx-auto">
+            <div class="mb-10">
+              <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                {text.relatedPropertiesTitle}
+              </h2>
+              <p class="text-gray-600 text-sm">
+                {text.relatedPropertiesDesc}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {safeRelatedProperties.slice(0, 8).map((property) => (
+                <a href={property.url} class="group cursor-pointer" key={property.id}>
+                  <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#f04e00]/30 h-full flex flex-col">
+
+                    <!-- Image Section -->
+                    <div class="relative aspect-[4/3] overflow-hidden bg-gray-200">
+                      <img
+                        src={property.image}
+                        alt={property.name}
+                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        loading="lazy"
+                      />
+
+                      <!-- Category Badge -->
+                      {property.category && (
+                        <div class="absolute top-2 left-2 bg-white/95 backdrop-blur-sm text-gray-900 px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm">
+                          {property.category}
+                        </div>
+                      )}
+
+                      <!-- Price Badge -->
+                      {property.price && (
+                        <div class="absolute top-2 right-2 bg-[#f04e00] text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-md">
+                          {property.price}
+                        </div>
+                      )}
+                    </div>
+
+                    <!-- Content Section -->
+                    <div class="p-4 flex-1 flex flex-col">
+
+                      <!-- Location -->
+                      <div class="flex items-center gap-1.5 text-gray-500 text-xs mb-2">
+                        <i class="fas fa-map-marker-alt text-[#f04e00] text-xs"></i>
+                        <span class="line-clamp-1">{property.location}</span>
+                      </div>
+
+                      <!-- Title -->
+                      <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2 text-sm mb-3 leading-tight flex-1">
+                        {property.name}
+                      </h3>
+
+                      <!-- Specs Row -->
+                      <div class="flex items-center justify-start gap-4 pt-2 border-t border-gray-100">
+                        {property.bedrooms > 0 && (
+                          <div class="flex items-center gap-1 text-gray-600">
+                            <i class="fas fa-bed text-[#f04e00] text-sm"></i>
+                            <span class="text-xs font-medium">{property.bedrooms}</span>
+                          </div>
+                        )}
+                        {property.bathrooms > 0 && (
+                          <div class="flex items-center gap-1 text-gray-600">
+                            <i class="fas fa-bath text-[#f04e00] text-sm"></i>
+                            <span class="text-xs font-medium">{property.bathrooms}</span>
+                          </div>
+                        )}
+                        {property.area > 0 && (
+                          <div class="flex items-center gap-1 text-gray-600">
+                            <i class="fas fa-ruler-combined text-[#f04e00] text-sm"></i>
+                            <span class="text-xs font-medium">{property.area}m²</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                </a>
+              ))}
+            </div>
+
+            <!-- View All Link -->
+            {safeRelatedProperties.length > 8 && (
+              <div class="text-center mt-8">
+                <a
+                  href={`${language === 'es' ? '/comprar' : language === 'en' ? '/en/buy' : '/fr/acheter'}`}
+                  class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-semibold transition-colors text-sm"
+                >
+                  <span>{language === 'es' ? 'Ver todas las propiedades' : language === 'en' ? 'View all properties' : 'Voir toutes les propriétés'}</span>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Related Articles -->
+    {safeRelatedArticles.length > 0 && (
+      <section class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+          <div class="max-w-6xl mx-auto">
+            <div class="mb-10">
+              <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                {text.relatedArticlesTitle}
+              </h2>
+              <p class="text-gray-600 text-sm">
+                {text.relatedArticlesDesc}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {safeRelatedArticles.slice(0, 6).map((article) => (
+                <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group" key={article.id}>
+                  <a href={article.url} class="block">
+                    <div class="aspect-[16/10] relative overflow-hidden">
+                      <img
+                        src={article.featuredImage}
+                        alt={article.title}
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      <div class="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium">
+                        <i class="far fa-clock mr-1"></i>
+                        {article.readTime}
+                      </div>
+                    </div>
+
+                    <div class="p-6">
+                      <h3 class="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
+                        {article.title}
+                      </h3>
+
+                      <p class="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
+                        {article.excerpt}
+                      </p>
+
+                      <div class="flex items-center justify-between text-sm text-gray-500">
+                        <div class="flex items-center gap-2">
+                          <img
+                            src={article.author.avatar}
+                            alt={article.author.name}
+                            class="w-6 h-6 rounded-full"
+                          />
+                          <span class="truncate font-medium">{article.author.name}</span>
+                        </div>
+                        <span class="flex items-center gap-1">
+                          <i class="far fa-eye"></i>
+                          {article.views.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Related Videos -->
+    {safeRelatedVideos.length > 0 && (
+      <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+          <div class="max-w-6xl mx-auto">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
+              {text.relatedVideosTitle}
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {safeRelatedVideos.slice(0, 4).map((video) => (
+                <a href={video.url} class="group block" key={video.id}>
+                  <div class="aspect-video relative overflow-hidden rounded-lg bg-gray-200 mb-4">
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <div class="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
+                        <i class="fas fa-play text-[#f04e00] text-xl ml-1"></i>
+                      </div>
+                    </div>
+                    <div class="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium">
+                      {video.duration}
+                    </div>
+                  </div>
+                  <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2 text-sm">
+                    {video.title}
+                  </h3>
+                  <p class="text-gray-500 text-xs mt-2">
+                    {video.author.name}
+                  </p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Testimonials Section -->
+    {safeRelatedTestimonials.length > 0 && (
+      <section class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+          <div class="max-w-6xl mx-auto">
+            <div class="mb-10">
+              <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                {text.relatedTestimonialsTitle}
+              </h2>
+              <p class="text-gray-600 text-sm">
+                {text.relatedTestimonialsDesc}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {safeRelatedTestimonials.slice(0, 6).map((testimonial) => (
+                <a href={testimonial.url} class="group block" key={testimonial.id}>
+                  <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden p-6">
+                    <div class="flex items-start gap-4 mb-4">
+                      <img
+                        src={testimonial.clientAvatar}
+                        alt={testimonial.clientName}
+                        class="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                      />
+                      <div class="flex-1">
+                        <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors">
+                          {testimonial.clientName}
+                        </h3>
+                        <p class="text-sm text-gray-500">{testimonial.clientLocation}</p>
+                        <div class="flex mt-1">
+                          {Array.from({length: testimonial.rating}, (_, i) => (
+                            <svg key={i} class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <h4 class="font-medium text-gray-900 mb-2 line-clamp-2">
+                      {testimonial.title}
+                    </h4>
+                    <p class="text-gray-600 text-sm line-clamp-3">
+                      {testimonial.excerpt}
+                    </p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Author Bio - Enhanced -->
+    <section class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="max-w-6xl mx-auto">
+          <div class="p-8 bg-gradient-to-r from-gray-900/5 to-gray-900/10 rounded-xl border border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-6">{text.aboutAuthor}</h3>
+            <div class="flex items-start gap-6">
+              <div class="flex-shrink-0">
+                <img
+                  src={safeVideoData.author.avatar}
+                  alt={safeVideoData.author.name}
+                  class="w-20 h-20 rounded-full border-4 border-white shadow-lg object-cover"
+                />
+              </div>
+              <div class="flex-1">
+                <h4 class="text-xl font-bold text-gray-900 mb-1">{safeVideoData.author.name}</h4>
+                <p class="text-[#f04e00] font-semibold mb-3 text-sm">{safeVideoData.author.position}</p>
+                {safeVideoData.author.bio && (
+                  <p class="text-gray-700 mb-4 leading-relaxed text-sm">{stripHtml(safeVideoData.author.bio)}</p>
+                )}
+
+                <div class="flex flex-wrap gap-3 pt-2">
+                  <a
+                    href={`https://wa.me/${safeVideoData.author.whatsapp || '18094872542'}?text=${encodeURIComponent(`Hola, vi tu video "${safeVideoData.title}" y me gustaría más información`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 text-xs font-medium shadow-sm hover:shadow-md"
+                  >
+                    <i class="fab fa-whatsapp"></i>
+                    {text.contactWhatsApp}
+                  </a>
+
+                  <a
+                    href={`mailto:${safeVideoData.author.email || 'info@clicinmobiliaria.com'}`}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-all duration-200 text-xs font-medium shadow-sm hover:shadow-md"
+                  >
+                    <i class="far fa-envelope"></i>
+                    {text.sendEmail}
+                  </a>
+
+                  <a
+                    href={`tel:${safeVideoData.author.phone || '+18094872542'}`}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all duration-200 text-xs font-medium shadow-sm hover:shadow-md border border-gray-700"
+                  >
+                    <i class="fas fa-phone"></i>
+                    {text.callNow}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
+
+<style>
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+  }
+
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+  }
+
+  .group:hover .group-hover\:text-[#f04e00] {
+    color: #f04e00;
+  }
+</style>
+
+<!-- VideoObject Schema for Rich Snippets -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "VideoObject",
+  "name": safeVideoData.title,
+  "description": safeVideoData.description,
+  "thumbnailUrl": safeVideoData.thumbnail || `https://img.youtube.com/vi/${safeVideoData.videoId}/maxresdefault.jpg`,
+  "uploadDate": safeVideoData.publishedAt,
+  "duration": safeVideoData.duration ? `PT${safeVideoData.duration.replace(/:/g, 'M')}S`.replace('MS', 'S') : undefined,
+  "contentUrl": safeVideoData.platform === 'youtube'
+    ? `https://www.youtube.com/watch?v=${safeVideoData.videoId}`
+    : safeVideoData.url,
+  "embedUrl": safeVideoData.platform === 'youtube'
+    ? `https://www.youtube.com/embed/${safeVideoData.videoId}`
+    : undefined,
+  "interactionStatistic": {
+    "@type": "InteractionCounter",
+    "interactionType": { "@type": "WatchAction" },
+    "userInteractionCount": safeVideoData.views || 0
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "CLIC Inmobiliaria",
+    "logo": {
+      "@type": "ImageObject",
+      "url": `${Astro.url.origin}/images/logo-clic.png`
+    }
+  },
+  "author": {
+    "@type": "Person",
+    "name": safeVideoData.author?.name || "Equipo CLIC"
+  }
+}, null, 0)} />

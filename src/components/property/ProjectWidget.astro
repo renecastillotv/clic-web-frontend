@@ -1,0 +1,1056 @@
+// ===== ProjectWidget.astro =====
+---
+// src/components/property/sidebar/ProjectWidget.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const project = data.project || null;
+const property = data.property || {};
+
+console.log('🏗️ ProjectWidget loaded:', {
+  isProject: data.isProject,
+  projectName: project?.name,
+  hasTypologies: !!(project?.typologies?.length),
+  hasPaymentPlans: !!(project?.paymentPlans?.length),
+  hasPhases: !!(project?.phases?.length)
+});
+---
+
+<!-- Project Information Widget -->
+{data.isProject && project && (
+  <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl shadow-lg p-6 border border-orange-100">
+    <!-- Header del Proyecto -->
+    <div class="mb-6">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 bg-gradient-to-br from-[#f04e00] to-[#e03400] rounded-xl flex items-center justify-center shadow-lg">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-gray-900">Información del Proyecto</h3>
+          <p class="text-sm text-gray-600">{project.name || property.title}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Beneficios Especiales -->
+    <div class="mb-6">
+      <h4 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+        <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        Beneficios Especiales
+      </h4>
+      <div class="space-y-2">
+        <div class="bg-white rounded-lg p-3 shadow-sm border border-orange-100">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold bg-green-100 text-green-800 px-2 py-1 rounded-full">BONO VIVIENDA</span>
+            <span class="text-xs font-bold bg-orange-100 text-orange-800 px-2 py-1 rounded-full">LÍNEA BLANCA</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tipologías -->
+    {project.typologies && project.typologies.length > 0 && (
+      <div class="mb-6">
+        <h4 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-2-2H7v-2h10v2zm0-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+          </svg>
+          Tipologías
+        </h4>
+        <div class="space-y-2">
+          {project.typologies.slice(0, 3).map((typo) => (
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-orange-100">
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-900">
+                  {typo.bedrooms} hab, {typo.bathrooms} baños
+                </span>
+                <span class="text-sm font-bold text-[#f04e00]">
+                  {typo.priceFrom ? `${typo.currency}${(typo.priceFrom / 1000).toFixed(0)}K` : 'Consultar'}
+                  {typo.priceTo && typo.priceFrom !== typo.priceTo && (
+                    <>-{(typo.priceTo / 1000).toFixed(0)}K</>
+                  )}
+                </span>
+              </div>
+              {typo.area && (
+                <div class="text-xs text-gray-600 mt-1">
+                  {typo.area}m² • {typo.availableUnits || 0} disponibles
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Plan de Pago -->
+    {project.paymentPlans && project.paymentPlans.length > 0 && (
+      <div class="mb-6">
+        <h4 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+          </svg>
+          Plan de Pago
+        </h4>
+        {project.paymentPlans.slice(0, 1).map((plan) => (
+          <div class="bg-white rounded-lg p-4 shadow-sm border border-orange-100">
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-700">Reserva:</span>
+                <span class="text-sm font-bold text-[#f04e00]">
+                  {plan.reservationCurrency}${plan.reservation?.toLocaleString() || '1,000'}
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-700">{plan.separationPercentage}% a la firma:</span>
+                <span class="text-sm font-bold text-gray-900">Separación</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-700">{plan.constructionPercentage}% construcción:</span>
+                <span class="text-sm font-bold text-gray-900">Cuotas</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-700">{plan.deliveryPercentage}% contra entrega:</span>
+                <span class="text-sm font-bold text-gray-900">Financiamiento</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+
+    <!-- Fechas de Entrega -->
+    {project.phases && project.phases.length > 0 && (
+      <div class="mb-6">
+        <h4 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+          </svg>
+          Fechas de Entrega
+        </h4>
+        <div class="space-y-2">
+          {project.phases.slice(0, 2).map((phase, index) => (
+            <div class="bg-white rounded-lg p-3 shadow-sm border border-orange-100">
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-900">
+                  {phase.name || `Etapa ${index + 1}`}:
+                </span>
+                <span class="text-sm font-bold text-[#f04e00]">
+                  {phase.estimatedDelivery ? 
+                    new Date(phase.estimatedDelivery).toLocaleDateString('es-DO', { month: 'long', year: 'numeric' }) :
+                    index === 0 ? 'Abril 2026' : 'Mayo 2027'
+                  }
+                </span>
+              </div>
+              {phase.completionPercentage && (
+                <div class="mt-2">
+                  <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      class="bg-gradient-to-r from-[#f04e00] to-[#e03400] h-2 rounded-full transition-all duration-300" 
+                      style={`width: ${phase.completionPercentage}%`}
+                    ></div>
+                  </div>
+                  <span class="text-xs text-gray-600 mt-1 block">
+                    {phase.completionPercentage}% completado
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Garantías del Proyecto -->
+    <div class="mb-4">
+      <h4 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+        <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+        </svg>
+        Garantías del Proyecto
+      </h4>
+      <div class="bg-white rounded-lg p-3 shadow-sm border border-orange-100">
+        <div class="space-y-2">
+          <div class="flex items-center gap-2 text-sm text-gray-700">
+            <svg class="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+            <span>Desarrollador certificado</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-gray-700">
+            <svg class="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+            <span>Garantía de construcción</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-gray-700">
+            <svg class="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+            <span>Financiamiento disponible</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Developer Info si está disponible -->
+    {project.developer && (
+      <div class="pt-4 border-t border-orange-200">
+        <div class="flex items-center gap-3">
+          {project.developer.logo_url ? (
+            <img 
+              src={project.developer.logo_url} 
+              alt={project.developer.name}
+              class="w-10 h-10 rounded-lg object-cover border border-orange-200"
+            />
+          ) : (
+            <div class="w-10 h-10 bg-gradient-to-br from-[#f04e00] to-[#e03400] rounded-lg flex items-center justify-center">
+              <span class="text-white font-bold text-sm">
+                {project.developer.name ? project.developer.name.charAt(0).toUpperCase() : 'D'}
+              </span>
+            </div>
+          )}
+          <div>
+            <p class="text-sm font-semibold text-gray-900">{project.developer.name}</p>
+            <p class="text-xs text-gray-600">
+              {project.developer.years_experience} años • {project.developer.total_projects} proyectos
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
+// ===== ShareWidget.astro =====
+---
+// src/components/property/sidebar/ShareWidget.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const property = data.property || {};
+
+console.log('📤 ShareWidget loaded:', {
+  propertyTitle: property.title,
+  propertyPrice: property.price,
+  propertyLocation: property.location
+});
+---
+
+<!-- Share Property Widget -->
+<div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+  <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">Compartir Propiedad</h3>
+  
+  <div class="grid grid-cols-2 gap-3">
+    <!-- Facebook -->
+    <a 
+      href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="bg-blue-600 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-blue-700 transition-all duration-300 flex flex-col items-center gap-2 shadow-md hover:shadow-lg"
+    >
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+      </svg>
+      <span class="text-sm">Facebook</span>
+    </a>
+
+    <!-- Twitter -->
+    <a 
+      href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(`${property.title} - ${property.price}`)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="bg-sky-500 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-sky-600 transition-all duration-300 flex flex-col items-center gap-2 shadow-md hover:shadow-lg"
+    >
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+      </svg>
+      <span class="text-sm">Twitter</span>
+    </a>
+
+    <!-- WhatsApp -->
+    <a 
+      href={`https://wa.me/?text=${encodeURIComponent(`${property.title} - ${property.price} ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="bg-green-500 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-green-600 transition-all duration-300 flex flex-col items-center gap-2 shadow-md hover:shadow-lg"
+    >
+      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.108"/>
+      </svg>
+      <span class="text-sm">WhatsApp</span>
+    </a>
+
+    <!-- Email -->
+    <a 
+      href={`mailto:?subject=${encodeURIComponent(`${property.title} - CLIC Inmobiliaria`)}&body=${encodeURIComponent(`Te comparto esta propiedad: ${property.title}\nPrecio: ${property.price}\nUbicación: ${property.location}\n\nVer más: ${typeof window !== 'undefined' ? window.location.href : ''}`)}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="bg-gray-600 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-gray-700 transition-all duration-300 flex flex-col items-center gap-2 shadow-md hover:shadow-lg"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+      </svg>
+      <span class="text-sm">Email</span>
+    </a>
+  </div>
+
+  <!-- Copy Link -->
+  <div class="mt-4 pt-4 border-t border-gray-100">
+    <button 
+      onclick="copyPropertyLink()"
+      class="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-all duration-300 flex items-center justify-center gap-2"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+      </svg>
+      <span>Copiar enlace</span>
+    </button>
+  </div>
+</div>
+
+// ===== TestimonialsWidget.astro =====
+---
+// src/components/property/sidebar/TestimonialsWidget.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const testimonials = [
+  ...(data.content?.testimonials || []),
+  ...(data.relatedContent?.testimonials || [])
+];
+
+console.log('⭐ TestimonialsWidget loaded:', {
+  hasTestimonials: testimonials.length > 0,
+  testimonialsCount: testimonials.length
+});
+---
+
+<!-- Testimonials Widget -->
+{testimonials.length > 0 && (
+  <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+    <div class="flex items-center gap-2 mb-6">
+      <svg class="w-6 h-6 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
+      </svg>
+      <h3 class="text-lg font-semibold text-gray-900">Testimonios</h3>
+    </div>
+
+    <div class="space-y-6">
+      {testimonials.slice(0, 3).map((testimonial) => (
+        <div class="border-l-4 border-[#f04e00] pl-4">
+          <a 
+            href={`/testimonios/${testimonial.category || 'clientes'}/${testimonial.slug}`}
+            class="block group hover:bg-gray-50 rounded-lg p-3 -m-3 transition-all duration-300"
+          >
+            <blockquote class="text-gray-700 italic mb-3 leading-relaxed group-hover:text-gray-900 transition-colors">
+              {testimonial.excerpt || testimonial.full_testimonial || testimonial.title || 'Excelente experiencia con CLIC Inmobiliaria'}
+            </blockquote>
+            
+            <div class="flex items-center gap-3">
+              <!-- Avatar with initials or image -->
+              <div class="relative">
+                {testimonial.client_avatar ? (
+                  <img 
+                    src={testimonial.client_avatar} 
+                    alt={testimonial.client_name}
+                    class="w-10 h-10 rounded-full object-cover"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                  />
+                ) : null}
+                
+                <!-- Fallback Circle with Initials -->
+                <div 
+                  class="w-10 h-10 rounded-full bg-gradient-to-br from-[#f04e00] to-[#e03400] flex items-center justify-center text-white font-bold text-sm"
+                  style={testimonial.client_avatar ? 'display: none;' : 'display: flex;'}
+                >
+                  {testimonial.client_name ? 
+                    testimonial.client_name.split(' ').map(word => word.charAt(0)).join('').substring(0, 2).toUpperCase() : 
+                    'CL'
+                  }
+                </div>
+              </div>
+
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <p class="font-semibold text-gray-900 text-sm group-hover:text-[#f04e00] transition-colors">
+                    {testimonial.client_name || 'Cliente CLIC'}
+                  </p>
+                  {testimonial.client_verified && (
+                    <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                    </svg>
+                  )}
+                </div>
+                <div class="flex items-center gap-2">
+                  {testimonial.client_profession && (
+                    <p class="text-xs text-gray-600">{testimonial.client_profession}</p>
+                  )}
+                  {testimonial.client_location && (
+                    <>
+                      {testimonial.client_profession && <span class="text-xs text-gray-400">•</span>}
+                      <p class="text-xs text-gray-600">{testimonial.client_location}</p>
+                    </>
+                  )}
+                  {testimonial.transaction_location && !testimonial.client_location && (
+                    <p class="text-xs text-gray-600">{testimonial.transaction_location}</p>
+                  )}
+                </div>
+              </div>
+
+              <!-- Rating Stars -->
+              <div class="flex text-yellow-400">
+                {[...Array(5)].map((_, i) => (
+                  <svg class={`w-4 h-4 ${i < (testimonial.rating || 5) ? 'text-yellow-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                ))}
+              </div>
+
+              <!-- Click indicator -->
+              <svg class="w-4 h-4 text-gray-400 group-hover:text-[#f04e00] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </div>
+          </a>
+        </div>
+      ))}
+    </div>
+
+    <!-- Footer de testimonios -->
+    <div class="mt-6 pt-4 border-t border-gray-100">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+          <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+          </svg>
+          <span>Testimonios verificados</span>
+        </div>
+        
+        <a 
+          href="/testimonios" 
+          class="text-sm text-[#f04e00] hover:text-[#d94400] font-medium transition-colors"
+        >
+          Ver todos →
+        </a>
+      </div>
+    </div>
+  </div>
+)}
+
+// ===== CalculatorWidget.astro =====
+---
+// src/components/property/sidebar/CalculatorWidget.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+const property = data.property || {};
+const project = data.project || null;
+
+console.log('🧮 CalculatorWidget loaded:', {
+  isProject: data.isProject,
+  propertyPrice: property.price,
+  projectPhases: project?.phases?.length || 0
+});
+---
+
+<!-- Calculadora de Préstamos / Financiamiento -->
+<div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+  <!-- Header de la calculadora -->
+  <div class="bg-gradient-to-r from-[#f04e00] to-[#e03400] px-6 py-4">
+    <div class="flex items-center gap-3">
+      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+      </svg>
+      <h3 class="text-lg font-bold text-white">
+        {data.isProject ? 'Calculadora de Cuotas' : 'Calculadora de Financiamiento'}
+      </h3>
+    </div>
+    <p class="text-white/90 text-sm mt-1">
+      {data.isProject ? 'Estima tus pagos durante construcción' : 'Calcula tu cuota mensual'}
+    </p>
+  </div>
+
+  <!-- Cuerpo de la calculadora -->
+  <div class="p-6 space-y-6">
+    
+    <!-- Modo Proyecto -->
+    {data.isProject && (
+      <div id="project-calculator">
+        
+        <!-- Información del proyecto -->
+        <div class="bg-orange-50 rounded-lg p-4 border border-orange-200 mb-4">
+          <div class="text-sm text-gray-700">
+            <div class="flex justify-between items-center mb-1">
+              <span>Precio base:</span>
+              <span class="font-semibold" id="project-base-price">{property.price}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span>Entrega estimada:</span>
+              <span class="font-semibold">
+                {project?.phases?.[0]?.estimatedDelivery ? 
+                  new Date(project.phases[0].estimatedDelivery).toLocaleDateString('es-DO', { month: 'long', year: 'numeric' }) : 
+                  'Abril 2026'
+                }
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles de entrada -->
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Precio seleccionado (USD)</label>
+            <input 
+              type="text" 
+              id="project-price"
+              value="150,000"
+              class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right"
+              placeholder="150,000"
+              oninput="formatCurrency(this); markCalculationChanged()"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Reserva (USD)</label>
+              <input 
+                type="text" 
+                id="project-reservation"
+                value="1,000"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right text-sm"
+                oninput="formatCurrency(this); markCalculationChanged()"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">% A la firma</label>
+              <input 
+                type="number" 
+                id="project-separation-percent"
+                value="5"
+                min="0" 
+                max="20"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right text-sm"
+                oninput="markCalculationChanged()"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">% Durante construcción</label>
+              <input 
+                type="number" 
+                id="project-construction-percent"
+                value="15"
+                min="10" 
+                max="30"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right text-sm"
+                oninput="markCalculationChanged()"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">% Contra entrega</label>
+              <input 
+                type="number" 
+                id="project-financing-percent"
+                value="80"
+                min="60" 
+                max="90"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right text-sm"
+                oninput="markCalculationChanged()"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Meses hasta entrega</label>
+              <input 
+                type="number" 
+                id="project-months"
+                value="18"
+                min="6" 
+                max="60"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right text-sm"
+                oninput="markCalculationChanged()"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tasa financiamiento (%)</label>
+              <input 
+                type="number" 
+                id="project-interest-rate"
+                value="15"
+                min="8" 
+                max="25"
+                step="0.5"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right text-sm"
+                oninput="markCalculationChanged()"
+              />
+            </div>
+          </div>
+
+          <!-- Botón Aplicar Cambios -->
+          <button 
+            id="apply-project-changes"
+            onclick="applyProjectChanges()"
+            class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-300"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Aplicar Cambios
+            </span>
+          </button>
+        </div>
+
+        <!-- Resultados del proyecto -->
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+          <h4 class="font-semibold text-gray-900 mb-3">Plan de Pagos Estimado</h4>
+          
+          <div class="space-y-3 text-sm">
+            <!-- Fase de Construcción -->
+            <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
+              <h5 class="font-semibold text-blue-900 mb-2">Durante Construcción (sin interés)</h5>
+              <div class="space-y-1">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Reserva inicial:</span>
+                  <span class="font-semibold" id="calc-reservation">US$1,000</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Separación a la firma:</span>
+                  <span class="font-semibold text-blue-700" id="calc-separation">US$7,500</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Cuotas mensuales:</span>
+                  <span class="font-semibold text-blue-700" id="calc-construction-monthly">US$1,389</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Período:</span>
+                  <span class="font-semibold" id="calc-construction-period">18 meses</span>
+                </div>
+                <div class="border-t border-blue-200 pt-1 flex justify-between">
+                  <span class="font-medium text-blue-900">Total fase construcción:</span>
+                  <span class="font-bold text-blue-900" id="calc-construction-total">US$22,500</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fase de Financiamiento -->
+            <div class="bg-green-50 rounded-lg p-3 border border-green-200">
+              <h5 class="font-semibold text-green-900 mb-2">Contra Entrega - Financiamiento (30 años)</h5>
+              <div class="space-y-1">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Monto contra entrega (80%):</span>
+                  <span class="font-semibold" id="calc-financed-amount">US$120,000</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Cuota mensual financiada:</span>
+                  <span class="font-semibold text-green-700" id="calc-monthly-financing">US$1,519</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Tasa estimada:</span>
+                  <span class="font-semibold">15% anual</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Modo Propiedad Regular -->
+    {!data.isProject && (
+      <div id="regular-calculator">
+        
+        <!-- Información de la propiedad -->
+        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4">
+          <div class="text-sm text-gray-700">
+            <div class="flex justify-between items-center mb-1">
+              <span>Precio de la propiedad:</span>
+              <span class="font-semibold" id="regular-property-price">{property.price}</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span>Financiamiento típico:</span>
+              <span class="font-semibold text-green-600">Hasta 80%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles de entrada -->
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Precio de la propiedad (USD)</label>
+            <input 
+              type="text" 
+              id="regular-price"
+              value="200,000"
+              class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right"
+              placeholder="200,000"
+              oninput="formatCurrency(this); markCalculationChanged()"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">% Financiamiento</label>
+              <input 
+                type="number" 
+                id="regular-financing-percent"
+                value="80"
+                min="10" 
+                max="95"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right text-sm"
+                oninput="markCalculationChanged()"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tasa anual (%)</label>
+              <input 
+                type="number" 
+                id="regular-rate"
+                value="15"
+                min="5" 
+                max="30"
+                step="0.5"
+                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors text-right text-sm"
+                oninput="markCalculationChanged()"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Plazo (años)</label>
+            <select 
+              id="regular-years"
+              class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors"
+              onchange="markCalculationChanged()"
+            >
+              <option value="15">15 años</option>
+              <option value="20">20 años</option>
+              <option value="25">25 años</option>
+              <option value="30" selected>30 años</option>
+            </select>
+          </div>
+
+          <!-- Botón Aplicar Cambios -->
+          <button 
+            id="apply-regular-changes"
+            onclick="applyRegularChanges()"
+            class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-300"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Aplicar Cambios
+            </span>
+          </button>
+        </div>
+
+        <!-- Resultados de propiedad regular -->
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+          <h4 class="font-semibold text-gray-900 mb-3">Resumen del Financiamiento</h4>
+          
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Monto a financiar:</span>
+              <span class="font-semibold" id="calc-financed-amount">US$160,000</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Inicial requerida:</span>
+              <span class="font-semibold" id="calc-down-payment">US$40,000</span>
+            </div>
+            <div class="flex justify-between border-t border-gray-200 pt-2">
+              <span class="text-gray-900 font-medium">Cuota mensual:</span>
+              <span class="font-bold text-[#f04e00] text-lg" id="calc-monthly-payment">US$2,027</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Disclaimer importante -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+        </svg>
+        <div class="text-sm">
+          <p class="font-semibold text-yellow-800 mb-1">Importante</p>
+          <p class="text-yellow-700 leading-relaxed">
+            Estos son cálculos estimativos. Los valores reales, tasas de interés y condiciones específicas las obtienes consultando directamente con un asesor CLIC.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botón CTA -->
+    <button 
+      onclick="requestCalculationConsultation()"
+      class="w-full bg-gradient-to-r from-[#f04e00] to-[#e03400] text-white py-3 rounded-lg font-semibold hover:from-[#d94400] hover:to-[#c73400] transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+      </svg>
+      Consultar con Asesor CLIC
+    </button>
+  </div>
+</div>
+
+<script>
+  // =====================================================
+  // CALCULADORA DE PRÉSTAMOS - VERSIÓN FUNCIONAL
+  // =====================================================
+
+  // Estado de la calculadora
+  let currentMode = 'regular';
+  let hasChanges = {
+    regular: false,
+    project: false
+  };
+
+  // Formatear números con comas
+  function formatNumber(num) {
+    return new Intl.NumberFormat('en-US').format(num);
+  }
+
+  // Formatear campos de moneda
+  function formatCurrency(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value) {
+      input.value = formatNumber(parseInt(value));
+    }
+  }
+
+  // Parsear valores de moneda
+  function parseCurrency(value) {
+    return parseInt(value.replace(/[^0-9]/g, '')) || 0;
+  }
+
+  // Marcar que hay cambios pendientes
+  function markCalculationChanged() {
+    const mode = currentMode;
+    hasChanges[mode] = true;
+    const button = document.getElementById(`apply-${mode}-changes`);
+    if (button) {
+      button.disabled = false;
+      button.className = button.className.replace('opacity-50 cursor-not-allowed', '');
+      button.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  // Calcular cuota mensual de préstamo
+  function calculateMonthlyPayment(principal, annualRate, years) {
+    const monthlyRate = annualRate / 100 / 12;
+    const numberOfPayments = years * 12;
+    
+    if (monthlyRate === 0) {
+      return principal / numberOfPayments;
+    }
+    
+    return principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
+           (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+  }
+
+  // Aplicar cambios para propiedad regular
+  function applyRegularChanges() {
+    const priceField = document.getElementById('regular-price');
+    const financingField = document.getElementById('regular-financing-percent');
+    const rateField = document.getElementById('regular-rate');
+    const yearsField = document.getElementById('regular-years');
+    
+    if (!priceField) return;
+    
+    const price = parseCurrency(priceField.value);
+    const financingPercent = parseFloat(financingField?.value) || 80;
+    const rate = parseFloat(rateField?.value) || 15;
+    const years = parseInt(yearsField?.value) || 30;
+    
+    // Cálculos
+    const financedAmount = price * (financingPercent / 100);
+    const downPayment = price - financedAmount;
+    const monthlyPayment = calculateMonthlyPayment(financedAmount, rate, years);
+    
+    // Actualizar resultados
+    const financedEl = document.getElementById('calc-financed-amount');
+    const downEl = document.getElementById('calc-down-payment');
+    const monthlyEl = document.getElementById('calc-monthly-payment');
+    
+    if (financedEl) financedEl.textContent = `US${formatNumber(Math.round(financedAmount))}`;
+    if (downEl) downEl.textContent = `US${formatNumber(Math.round(downPayment))}`;
+    if (monthlyEl) monthlyEl.textContent = `US${formatNumber(Math.round(monthlyPayment))}`;
+    
+    // Marcar como aplicado
+    hasChanges.regular = false;
+    const button = document.getElementById('apply-regular-changes');
+    if (button) {
+      button.disabled = true;
+      button.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  // Aplicar cambios para proyecto
+  function applyProjectChanges() {
+    const priceField = document.getElementById('project-price');
+    const reservationField = document.getElementById('project-reservation');
+    const constructionField = document.getElementById('project-construction-percent');
+    const financingField = document.getElementById('project-financing-percent');
+    const monthsField = document.getElementById('project-months');
+    const rateField = document.getElementById('project-interest-rate');
+    
+    if (!priceField) return;
+    
+    const price = parseCurrency(priceField.value);
+    const reservation = parseCurrency(reservationField?.value || '1000');
+    const constructionPercent = parseFloat(constructionField?.value) || 25;
+    const financingPercent = parseFloat(financingField?.value) || 60;
+    const months = parseInt(monthsField?.value) || 18;
+    const rate = parseFloat(rateField?.value) || 15;
+    
+    // Cálculos fase construcción
+    const constructionAmount = price * (constructionPercent / 100);
+    const constructionAmountWithoutReservation = constructionAmount - reservation;
+    const monthlyConstruction = constructionAmountWithoutReservation / months;
+    
+    // Cálculos financiamiento
+    const financedAmount = price * (financingPercent / 100);
+    const monthlyFinancing = calculateMonthlyPayment(financedAmount, rate, 30);
+    
+    // Actualizar resultados
+    const reservationEl = document.getElementById('calc-reservation');
+    const monthlyConstructionEl = document.getElementById('calc-construction-monthly');
+    const periodEl = document.getElementById('calc-construction-period');
+    const totalConstructionEl = document.getElementById('calc-construction-total');
+    const financedEl = document.getElementById('calc-financed-amount');
+    const monthlyFinancingEl = document.getElementById('calc-monthly-financing');
+    
+    if (reservationEl) reservationEl.textContent = `US${formatNumber(reservation)}`;
+    if (monthlyConstructionEl) monthlyConstructionEl.textContent = `US${formatNumber(Math.round(monthlyConstruction))}`;
+    if (periodEl) periodEl.textContent = `${months} meses`;
+    if (totalConstructionEl) totalConstructionEl.textContent = `US${formatNumber(Math.round(constructionAmount))}`;
+    if (financedEl) financedEl.textContent = `US${formatNumber(Math.round(financedAmount))}`;
+    if (monthlyFinancingEl) monthlyFinancingEl.textContent = `US${formatNumber(Math.round(monthlyFinancing))}`;
+    
+    // Marcar como aplicado
+    hasChanges.project = false;
+    const button = document.getElementById('apply-project-changes');
+    if (button) {
+      button.disabled = true;
+      button.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  }
+
+  // Solicitar consulta
+  function requestCalculationConsultation() {
+    // Obtener datos del cálculo actual
+    let message = '¡Hola! Me interesa consultar sobre financiamiento. ';
+    
+    // Detectar modo activo
+    const projectCalc = document.getElementById('project-calculator');
+    const isProjectMode = projectCalc && projectCalc.offsetParent !== null;
+    
+    if (isProjectMode) {
+      const price = document.getElementById('project-price')?.value;
+      if (price) {
+        message += `Precio del proyecto: US${price}. `;
+      }
+    } else {
+      const price = document.getElementById('regular-price')?.value;
+      if (price) {
+        message += `Precio de la propiedad: US${price}. `;
+      }
+    }
+    
+    message += 'Me gustaría recibir información personalizada sobre las opciones de financiamiento disponibles.';
+    
+    // Integración con WhatsApp
+    const whatsappUrl = `https://wa.me/18295550100?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Mostrar feedback
+    showCopyFeedback('¡Perfecto! Te contactaremos pronto.');
+  }
+
+  function showCopyFeedback(message) {
+    let notification = document.getElementById('copy-notification');
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'copy-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #22c55e;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      `;
+      document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.style.background = message.includes('Error') ? '#ef4444' : '#22c55e';
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
+  }
+
+  // Hacer las funciones disponibles globalmente
+  window.formatCurrency = formatCurrency;
+  window.markCalculationChanged = markCalculationChanged;
+  window.applyRegularChanges = applyRegularChanges;
+  window.applyProjectChanges = applyProjectChanges;
+  window.requestCalculationConsultation = requestCalculationConsultation;
+
+  // Inicializar cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', function() {
+    // Detectar modo inicial según elemento visible
+    const projectCalc = document.getElementById('project-calculator');
+    const regularCalc = document.getElementById('regular-calculator');
+    
+    if (projectCalc && projectCalc.offsetParent !== null) {
+      currentMode = 'project';
+    } else {
+      currentMode = 'regular';
+    }
+    
+    // Calcular valores iniciales con un pequeño delay
+    setTimeout(() => {
+      applyRegularChanges();
+      applyProjectChanges();
+    }, 100);
+  });
+</script>

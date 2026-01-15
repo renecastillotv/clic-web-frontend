@@ -1,0 +1,134 @@
+---
+// src/components/property/PropertyAmenities.astro
+export interface Props {
+  data: any;
+  language?: string;
+}
+
+const { data, language } = Astro.props;
+
+// Try to get language from multiple sources since layout might not be passing it yet
+const currentLanguage = language || 
+                       data.language || 
+                       data.globalConfig?.language || 
+                       'es';
+
+// Multilingual translations for UI elements only
+const translations = {
+  es: {
+    title: 'Amenidades de la Propiedad',
+    noAmenities: 'No hay amenidades disponibles'
+  },
+  en: {
+    title: 'Property Amenities',
+    noAmenities: 'No amenities available'
+  },
+  fr: {
+    title: 'Commodités de la Propriété',
+    noAmenities: 'Aucune commodité disponible'
+  }
+};
+
+const t = translations[currentLanguage] || translations.es;
+
+// Function to get localized amenity name from data structure
+function getLocalizedAmenityName(amenity, targetLang) {
+  if (typeof amenity === 'object') {
+    // Use the language-specific fields that come from your API
+    if (targetLang === 'en' && amenity.name_en) return amenity.name_en;
+    if (targetLang === 'fr' && amenity.name_fr) return amenity.name_fr;
+    
+    // Fallback to default name
+    return amenity.name || amenity.title || 'Amenidad';
+  }
+  
+  // If it's a string, return as-is
+  return typeof amenity === 'string' ? amenity : 'Amenidad';
+}
+
+// Function to deduce icon based on amenity name if not provided
+function getAmenityIcon(amenityName) {
+  const name = amenityName.toLowerCase();
+  
+  // Basic icon mapping for fallback cases
+  const iconMap = {
+    'parqueo': 'fas fa-car',
+    'parking': 'fas fa-car',
+    'garage': 'fas fa-warehouse',
+    'elevador': 'fas fa-elevator',
+    'elevator': 'fas fa-elevator',
+    'ascenseur': 'fas fa-elevator',
+    'aire': 'fas fa-snowflake',
+    'air': 'fas fa-snowflake',
+    'climatisation': 'fas fa-snowflake',
+    'piscina': 'fas fa-swimmer',
+    'pool': 'fas fa-swimmer',
+    'piscine': 'fas fa-swimmer',
+    'gimnasio': 'fas fa-dumbbell',
+    'gym': 'fas fa-dumbbell',
+    'seguridad': 'fas fa-shield-alt',
+    'security': 'fas fa-shield-alt',
+    'sécurité': 'fas fa-shield-alt',
+    'terraza': 'fas fa-building',
+    'terrace': 'fas fa-building',
+    'terrasse': 'fas fa-building',
+    'wifi': 'fas fa-wifi',
+    'internet': 'fas fa-wifi'
+  };
+  
+  // Look for keyword matches
+  for (const [keyword, icon] of Object.entries(iconMap)) {
+    if (name.includes(keyword)) {
+      return icon;
+    }
+  }
+  
+  return 'fas fa-check'; // Simple check icon as default
+}
+
+// Process amenities from the data structure - simplified
+const processedAmenities = (data.amenities || []).map(amenity => {
+  const localizedName = getLocalizedAmenityName(amenity, currentLanguage);
+  
+  return {
+    name: localizedName,
+    icon: amenity.icon || getAmenityIcon(localizedName)
+  };
+}).filter(amenity => amenity.name && amenity.name !== 'Amenidad');
+---
+
+<!-- Property Amenities -->
+{processedAmenities.length > 0 && (
+  <div class="space-y-6">
+    <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+      {t.title}
+    </h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      {processedAmenities.map((amenity) => (
+        <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+          <div class="w-5 h-5 flex items-center justify-center flex-shrink-0">
+            <i class={`${amenity.icon} text-gray-500 text-sm`}></i>
+          </div>
+          
+          <div class="flex-1 min-w-0">
+            <span class="text-gray-700 text-sm">{amenity.name}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+<!-- Fallback: No amenities message -->
+{processedAmenities.length === 0 && (
+  <div class="space-y-6">
+    <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+      {t.title}
+    </h2>
+    
+    <div class="text-center py-6 bg-gray-50 rounded-lg">
+      <p class="text-gray-600 text-sm">{t.noAmenities}</p>
+    </div>
+  </div>
+)}

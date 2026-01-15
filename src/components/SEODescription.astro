@@ -1,0 +1,172 @@
+---
+// SEODescription.astro
+export interface Props {
+  destino?: string;
+  tipo?: string;
+  presupuesto?: string;
+  huespedes?: string;
+  totalProperties?: number;
+}
+
+const { 
+  destino = '',
+  tipo = '',
+  presupuesto = '',
+  huespedes = '',
+  totalProperties = 0
+} = Astro.props;
+
+// Mapeos para convertir valores a texto legible
+const destinoLabels = {
+  'punta-cana': 'Punta Cana',
+  'cap-cana': 'Cap Cana', 
+  'las-terrenas': 'Las Terrenas',
+  'casa-de-campo': 'Casa de Campo',
+  'samana': 'Samaná',
+  'bavaro': 'Bávaro'
+};
+
+const tipoLabels = {
+  'villa': 'villas',
+  'apartamento': 'apartamentos',
+  'casa': 'casas',
+  'lujo': 'propiedades de lujo'
+};
+
+const presupuestoLabels = {
+  '0-100': 'desde $50 hasta $100',
+  '100-200': 'desde $100 hasta $200',
+  '200-400': 'desde $200 hasta $400',
+  '400-600': 'desde $400 hasta $600',
+  '600+': 'desde $600'
+};
+
+const huespedesLabels = {
+  '1': 'para 1 persona',
+  '2': 'para 2 personas',
+  '3': 'para 3 personas',
+  '4': 'para 4 personas',
+  '5': 'para 5 personas',
+  '6+': 'para 6 o más personas'
+};
+
+// Función para generar el título H1 dinámico
+function generateH1() {
+  const tipoText = tipo ? tipoLabels[tipo] || 'propiedades' : 'Rentas Vacacionales';
+  const destinoText = destino ? ` en ${destinoLabels[destino]}` : ' en República Dominicana';
+  
+  // Capitalizar primera letra
+  const capitalizedTipo = tipoText.charAt(0).toUpperCase() + tipoText.slice(1);
+  
+  return `${capitalizedTipo}${destinoText}`;
+}
+
+// Función para generar la descripción SEO
+function generateDescription() {
+  let description = 'Disfruta unas vacaciones increíbles en ';
+  
+  // Agregar tipo de propiedad
+  if (tipo) {
+    const tipoSingular = {
+      'villa': 'una villa',
+      'apartamento': 'un apartamento', 
+      'casa': 'una casa',
+      'lujo': 'una propiedad de lujo'
+    };
+    description += tipoSingular[tipo] || 'una propiedad';
+  } else {
+    description += 'la propiedad perfecta';
+  }
+  
+  // Agregar destino
+  if (destino) {
+    description += ` en ${destinoLabels[destino]}`;
+  } else {
+    description += ' en República Dominicana';
+  }
+  
+  // Agregar información de huéspedes si está disponible
+  if (huespedes) {
+    description += ` ${huespedesLabels[huespedes]}`;
+  }
+  
+  // Agregar presupuesto si está disponible
+  if (presupuesto) {
+    description += `. Encuentra opciones ${presupuestoLabels[presupuesto]} por noche`;
+  }
+  
+  description += '. Escoge tu mejor opción de renta vacacional y vive una experiencia única.';
+  
+  return description;
+}
+
+// Función para generar el contador de propiedades
+function generatePropertyCount() {
+  if (totalProperties === 0) {
+    return 'No se encontraron propiedades';
+  } else if (totalProperties === 1) {
+    return '1 propiedad disponible';
+  } else {
+    return `${totalProperties} propiedades disponibles`;
+  }
+}
+
+const h1Title = generateH1();
+const seoDescription = generateDescription();
+const propertyCount = generatePropertyCount();
+---
+
+<div class="seo-content mb-8">
+  <!-- Título principal H1 -->
+  <div class="text-center mb-6">
+    <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+      {h1Title}
+    </h1>
+    
+    <!-- Descripción SEO -->
+    <p class="text-lg md:text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed">
+      {seoDescription}
+    </p>
+  </div>
+  
+  <!-- Contador de propiedades (más pequeño y discreto) -->
+  <div class="text-center">
+    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+      </svg>
+      {propertyCount}
+    </span>
+  </div>
+</div>
+
+<!-- Schema.org structured data para SEO -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": h1Title,
+  "description": seoDescription,
+  "numberOfItems": totalProperties,
+  "itemListElement": {
+    "@type": "RentAction",
+    "object": {
+      "@type": "Accommodation",
+      "name": h1Title,
+      "description": seoDescription,
+      "locationCreated": destino ? destinoLabels[destino] : "República Dominicana"
+    }
+  }
+})} />
+
+<style>
+  .seo-content {
+    @apply border-b border-gray-200 pb-8;
+  }
+  
+  .seo-content h1 {
+    background: linear-gradient(135deg, #f04e00 0%, #ff6b35 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+</style>

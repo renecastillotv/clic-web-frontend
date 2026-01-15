@@ -1,0 +1,614 @@
+---
+// src/layouts/CuratedListingsLayout.astro - Layout para índice de listados curados (optimizado)
+import Layout from './Layout.astro';
+
+const data = Astro.props.data || {};
+const language = Astro.props.language || data.language || 'es';
+
+// Extraer datos
+const allListings = data.allListings || [];
+const stats = data.stats || {};
+const seo = data.seo || {};
+
+// SEO
+const finalTitle = seo.title || 'Listados Curados';
+const finalDescription = seo.description || '';
+const canonicalUrl = seo.canonical_url || Astro.url.pathname;
+const breadcrumbs = seo.breadcrumbs || [];
+
+// Preparar props para Layout
+const layoutProps = {
+  title: finalTitle,
+  description: finalDescription,
+  ogImage: seo.ogImage || '/og-curated-listings.jpg',
+  canonical: canonicalUrl,
+  keywords: seo.keywords || '',
+  hreflangData: seo.hreflang || {},
+  globalConfig: data?.globalConfig || {},
+  language: language,
+  trackingString: data?.trackingString || '',
+  hotItems: data?.hotItems || {},
+  country: data?.country || {},
+  breadcrumbs: breadcrumbs,
+  structuredData: seo.structured_data,
+  openGraph: seo.open_graph,
+  twitterCard: seo.twitter_card
+};
+
+// Mapeo de emojis a iconos Font Awesome
+const emojiToFontAwesome = {
+  '🏖️': 'fa-umbrella-beach',
+  '🏝️': 'fa-island-tropical',
+  '🏠': 'fa-home',
+  '🏡': 'fa-house',
+  '🏢': 'fa-building',
+  '🏘️': 'fa-home-lg-alt',
+  '🏗️': 'fa-building',
+  '🏚️': 'fa-home',
+  '🏛️': 'fa-landmark',
+  '⛪': 'fa-church',
+  '🕌': 'fa-mosque',
+  '🏰': 'fa-fort-awesome',
+  '🏯': 'fa-torii-gate',
+  '🗼': 'fa-monument',
+  '🗽': 'fa-landmark',
+  '⛲': 'fa-fountain',
+  '⛺': 'fa-campground',
+  '🌃': 'fa-city',
+  '🌁': 'fa-cloud',
+  '🌄': 'fa-mountain',
+  '🌅': 'fa-sun',
+  '🌆': 'fa-city',
+  '🌇': 'fa-sunset',
+  '🌉': 'fa-bridge',
+  '🎡': 'fa-ferris-wheel',
+  '🎢': 'fa-roller-coaster',
+  '🎠': 'fa-horse',
+  '⛱️': 'fa-umbrella-beach',
+  '🏖': 'fa-umbrella-beach',
+  '🏝': 'fa-island-tropical',
+  '⛰️': 'fa-mountain',
+  '🏔️': 'fa-mountain',
+  '⛷️': 'fa-skiing',
+  '🏂': 'fa-snowboarding',
+  '🏄': 'fa-surfing',
+  '🏊': 'fa-swimmer',
+  '🤿': 'fa-mask-snorkel',
+  '🚣': 'fa-ship',
+  '⛵': 'fa-sailboat',
+  '🛥️': 'fa-ship',
+  '⛴️': 'fa-ferry',
+  '🛳️': 'fa-ship',
+  '⚓': 'fa-anchor',
+  '🏖': 'fa-umbrella-beach',
+  '💎': 'fa-gem',
+  '💰': 'fa-money-bill-wave',
+  '💵': 'fa-dollar-sign',
+  '💴': 'fa-yen-sign',
+  '💶': 'fa-euro-sign',
+  '💷': 'fa-pound-sign',
+  '💸': 'fa-money-bill-wave',
+  '💳': 'fa-credit-card',
+  '🔑': 'fa-key',
+  '🗝️': 'fa-key',
+  '🚪': 'fa-door-open',
+  '🛏️': 'fa-bed',
+  '🛋️': 'fa-couch',
+  '🚿': 'fa-shower',
+  '🛁': 'fa-bath',
+  '🚽': 'fa-toilet',
+  '🧴': 'fa-pump-soap',
+  '🧻': 'fa-toilet-paper',
+  '🧼': 'fa-soap',
+  '🧽': 'fa-sponge',
+  '🧹': 'fa-broom',
+  '🧺': 'fa-basket-shopping',
+  '🔥': 'fa-fire',
+  '💡': 'fa-lightbulb',
+  '🕯️': 'fa-candle-holder',
+  '🪔': 'fa-om',
+  '🔦': 'fa-flashlight',
+  '🏮': 'fa-lantern',
+  '📱': 'fa-mobile-alt',
+  '💻': 'fa-laptop',
+  '🖥️': 'fa-desktop',
+  '⌨️': 'fa-keyboard',
+  '🖱️': 'fa-mouse',
+  '📺': 'fa-tv',
+  '📷': 'fa-camera',
+  '📹': 'fa-video',
+  '🎥': 'fa-film',
+  '📞': 'fa-phone',
+  '☎️': 'fa-phone',
+  '📧': 'fa-envelope',
+  '📨': 'fa-inbox',
+  '📬': 'fa-mailbox',
+  '📭': 'fa-mailbox',
+  '📮': 'fa-envelope',
+  '📯': 'fa-bullhorn',
+  '📣': 'fa-megaphone',
+  '📢': 'fa-bullhorn',
+  '🔔': 'fa-bell',
+  '🔕': 'fa-bell-slash',
+  '🎵': 'fa-music',
+  '🎶': 'fa-music',
+  '🎤': 'fa-microphone',
+  '🎧': 'fa-headphones',
+  '📻': 'fa-broadcast-tower',
+  '🎸': 'fa-guitar',
+  '🎹': 'fa-piano-keyboard',
+  '🎺': 'fa-trumpet',
+  '🎻': 'fa-violin',
+  '🥁': 'fa-drum',
+  '🎬': 'fa-film',
+  '🎮': 'fa-gamepad',
+  '🎯': 'fa-bullseye',
+  '🎲': 'fa-dice',
+  '♠️': 'fa-spade',
+  '♥️': 'fa-heart',
+  '♦️': 'fa-diamond',
+  '♣️': 'fa-club',
+  '⚽': 'fa-futbol',
+  '🏀': 'fa-basketball-ball',
+  '🏈': 'fa-football-ball',
+  '⚾': 'fa-baseball-ball',
+  '🎾': 'fa-table-tennis',
+  '🏐': 'fa-volleyball-ball',
+  '🏉': 'fa-football-ball',
+  '🎱': 'fa-bowling-ball',
+  '⛳': 'fa-golf-ball',
+  '🏌️': 'fa-golf-ball-tee',
+  '🏓': 'fa-table-tennis',
+  '🏸': 'fa-shuttlecock',
+  '⭐': 'fa-star',
+  '🌟': 'fa-star',
+  '✨': 'fa-sparkles',
+  '💫': 'fa-certificate',
+  '🌠': 'fa-meteor',
+  '☀️': 'fa-sun',
+  '⛅': 'fa-cloud-sun',
+  '☁️': 'fa-cloud',
+  '🌤️': 'fa-cloud-sun',
+  '⛈️': 'fa-cloud-bolt',
+  '🌧️': 'fa-cloud-rain',
+  '⚡': 'fa-bolt',
+  '🔥': 'fa-fire',
+  '❄️': 'fa-snowflake',
+  '☃️': 'fa-snowman',
+  '⛄': 'fa-snowman',
+  '🌊': 'fa-water',
+  '💧': 'fa-droplet',
+  '💦': 'fa-droplet',
+  '☂️': 'fa-umbrella',
+  '☔': 'fa-umbrella',
+  '🌈': 'fa-rainbow'
+};
+
+// Mapeo de palabras clave en slug a iconos Font Awesome
+const keywordToIcon = {
+  'playa': 'fa-umbrella-beach',
+  'beach': 'fa-umbrella-beach',
+  'mar': 'fa-water',
+  'ocean': 'fa-water',
+  'sea': 'fa-water',
+  'lujo': 'fa-gem',
+  'luxury': 'fa-gem',
+  'luxe': 'fa-gem',
+  'inversion': 'fa-chart-line',
+  'investment': 'fa-chart-line',
+  'investissement': 'fa-chart-line',
+  'rentable': 'fa-coins',
+  'profitable': 'fa-coins',
+  'oportunidad': 'fa-star',
+  'opportunity': 'fa-star',
+  'opportunité': 'fa-star',
+  'ciudad': 'fa-city',
+  'city': 'fa-city',
+  'ville': 'fa-city',
+  'apartamento': 'fa-building',
+  'apartment': 'fa-building',
+  'appartement': 'fa-building',
+  'casa': 'fa-home',
+  'house': 'fa-home',
+  'maison': 'fa-home',
+  'villa': 'fa-house-user',
+  'golf': 'fa-golf-ball-tee',
+  'airbnb': 'fa-key',
+  'alquiler': 'fa-key',
+  'rental': 'fa-key',
+  'location': 'fa-map-marker-alt',
+  'frente': 'fa-water',
+  'front': 'fa-water',
+  'montaña': 'fa-mountain',
+  'mountain': 'fa-mountain',
+  'montagne': 'fa-mountain',
+  'campo': 'fa-tree',
+  'country': 'fa-tree',
+  'campagne': 'fa-tree',
+  'centro': 'fa-city',
+  'downtown': 'fa-city',
+  'centro': 'fa-city',
+  'nuevo': 'fa-certificate',
+  'new': 'fa-certificate',
+  'nouveau': 'fa-certificate',
+  'moderno': 'fa-building',
+  'modern': 'fa-building',
+  'moderne': 'fa-building',
+  'exclusivo': 'fa-gem',
+  'exclusive': 'fa-gem',
+  'exclusif': 'fa-gem'
+};
+
+// Función mejorada para obtener icono basado en emoji o slug
+function getIconForListing(listing) {
+  // 1. Intentar convertir emoji a Font Awesome
+  if (listing.icon && emojiToFontAwesome[listing.icon]) {
+    return emojiToFontAwesome[listing.icon];
+  }
+
+  // 2. Buscar palabras clave en el slug
+  if (listing.slug) {
+    const slug = listing.slug.toLowerCase();
+    for (const [keyword, icon] of Object.entries(keywordToIcon)) {
+      if (slug.includes(keyword)) {
+        return icon;
+      }
+    }
+  }
+
+  // 3. Buscar palabras clave en el título
+  if (listing.title) {
+    const title = listing.title.toLowerCase();
+    for (const [keyword, icon] of Object.entries(keywordToIcon)) {
+      if (title.includes(keyword)) {
+        return icon;
+      }
+    }
+  }
+
+  // 4. Fallback a icono por defecto
+  return 'fa-home';
+}
+
+// Procesar listados con iconos
+const processedListings = allListings.map(listing => ({
+  ...listing,
+  faIcon: getIconForListing(listing),
+  colorClass: listing.color || '#f04e00'
+}));
+
+// Separar destacados (priority > 5)
+const featuredListings = processedListings.filter(l => (l.priority || 0) > 5);
+const regularListings = processedListings.filter(l => (l.priority || 0) <= 5);
+
+const TEXTS = {
+  es: {
+    title: 'Listados Curados de Propiedades',
+    subtitle: 'Colecciones seleccionadas de propiedades con características especiales',
+    searchPlaceholder: 'Buscar listados...',
+    searchButton: 'Buscar',
+    clearSearch: 'Limpiar',
+    viewListing: 'Ver propiedades',
+    noResults: 'No se encontraron listados',
+    showing: 'Mostrando',
+    of: 'de',
+    listings: 'listados',
+    statsLabels: {
+      total: 'Listados curados',
+      featured: 'Destacados',
+      properties: 'Propiedades'
+    }
+  },
+  en: {
+    title: 'Curated Property Listings',
+    subtitle: 'Selected collections of properties with special features',
+    searchPlaceholder: 'Search listings...',
+    searchButton: 'Search',
+    clearSearch: 'Clear',
+    viewListing: 'View properties',
+    noResults: 'No listings found',
+    showing: 'Showing',
+    of: 'of',
+    listings: 'listings',
+    statsLabels: {
+      total: 'Curated listings',
+      featured: 'Featured',
+      properties: 'Properties'
+    }
+  },
+  fr: {
+    title: 'Listes Organisées de Propriétés',
+    subtitle: 'Collections sélectionnées de propriétés avec des caractéristiques spéciales',
+    searchPlaceholder: 'Rechercher des listes...',
+    searchButton: 'Rechercher',
+    clearSearch: 'Effacer',
+    viewListing: 'Voir les propriétés',
+    noResults: 'Aucune liste trouvée',
+    showing: 'Affichage',
+    of: 'de',
+    listings: 'listes',
+    statsLabels: {
+      total: 'Listes organisées',
+      featured: 'En vedette',
+      properties: 'Propriétés'
+    }
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+---
+
+<Layout {...layoutProps}>
+  <div class="min-h-screen bg-gray-50">
+
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+      <!-- Efectos de fondo decorativos -->
+      <div class="absolute inset-0">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+        <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+        <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      </div>
+
+      <div class="container mx-auto px-4 relative z-10">
+        <!-- Breadcrumbs -->
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {breadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === breadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
+
+        <div class="text-center">
+          <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+            {seo.h1 || finalTitle}
+          </h1>
+          <p class="text-base md:text-lg text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
+            {seo.h2 || finalDescription}
+          </p>
+
+          <!-- Estadísticas en línea -->
+          {stats.totalListings > 0 && (
+            <div class="flex flex-wrap justify-center items-center gap-6 md:gap-12 mb-10">
+              <div class="flex items-center gap-3">
+                <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{stats.totalListings}</div>
+                <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.total}</div>
+              </div>
+              <div class="h-8 w-px bg-gray-700 hidden md:block"></div>
+              <div class="flex items-center gap-3">
+                <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{featuredListings.length}</div>
+                <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.featured}</div>
+              </div>
+              {stats.totalProperties && (
+                <>
+                  <div class="h-8 w-px bg-gray-700 hidden md:block"></div>
+                  <div class="flex items-center gap-3">
+                    <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{stats.totalProperties}+</div>
+                    <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.properties}</div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <!-- Buscador -->
+          <div class="max-w-2xl mx-auto">
+            <div class="relative">
+              <input
+                type="text"
+                id="listingSearch"
+                placeholder={text.searchPlaceholder}
+                class="w-full px-6 py-4 pl-12 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#f04e00] focus:ring-2 focus:ring-[#f04e00]/50 transition-all"
+              />
+              <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              <button
+                id="clearSearch"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors hidden"
+                aria-label={text.clearSearch}
+              >
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Listados destacados -->
+    {featuredListings.length > 0 && (
+      <section class="py-12 bg-white border-b border-gray-200">
+        <div class="container mx-auto px-4">
+          <div class="flex items-center gap-3 mb-8">
+            <i class="fas fa-star text-2xl text-[#f04e00]"></i>
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">Destacados</h2>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="featuredListingsGrid">
+            {featuredListings.map((listing) => (
+              <a
+                href={listing.url}
+                class="listing-card group bg-white border-2 border-[#f04e00]/20 rounded-lg p-6 hover:border-[#f04e00] hover:shadow-lg transition-all duration-300"
+                data-search-text={listing.title.toLowerCase() + ' ' + (listing.description || '').toLowerCase()}
+              >
+                <div class="flex items-start gap-4 mb-4">
+                  <div class="flex-shrink-0 w-14 h-14 bg-gradient-to-br from-[#f04e00] to-[#d94400] rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <i class={`fas ${listing.faIcon} text-2xl text-white`}></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors line-clamp-2">
+                      {listing.title}
+                    </h3>
+                  </div>
+                </div>
+
+                {listing.description && (
+                  <p class="text-gray-600 text-sm mb-4 line-clamp-2 leading-relaxed">
+                    {listing.description}
+                  </p>
+                )}
+
+                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <span class="text-[#f04e00] font-medium text-sm group-hover:underline">
+                    {text.viewListing} →
+                  </span>
+                  <i class="fas fa-arrow-right text-[#f04e00] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300"></i>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Todos los listados -->
+    <section class="py-12 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between mb-8">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-list text-2xl text-gray-700"></i>
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">
+              {featuredListings.length > 0 ? 'Más listados' : 'Todos los listados'}
+            </h2>
+          </div>
+          <div class="text-sm text-gray-500" id="resultsCount">
+            <span id="showingCount">{regularListings.length}</span> {text.listings}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="regularListingsGrid">
+          {regularListings.map((listing) => (
+            <a
+              href={listing.url}
+              class="listing-card group bg-white border border-gray-200 rounded-lg p-5 hover:border-[#f04e00] hover:shadow-md transition-all duration-300"
+              data-search-text={listing.title.toLowerCase() + ' ' + (listing.description || '').toLowerCase()}
+            >
+              <div class="flex items-center gap-3 mb-3">
+                <div class="flex-shrink-0 w-12 h-12 bg-gray-100 group-hover:bg-[#f04e00]/10 rounded-lg flex items-center justify-center transition-colors duration-300">
+                  <i class={`fas ${listing.faIcon} text-xl text-[#f04e00]`}></i>
+                </div>
+                <h3 class="text-base font-bold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2 flex-1">
+                  {listing.title}
+                </h3>
+              </div>
+
+              {listing.description && (
+                <p class="text-gray-600 text-sm mb-3 line-clamp-2 leading-relaxed">
+                  {listing.description}
+                </p>
+              )}
+
+              <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                <span class="text-[#f04e00] text-sm font-medium group-hover:underline">
+                  Ver →
+                </span>
+                <i class="fas fa-arrow-right text-[#f04e00] text-xs opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300"></i>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <!-- No results message -->
+        <div id="noResults" class="hidden text-center py-16">
+          <i class="fas fa-search text-5xl text-gray-300 mb-4"></i>
+          <p class="text-xl text-gray-600 mb-2">{text.noResults}</p>
+          <p class="text-gray-500">Intenta con otros términos de búsqueda</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  // Funcionalidad de búsqueda
+  const searchInput = document.getElementById('listingSearch') as HTMLInputElement;
+  const clearButton = document.getElementById('clearSearch') as HTMLButtonElement;
+  const featuredGrid = document.getElementById('featuredListingsGrid');
+  const regularGrid = document.getElementById('regularListingsGrid');
+  const noResults = document.getElementById('noResults');
+  const showingCount = document.getElementById('showingCount');
+
+  function performSearch() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+
+    // Mostrar/ocultar botón de limpiar
+    if (searchTerm) {
+      clearButton?.classList.remove('hidden');
+    } else {
+      clearButton?.classList.add('hidden');
+    }
+
+    // Obtener todas las cards
+    const allCards = document.querySelectorAll('.listing-card');
+    let visibleCount = 0;
+
+    allCards.forEach(card => {
+      const searchText = card.getAttribute('data-search-text') || '';
+      const isVisible = !searchTerm || searchText.includes(searchTerm);
+
+      if (isVisible) {
+        card.classList.remove('hidden');
+        visibleCount++;
+      } else {
+        card.classList.add('hidden');
+      }
+    });
+
+    // Actualizar contador
+    if (showingCount) {
+      showingCount.textContent = visibleCount.toString();
+    }
+
+    // Mostrar mensaje de "no results"
+    if (visibleCount === 0) {
+      noResults?.classList.remove('hidden');
+      featuredGrid?.classList.add('hidden');
+      regularGrid?.classList.add('hidden');
+    } else {
+      noResults?.classList.add('hidden');
+      if (featuredGrid) {
+        const featuredVisible = featuredGrid.querySelectorAll('.listing-card:not(.hidden)').length > 0;
+        if (featuredVisible) {
+          featuredGrid.classList.remove('hidden');
+        } else {
+          featuredGrid.classList.add('hidden');
+        }
+      }
+      regularGrid?.classList.remove('hidden');
+    }
+  }
+
+  // Event listeners
+  searchInput?.addEventListener('input', performSearch);
+
+  clearButton?.addEventListener('click', () => {
+    searchInput.value = '';
+    performSearch();
+    searchInput.focus();
+  });
+
+  // Enter key para buscar
+  searchInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      performSearch();
+    }
+  });
+</script>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

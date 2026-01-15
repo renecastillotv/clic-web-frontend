@@ -1,0 +1,446 @@
+---
+// src/components/property/sidebar/AgentWidget.astro - UPDATED FOR NEW DATA STRUCTURE + COCAPTORS
+export interface Props {
+  data: any;
+  language?: string;
+}
+
+const { data, language = 'es' } = Astro.props;
+
+// USAR NUEVA ESTRUCTURA DE DATOS
+const agent = data.agent?.main || {};
+const cocaptors = data.agent?.cocaptors || [];
+const hasCocaptors = data.agent?.cocaptors_count > 0;
+const property = data.property || {};
+
+// Multilingual texts
+const texts = {
+  es: {
+    yearsExperience: "años de experiencia",
+    speaks: "Habla",
+    fullName: "Nombre completo",
+    phone: "Teléfono",
+    whatsapp: "WhatsApp",
+    email: "Email",
+    message: "Mensaje",
+    messagePlaceholder: "Estoy interesado en esta propiedad...",
+    terms: "Acepto los",
+    termsLink: "términos y condiciones",
+    and: "y autorizo el uso de mis datos para contacto comercial según la",
+    privacyLink: "política de privacidad",
+    submitButton: "Ser Contactado por un Asesor",
+    call: "Llamar",
+    cocaptors: "Cocaptadores",
+    alsoWorkingProperty: "También trabajan en esta propiedad",
+    contactCocaptor: "Contactar"
+  },
+  en: {
+    yearsExperience: "years of experience",
+    speaks: "Speaks",
+    fullName: "Full name",
+    phone: "Phone",
+    whatsapp: "WhatsApp",
+    email: "Email",
+    message: "Message",
+    messagePlaceholder: "I'm interested in this property...",
+    terms: "I accept the",
+    termsLink: "terms and conditions",
+    and: "and authorize the use of my data for commercial contact according to the",
+    privacyLink: "privacy policy",
+    submitButton: "Be Contacted by an Advisor",
+    call: "Call",
+    cocaptors: "Co-captors",
+    alsoWorkingProperty: "Also working on this property",
+    contactCocaptor: "Contact"
+  },
+  fr: {
+    yearsExperience: "ans d'expérience",
+    speaks: "Parle",
+    fullName: "Nom complet",
+    phone: "Téléphone",
+    whatsapp: "WhatsApp",
+    email: "Email",
+    message: "Message",
+    messagePlaceholder: "Je suis intéressé par cette propriété...",
+    terms: "J'accepte les",
+    termsLink: "termes et conditions",
+    and: "et autorise l'utilisation de mes données pour le contact commercial selon la",
+    privacyLink: "politique de confidentialité",
+    submitButton: "Être Contacté par un Conseiller",
+    call: "Appeler",
+    cocaptors: "Co-capteurs",
+    alsoWorkingProperty: "Travaillent aussi sur cette propriété",
+    contactCocaptor: "Contacter"
+  }
+};
+
+const t = texts[language] || texts.es;
+
+// Build terms and privacy URLs based on language
+const termsUrl = language === 'en' ? '/en/terms' : language === 'fr' ? '/fr/termes' : '/terminos';
+const privacyUrl = language === 'en' ? '/en/privacy' : language === 'fr' ? '/fr/confidentialite' : '/privacidad';
+---
+
+<!-- Agent Widget -->
+{agent && agent.id && (
+  <div class="bg-white rounded-lg shadow-md border border-gray-200">
+    
+    <!-- MAIN AGENT SECTION -->
+    <div class="p-6 pb-4">
+      <!-- Agent Information - Centered and compact layout -->
+      <div class="text-center mb-6 pb-6 border-b border-gray-100">
+        <!-- Agent Photo with Initials Fallback - Clickable -->
+        <div class="relative mx-auto mb-4">
+          {agent.url ? (
+            <a href={agent.url} class="block">
+              {agent.profile_photo_url && agent.profile_photo_url !== '/images/default-agent.jpg' ? (
+                <img 
+                  src={agent.profile_photo_url} 
+                  alt={agent.first_name + ' ' + agent.last_name}
+                  class="w-20 h-20 rounded-full object-cover mx-auto hover:ring-4 hover:ring-[#f04e00]/20 transition-all duration-300"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                />
+              ) : null}
+              
+              <!-- Fallback Circle with Initials -->
+              <div 
+                class="w-20 h-20 rounded-full bg-gradient-to-br from-[#f04e00] to-[#e03400] flex items-center justify-center text-white font-bold text-xl shadow-lg mx-auto hover:ring-4 hover:ring-[#f04e00]/20 transition-all duration-300"
+                style={agent.profile_photo_url && agent.profile_photo_url !== '/images/default-agent.jpg' ? 'display: none;' : 'display: flex;'}
+              >
+                {agent.first_name && agent.last_name ? 
+                  (agent.first_name.charAt(0) + agent.last_name.charAt(0)).toUpperCase() : 
+                  agent.name ? agent.name.split(' ').map(word => word.charAt(0)).join('').substring(0, 2).toUpperCase() :
+                  'CI'}
+              </div>
+            </a>
+          ) : (
+            <div>
+              {agent.profile_photo_url && agent.profile_photo_url !== '/images/default-agent.jpg' ? (
+                <img 
+                  src={agent.profile_photo_url} 
+                  alt={agent.first_name + ' ' + agent.last_name}
+                  class="w-20 h-20 rounded-full object-cover mx-auto"
+                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                />
+              ) : null}
+              
+              <!-- Fallback Circle with Initials -->
+              <div 
+                class="w-20 h-20 rounded-full bg-gradient-to-br from-[#f04e00] to-[#e03400] flex items-center justify-center text-white font-bold text-xl shadow-lg mx-auto"
+                style={agent.profile_photo_url && agent.profile_photo_url !== '/images/default-agent.jpg' ? 'display: none;' : 'display: flex;'}
+              >
+                {agent.first_name && agent.last_name ? 
+                  (agent.first_name.charAt(0) + agent.last_name.charAt(0)).toUpperCase() : 
+                  'CI'}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <!-- Main Information -->
+        <div class="space-y-2">
+          {agent.url ? (
+            <a href={agent.url} class="block">
+              <h3 class="text-lg font-semibold text-gray-900 hover:text-[#f04e00] transition-colors duration-300">
+                {[agent.first_name, agent.last_name].filter(Boolean).join(' ') || agent.name || 'Agente CLIC'}
+              </h3>
+            </a>
+          ) : (
+            <h3 class="text-lg font-semibold text-gray-900">
+              {[agent.first_name, agent.last_name].filter(Boolean).join(' ') || agent.name || 'Agente CLIC'}
+            </h3>
+          )}
+          
+          <p class="text-sm text-gray-600">{agent.position}</p>
+          
+          <!-- Specialty - More prominent - Only if exists -->
+          {agent.specialty_description && agent.specialty_description.trim() && (
+            <div class="flex items-center justify-center gap-2">
+              <i class="fas fa-star text-[#f04e00] text-sm"></i>
+              <span class="text-sm font-medium text-[#f04e00]">{agent.specialty_description}</span>
+            </div>
+          )}
+          
+          <!-- Years of experience - Only if exists and is greater than 0 -->
+          {Number(agent.years_experience) > 0 && (
+            <p class="text-xs text-gray-500 flex items-center justify-center gap-1">
+              <i class="fas fa-medal text-[#f04e00]"></i>
+              {agent.years_experience} {t.yearsExperience}
+            </p>
+          )}
+        </div>
+
+        <!-- Additional compact information - Only if there's something to show -->
+        {((agent.languages && agent.languages.length > 1) || (agent.facebook_url || agent.instagram_url || agent.linkedin_url || agent.twitter_url || agent.youtube_url)) && (
+          <div class="mt-4 space-y-2">
+            <!-- Languages - Only if speaks more than 1 language -->
+            {agent.languages && agent.languages.length > 1 && (
+              <div class="flex items-center justify-center gap-2">
+                <i class="fas fa-language text-[#f04e00] text-sm"></i>
+                <span class="text-sm text-gray-700">
+                  {t.speaks}: {agent.languages.join(', ')}
+                </span>
+              </div>
+            )}
+            
+            <!-- Social networks - Only if has at least one -->
+            {(agent.facebook_url || agent.instagram_url || agent.linkedin_url || agent.twitter_url || agent.youtube_url) && (
+              <div class="flex items-center justify-center gap-3">
+                <i class="fas fa-share-alt text-[#f04e00] text-sm"></i>
+                <div class="flex gap-3">
+                  {agent.facebook_url && (
+                    <a href={agent.facebook_url.startsWith('http') ? agent.facebook_url : `https://facebook.com/${agent.facebook_url}`} target="_blank" class="text-blue-600 hover:text-blue-700 transition-colors">
+                      <i class="fab fa-facebook text-lg"></i>
+                    </a>
+                  )}
+                  {agent.instagram_url && (
+                    <a href={agent.instagram_url.startsWith('http') ? agent.instagram_url : `https://instagram.com/${agent.instagram_url.replace('@', '')}`} target="_blank" class="text-pink-500 hover:text-pink-600 transition-colors">
+                      <i class="fab fa-instagram text-lg"></i>
+                    </a>
+                  )}
+                  {agent.linkedin_url && (
+                    <a href={agent.linkedin_url.startsWith('http') ? agent.linkedin_url : `https://linkedin.com/in/${agent.linkedin_url}`} target="_blank" class="text-blue-700 hover:text-blue-800 transition-colors">
+                      <i class="fab fa-linkedin text-lg"></i>
+                    </a>
+                  )}
+                  {agent.twitter_url && (
+                    <a href={agent.twitter_url.startsWith('http') ? agent.twitter_url : `https://twitter.com/${agent.twitter_url.replace('@', '')}`} target="_blank" class="text-blue-400 hover:text-blue-500 transition-colors">
+                      <i class="fab fa-twitter text-lg"></i>
+                    </a>
+                  )}
+                  {agent.youtube_url && (
+                    <a href={agent.youtube_url} target="_blank" class="text-red-600 hover:text-red-700 transition-colors">
+                      <i class="fab fa-youtube text-lg"></i>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <!-- Direct Contact Buttons for Main Agent -->
+      <div class="grid grid-cols-2 gap-3 mb-6">
+        <a 
+          href={agent.whatsapp_url || agent.phone ? `https://wa.me/${(agent.phone || '18295550100').replace(/[^\d]/g, '')}` : 'https://wa.me/18295550100'}
+          target="_blank"
+          class="bg-gray-800 text-white py-3 px-4 rounded-lg text-center font-medium hover:bg-gray-900 transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+        >
+          <i class="fab fa-whatsapp"></i>
+          {t.whatsapp}
+        </a>
+        <a 
+          href={`tel:${agent.phone || '+18295550100'}`}
+          class="border-2 border-[#f04e00] text-[#f04e00] py-3 px-4 rounded-lg text-center font-medium hover:bg-[#f04e00] hover:text-white transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+        >
+          <i class="fas fa-phone"></i>
+          {t.call}
+        </a>
+      </div>
+    </div>
+
+    <!-- COCAPTADORES SECTION -->
+    {hasCocaptors && (
+      <div class="border-t border-gray-200 p-4 bg-gray-50">
+        <div class="text-center mb-4">
+          <h4 class="text-sm font-semibold text-gray-700 mb-1">{t.cocaptors}</h4>
+          <p class="text-xs text-gray-500">{t.alsoWorkingProperty}</p>
+        </div>
+        
+        <div class="space-y-3">
+          {cocaptors.slice(0, 3).map((cocaptor) => (
+            <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+              <!-- Cocaptor Photo - Smaller than main agent -->
+              <div class="flex-shrink-0">
+                {cocaptor.profile_photo_url ? (
+                  <img 
+                    src={cocaptor.profile_photo_url} 
+                    alt={cocaptor.full_name}
+                    class="w-10 h-10 rounded-full object-cover"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                  />
+                ) : null}
+                
+                <!-- Fallback for cocaptor -->
+                <div 
+                  class="w-10 h-10 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white font-bold text-xs"
+                  style={cocaptor.profile_photo_url ? 'display: none;' : 'display: flex;'}
+                >
+                  {cocaptor.first_name?.charAt(0) || 'C'}{cocaptor.last_name?.charAt(0) || 'C'}
+                </div>
+              </div>
+              
+              <!-- Cocaptor Info -->
+              <div class="flex-grow min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  {cocaptor.url ? (
+                    <a href={cocaptor.url} class="text-sm font-medium text-gray-900 hover:text-[#f04e00] transition-colors truncate">
+                      {cocaptor.full_name}
+                    </a>
+                  ) : (
+                    <span class="text-sm font-medium text-gray-900 truncate">{cocaptor.full_name}</span>
+                  )}
+                  <span class="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded font-medium">
+                    #{cocaptor.order_priority}
+                  </span>
+                </div>
+                <p class="text-xs text-gray-600 truncate">{cocaptor.position_display}</p>
+                <p class="text-xs text-[#f04e00] font-medium">{cocaptor.role}</p>
+              </div>
+              
+              <!-- Cocaptor Contact -->
+              <div class="flex-shrink-0 flex gap-1">
+                {cocaptor.phone && (
+                  <a 
+                    href={`https://wa.me/${cocaptor.phone.replace(/[^\d]/g, '')}`}
+                    target="_blank"
+                    class="w-7 h-7 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 transition-colors"
+                    title={`${t.whatsapp} ${cocaptor.full_name}`}
+                  >
+                    <i class="fab fa-whatsapp text-xs"></i>
+                  </a>
+                )}
+                {cocaptor.phone && (
+                  <a 
+                    href={`tel:${cocaptor.phone}`}
+                    class="w-7 h-7 bg-[#f04e00] text-white rounded-full flex items-center justify-center hover:bg-[#d94400] transition-colors"
+                    title={`${t.call} ${cocaptor.full_name}`}
+                  >
+                    <i class="fas fa-phone text-xs"></i>
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+          
+          <!-- Show more cocaptors if there are more than 3 -->
+          {cocaptors.length > 3 && (
+            <div class="text-center pt-2">
+              <button 
+                onclick="toggleAllCocaptors()"
+                class="text-xs text-[#f04e00] hover:text-[#d94400] font-medium"
+                id="show-more-cocaptors-btn"
+              >
+                Ver {cocaptors.length - 3} cocaptadores más
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    <!-- CONTACT FORM SECTION -->
+    <div class="p-6 pt-0">
+      <!-- Contact Form Integrated with Leads Table -->
+      <form id="property-contact-form" class="space-y-4" onsubmit="submitPropertyLead(event)">
+        <!-- Hidden fields for context data -->
+        <input type="hidden" id="lead-property-id" name="propiedad_id" value={property.id || ''}>
+        <input type="hidden" id="lead-property-title" name="property_title" value={property.title || property.name || ''}>
+        <input type="hidden" id="lead-agent-id" name="asignado" value={agent.id || ''}>
+        <input type="hidden" id="lead-origen" name="origen" value="web_formulario">
+        <input type="hidden" id="lead-referidor" name="referidor_lead" value="">
+        <input type="hidden" id="lead-utm-source" name="utm_source" value="">
+        <input type="hidden" id="lead-utm-medium" name="utm_medium" value="">
+        <input type="hidden" id="lead-utm-campaign" name="utm_campaign" value="">
+        <input type="hidden" id="lead-ip-origen" name="ip_origen" value="">
+        <input type="hidden" id="lead-user-agent" name="user_agent" value="">
+        <input type="hidden" id="lead-language" name="language" value={language}>
+        
+        <!-- Visible form fields -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">{t.fullName} *</label>
+          <input 
+            type="text" 
+            name="cliente_nombre"
+            id="lead-nombre"
+            required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors" 
+            placeholder={language === 'en' ? 'Your full name' : language === 'fr' ? 'Votre nom complet' : 'Tu nombre completo'}
+          />
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{t.phone} *</label>
+            <input 
+              type="tel" 
+              name="cliente_telefono"
+              id="lead-telefono"
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors" 
+              placeholder={language === 'en' ? '(809) 123-4567' : language === 'fr' ? '(809) 123-4567' : '(809) 123-4567'}
+            />
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">{t.whatsapp}</label>
+            <input 
+              type="tel" 
+              name="cliente_celular"
+              id="lead-celular"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors" 
+              placeholder={language === 'en' ? '(829) 123-4567' : language === 'fr' ? '(829) 123-4567' : '(829) 123-4567'}
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">{t.email} *</label>
+          <input 
+            type="email" 
+            name="cliente_email"
+            id="lead-email"
+            required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors" 
+            placeholder={language === 'en' ? 'your@email.com' : language === 'fr' ? 'votre@email.com' : 'tu@email.com'}
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">{t.message}</label>
+          <textarea 
+            name="mensaje"
+            id="lead-mensaje"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20 focus:border-[#f04e00] transition-colors h-24 resize-none" 
+            placeholder={t.messagePlaceholder}
+          ></textarea>
+        </div>
+        
+        <!-- Terms checkbox -->
+        <div class="flex items-start gap-3">
+          <input 
+            type="checkbox" 
+            id="lead-terms"
+            name="acepta_terminos"
+            required
+            class="w-4 h-4 text-[#f04e00] border-2 border-gray-300 rounded focus:ring-[#f04e00]/20 focus:ring-2 mt-1"
+          />
+          <label for="lead-terms" class="text-sm text-gray-600 leading-relaxed">
+            {t.terms} <a href={termsUrl} class="text-[#f04e00] hover:underline" target="_blank">{t.termsLink}</a> 
+            {t.and} 
+            <a href={privacyUrl} class="text-[#f04e00] hover:underline" target="_blank">{t.privacyLink}</a>.
+          </label>
+        </div>
+        
+        <!-- Submit button -->
+        <button 
+          type="submit" 
+          id="submit-lead-btn"
+          class="w-full bg-[#f04e00] text-white py-3 rounded-lg font-semibold hover:bg-[#d94400] transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2"
+        >
+          <i class="fas fa-paper-plane"></i>
+          <span id="submit-lead-text">{t.submitButton}</span>
+        </button>
+      </form>
+    </div>
+  </div>
+)}
+
+<script>
+  // Toggle para mostrar todos los cocaptadores
+  window.toggleAllCocaptors = function() {
+    // Esta función se puede implementar después si hay más de 3 cocaptadores
+    console.log('Toggle all cocaptors functionality - to be implemented');
+  };
+</script>

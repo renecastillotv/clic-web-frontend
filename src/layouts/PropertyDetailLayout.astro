@@ -1,0 +1,752 @@
+---
+// src/layouts/PropertyDetailLayout.astro - VERSIÓN TEMPORAL COMPLETA
+// Contiene todo el HTML de prueba.astro para probar integración
+
+export interface Props {
+  property: any;
+  agent: any;
+  referral_info?: any;
+  relatedProperties: any[];
+  articles: any[];
+  videos: any[];
+  testimonials: any[];
+  faqs: any[];
+  widgets?: any;
+  marketData?: any;
+  locationData?: any;
+  projectDetails?: any;
+  meta: {
+    title: string;
+    description: string;
+  };
+  breadcrumbs?: any[];
+}
+
+const { 
+  property, 
+  agent, 
+  referral_info, 
+  relatedProperties,
+  articles,
+  videos, 
+  testimonials,
+  faqs,
+  widgets,
+  marketData,
+  locationData,
+  projectDetails,
+  meta,
+  breadcrumbs 
+} = Astro.props;
+
+// Datos procesados
+const propertyImages = property?.imagenes || [];
+const hasMultipleImages = propertyImages.length > 1;
+const agentRating = agent?.rating || 5;
+const isProject = property?.is_project || false;
+
+import Layout from './Layout.astro';
+---
+
+<Layout title={meta.title} description={meta.description}>
+  
+  <!-- TODO: Agregar todos los estilos CSS de prueba.astro aquí -->
+  <style>
+    :root {
+      --primary: #FF4D10;
+      --primary-light: #FF6B3D;
+      --primary-dark: #E03900;
+      --dark-blue: #1A2438;
+      --dark-grey: #333333;
+      --mid-grey: #666666;
+      --light-grey: #F5F5F5;
+      --white: #FFFFFF;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.05);
+      --radius: 8px;
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 2rem;
+      --spacing-lg: 4rem;
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 var(--spacing-md);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      margin-bottom: var(--spacing-sm);
+      position: relative;
+      padding-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .section-title:after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background-color: var(--primary);
+    }
+
+    .breadcrumb {
+      background-color: var(--light-grey);
+      padding: var(--spacing-sm) 0;
+    }
+
+    .breadcrumb-item {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.9rem;
+      color: var(--mid-grey);
+      font-weight: 500;
+    }
+
+    .breadcrumb-item:not(:last-child)::after {
+      content: '/';
+      margin: 0 10px;
+      color: #ccc;
+    }
+
+    .breadcrumb-item a:hover {
+      color: var(--primary);
+    }
+
+    .property-detail {
+      padding: 0;
+    }
+
+    .property-layout {
+      display: grid;
+      grid-template-columns: 3fr 1fr;
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .gallery-container {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+      height: 600px;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .gallery-main {
+      grid-row: 1 / 3;
+      grid-column: 1 / 2;
+      overflow: hidden;
+      border-radius: var(--radius);
+      position: relative;
+    }
+
+    .gallery-item {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .gallery-item:hover img {
+      transform: scale(1.05);
+    }
+
+    .view-all-photos {
+      position: absolute;
+      bottom: 15px;
+      right: 15px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px 15px;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 600;
+      border: none;
+    }
+
+    .view-all-photos:hover {
+      background: rgba(255, 255, 255, 1) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(0,0,0,0.2) !important;
+    }
+
+    .property-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--spacing-md);
+      flex-wrap: wrap;
+    }
+
+    .property-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+
+    .property-location {
+      display: flex;
+      align-items: center;
+      font-size: 1.1rem;
+      color: var(--mid-grey);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .property-location i {
+      margin-right: 8px;
+      color: var(--primary);
+    }
+
+    .property-badges {
+      display: flex;
+      gap: 10px;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .property-badge {
+      background-color: var(--primary);
+      color: var(--white);
+      padding: 5px 12px;
+      border-radius: var(--radius);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .property-price {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .detail-card {
+      background: var(--light-grey);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      transition: var(--transition);
+    }
+
+    .detail-card:hover {
+      background-color: #e8e8e8;
+    }
+
+    .detail-icon {
+      font-size: 2rem;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .detail-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .detail-label {
+      color: var(--mid-grey);
+      font-weight: 500;
+    }
+
+    .sticky-sidebar {
+      position: sticky;
+      top: 100px;
+    }
+
+    .agent-widget {
+      background-color: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .agent-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: var(--spacing-sm);
+      padding-bottom: var(--spacing-sm);
+      border-bottom: 1px solid #eee;
+    }
+
+    .agent-avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin-right: 15px;
+    }
+
+    .agent-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .agent-name {
+      font-size: 1.2rem;
+      margin-bottom: 0;
+      font-weight: 600;
+    }
+
+    .agent-position {
+      font-size: 0.9rem;
+      color: var(--mid-grey);
+    }
+
+    .agent-badge {
+      display: inline-block;
+      background-color: var(--primary-light);
+      color: var(--white);
+      padding: 3px 8px;
+      border-radius: 50px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .contact-form {
+      margin-top: var(--spacing-sm);
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      transition: var(--transition);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(255, 77, 16, 0.1);
+    }
+
+    textarea.form-control {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .btn-elegant {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+      font-size: 1rem;
+      text-decoration: none;
+    }
+
+    .btn-elegant:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary);
+      color: var(--white);
+    }
+
+    .btn-whatsapp {
+      background-color: #25d366;
+      font-size: 0.9rem;
+      padding: 0.75rem;
+    }
+
+    .btn-whatsapp:hover {
+      background-color: #128c7e;
+    }
+
+    .contact-buttons {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    @media (max-width: 992px) {
+      .property-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .gallery-container {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        height: auto;
+      }
+
+      .gallery-main {
+        grid-row: auto;
+        grid-column: span 2;
+        height: 300px;
+      }
+
+      .gallery-item:not(.gallery-main) {
+        height: 150px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .property-header {
+        flex-direction: column;
+      }
+
+      .property-title {
+        font-size: 1.8rem;
+      }
+
+      .property-price {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+
+  <!-- Banner de referido -->
+  {referral_info && (
+    <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 0.75rem;">
+      <div class="container">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; font-weight: 600;">
+          <i class="fas fa-user-tie"></i>
+          Propiedad presentada por <strong>{referral_info.agent_name}</strong>
+          <span style="background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem;">
+            {referral_info.referral_code}
+          </span>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <!-- Breadcrumb -->
+  {breadcrumbs && breadcrumbs.length > 1 && (
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <div class="container">
+        {breadcrumbs.map((crumb, index) => (
+          <div class="breadcrumb-item" key={index}>
+            {index === breadcrumbs.length - 1 ? (
+              <span>{crumb.name}</span>
+            ) : (
+              <a href={crumb.url}>{crumb.name}</a>
+            )}
+          </div>
+        ))}
+      </div>
+    </nav>
+  )}
+
+  <!-- Contenido principal -->
+  <div class="property-detail">
+    <div class="container">
+      
+      <!-- Header de la propiedad -->
+      <div class="property-header">
+        <div style="flex: 1 1 60%;">
+          <h1 class="property-title">{property.titulo}</h1>
+          <div class="property-location">
+            <i class="fas fa-map-marker-alt"></i>
+            {property.sector}
+          </div>
+          
+          {(property.code || isProject) && (
+            <div class="property-badges">
+              {property.code && (
+                <span class="property-badge">Ref: {property.code}</span>
+              )}
+              {isProject && (
+                <span class="property-badge" style="background-color: #2196f3;">PROYECTO</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div style="flex: 1 1 30%; text-align: right;">
+          <div class="property-price">{property.precio}</div>
+          {property.metros && (
+            <div style="font-size: 1rem; color: var(--mid-grey); margin-bottom: var(--spacing-sm);">
+              Aprox. ${Math.round(parseInt(property.precio.replace(/[^\d]/g, '')) / property.metros).toLocaleString()}/m²
+            </div>
+          )}
+          {property.code && (
+            <div style="font-size: 0.85rem; color: var(--mid-grey);">ID: {property.code}</div>
+          )}
+        </div>
+      </div>
+
+      <!-- Galería de imágenes -->
+      <div class="gallery-container">
+        <div class="gallery-main gallery-item">
+          <img 
+            src={property.imagen} 
+            alt={property.titulo}
+            style="cursor: pointer;"
+            onclick="openLightbox(0)"
+          />
+          {hasMultipleImages && (
+            <div class="view-all-photos" onclick="openLightbox(0)">
+              <i class="fas fa-images"></i>
+              Ver {propertyImages.length} fotos
+            </div>
+          )}
+        </div>
+
+        {propertyImages.slice(1, 3).map((img, index) => (
+          <div class="gallery-item" key={index + 1}>
+            <img 
+              src={img} 
+              alt={`${property.titulo} - Imagen ${index + 2}`}
+              style="cursor: pointer;"
+              onclick={`openLightbox(${index + 1})`}
+            />
+          </div>
+        ))}
+      </div>
+
+      <!-- Layout principal -->
+      <div class="property-layout">
+        
+        <!-- Columna izquierda -->
+        <div class="property-left">
+          
+          <!-- Detalles técnicos -->
+          <div style="margin-bottom: 2rem;">
+            <h2 class="section-title">Detalles de la Propiedad</h2>
+            <div class="details-grid">
+              <div class="detail-card">
+                <div class="detail-icon">
+                  <i class="fas fa-bed"></i>
+                </div>
+                <div class="detail-value">
+                  {isProject && property.habitaciones_rango ? 
+                    property.habitaciones_rango : 
+                    (property.habitaciones || 0)
+                  }
+                </div>
+                <div class="detail-label">Habitaciones</div>
+              </div>
+              
+              <div class="detail-card">
+                <div class="detail-icon">
+                  <i class="fas fa-bath"></i>
+                </div>
+                <div class="detail-value">
+                  {isProject && property.banos_rango ? 
+                    property.banos_rango : 
+                    (property.banos || 0)
+                  }
+                </div>
+                <div class="detail-label">Baños</div>
+              </div>
+              
+              <div class="detail-card">
+                <div class="detail-icon">
+                  <i class="fas fa-ruler-combined"></i>
+                </div>
+                <div class="detail-value">
+                  {isProject && property.metros_rango ? 
+                    property.metros_rango : 
+                    (property.metros ? `${property.metros}m²` : 'N/A')
+                  }
+                </div>
+                <div class="detail-label">Área</div>
+              </div>
+              
+              <div class="detail-card">
+                <div class="detail-icon">
+                  <i class="fas fa-home"></i>
+                </div>
+                <div class="detail-value">
+                  {property.tipo || 'Apartamento'}
+                </div>
+                <div class="detail-label">Tipo</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Descripción -->
+          <div style="margin-bottom: 2rem;">
+            <h2 class="section-title">Descripción</h2>
+            <div style="line-height: 1.8; color: var(--dark-grey);">
+              <p>{property.descripcion || property.description || 'Esta es una excelente oportunidad de inversión inmobiliaria en una ubicación privilegiada.'}</p>
+            </div>
+          </div>
+
+          <!-- Debug info -->
+          <div style="background: #f0f0f0; padding: 1rem; margin: 2rem 0; border-radius: 8px; font-family: monospace;">
+            <h3>🧪 DEBUG INFO</h3>
+            <p><strong>Property ID:</strong> {property.id}</p>
+            <p><strong>Property Title:</strong> {property.titulo}</p>
+            <p><strong>Has Agent:</strong> {agent ? 'YES' : 'NO'}</p>
+            <p><strong>Agent Name:</strong> {agent?.name || 'NONE'}</p>
+            <p><strong>Is Referral:</strong> {agent?.is_referral_agent ? 'YES' : 'NO'}</p>
+            <p><strong>Referral Info:</strong> {referral_info ? JSON.stringify(referral_info) : 'NONE'}</p>
+            <p><strong>Images Count:</strong> {propertyImages.length}</p>
+            <p><strong>Related Properties:</strong> {relatedProperties?.length || 0}</p>
+            <p><strong>Articles:</strong> {articles?.length || 0}</p>
+            <p><strong>Videos:</strong> {videos?.length || 0}</p>
+            <p><strong>Testimonials:</strong> {testimonials?.length || 0}</p>
+            <p><strong>FAQs:</strong> {faqs?.length || 0}</p>
+          </div>
+
+        </div>
+
+        <!-- Sidebar derecho -->
+        <div class="property-right">
+          <div class="sticky-sidebar">
+            {agent && (
+              <div class="agent-widget">
+                <div class="agent-header">
+                  <div class="agent-avatar">
+                    <img 
+                      src={agent.profile_image || '/images/default-agent.jpg'} 
+                      alt={agent.name}
+                    />
+                  </div>
+                  <div style="flex-grow: 1;">
+                    <h3 class="agent-name">{agent.name}</h3>
+                    <div class="agent-position">{agent.position}</div>
+                    {agent.referral_code && (
+                      <span class="agent-badge">Código: {agent.referral_code}</span>
+                    )}
+                  </div>
+                </div>
+
+                <!-- Rating del agente -->
+                <div style="text-align: center; margin-bottom: 1rem;">
+                  <div style="margin-bottom: 0.5rem;">
+                    {Array.from({length: 5}).map((_, i) => (
+                      <i class="fas fa-star" style={`color: ${i < Math.floor(agentRating) ? '#ffc107' : '#e9ecef'}; margin: 0 2px;`} key={i}></i>
+                    ))}
+                  </div>
+                  <div style="font-size: 0.9rem; color: var(--mid-grey); font-weight: 500;">
+                    {agentRating}/5 - Agente Verificado
+                  </div>
+                </div>
+
+                <!-- Formulario de contacto -->
+                <div class="contact-form">
+                  <form>
+                    <div class="form-group">
+                      <label for="contact-name">Nombre completo</label>
+                      <input type="text" id="contact-name" class="form-control" placeholder="Tu nombre">
+                    </div>
+                    
+                    <div class="form-group">
+                      <label for="contact-phone">Teléfono</label>
+                      <input type="tel" id="contact-phone" class="form-control" placeholder="Tu teléfono">
+                    </div>
+                    
+                    <div class="form-group">
+                      <label for="contact-email">Email</label>
+                      <input type="email" id="contact-email" class="form-control" placeholder="Tu email">
+                    </div>
+                    
+                    <div class="form-group">
+                      <label for="contact-message">Mensaje</label>
+                      <textarea id="contact-message" class="form-control" placeholder="Estoy interesado en esta propiedad..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn-elegant" style="width: 100%;">
+                      <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>
+                      Contactar Asesor
+                    </button>
+                  </form>
+                </div>
+
+                <!-- Botones de contacto directo -->
+                <div class="contact-buttons">
+                  {agent.whatsapp_link && (
+                    <a 
+                      href={agent.whatsapp_link}
+                      target="_blank"
+                      class="btn-elegant btn-whatsapp"
+                    >
+                      <i class="fab fa-whatsapp"></i>
+                    </a>
+                  )}
+
+                  {agent.phone && (
+                    <a 
+                      href={`tel:${agent.phone}`}
+                      class="btn-outline"
+                      style="text-align: center;"
+                    >
+                      <i class="fas fa-phone"></i>
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script define:vars={{ propertyImages, agentRating }}>
+    // Lightbox
+    function openLightbox(index) {
+      console.log('Opening lightbox for image:', index);
+      // Implementar lightbox
+    }
+
+    // Hacer función global
+    window.openLightbox = openLightbox;
+  </script>
+
+</Layout>

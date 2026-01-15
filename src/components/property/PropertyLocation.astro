@@ -1,0 +1,1031 @@
+---
+// src/components/property/PropertyLocation.astro - GOOGLE MAPS VERSION MEJORADA
+export interface Props {
+  data: any;
+  language?: 'es' | 'en' | 'fr';
+}
+
+const { data, language = 'es' } = Astro.props;
+
+const property = data.property || {};
+const locationData = data.location || {};
+const locationContext = data.location_context || null;
+
+// Traducciones para el componente de ubicación - COMPLETAS
+const translations = {
+  es: {
+    propertyLocation: 'Ubicación de la Propiedad',
+    exact: '* Exacta',
+    approximate: '* Aproximada',
+    fromSector: '* Del Sector',
+    nearbyPlaces: 'Lugares destacados cerca de tu',
+    nearbyPlacesGeneric: 'Lugares cercanos',
+    servicesNearby: 'Resumen de Servicios',
+    theArea: 'la Zona',
+    showMore: 'Ver todos',
+    showLess: 'Ver menos',
+    locationPreposition: 'en',
+    placesLabel: 'lugares',
+    propertyType: {
+      apartamento: 'apartamento',
+      villa: 'villa',
+      casa: 'casa',
+      penthouse: 'penthouse',
+      estudio: 'estudio',
+      duplex: 'dúplex',
+      default: 'propiedad'
+    },
+    generalLocation: 'Ubicación General',
+    addressNotSpecified: 'Dirección no especificada',
+    exactLocation: 'Ubicación exacta',
+    approximateLocation: 'Ubicación aproximada',
+    generalArea: 'Zona general',
+    errorLoadingMap: 'Error cargando mapa',
+    viewOnGoogleMaps: 'Ver en Google Maps',
+    mapLoadingError: 'Error al cargar el mapa',
+    walkingDistance: 'A pie',
+    totalServices: 'servicios disponibles',
+    mapLoading: 'Cargando mapa...',
+    
+    // Categorías de lugares (singular y plural) - AMPLIADAS
+    banco: 'Banco',
+    bancos: 'Bancos',
+    centro_comercial: 'Centro Comercial',
+    centros_comerciales: 'Centros Comerciales',
+    cine: 'Cine',
+    cines: 'Cines',
+    colegio: 'Escuela',
+    colegios: 'Escuelas',
+    farmacia: 'Farmacia',
+    farmacias: 'Farmacias',
+    gasolinera: 'Gasolinera',
+    gasolineras: 'Gasolineras',
+    gimnasio: 'Gimnasio',
+    gimnasios: 'Gimnasios',
+    hospital: 'Hospital',
+    hospitales: 'Hospitales',
+    restaurante: 'Restaurante',
+    restaurantes: 'Restaurantes',
+    supermercado: 'Supermercado',
+    supermercados: 'Supermercados',
+    bar: 'Bar',
+    bares: 'Bares',
+    hotel: 'Hotel',
+    hoteles: 'Hoteles',
+    policia: 'Estación de Policía',
+    policias: 'Estaciones de Policía',
+    veterinaria: 'Veterinaria',
+    veterinarias: 'Veterinarias',
+    instituto: 'Instituto',
+    institutos: 'Institutos',
+    bomberos: 'Estación de Bomberos',
+    estacion_bomberos: 'Estación de Bomberos',
+    parque: 'Parque',
+    parques: 'Parques',
+    iglesia: 'Iglesia',
+    iglesias: 'Iglesias',
+    biblioteca: 'Biblioteca',
+    bibliotecas: 'Bibliotecas'
+  },
+  en: {
+    propertyLocation: 'Property Location',
+    exact: '* Exact',
+    approximate: '* Approximate',
+    fromSector: '* From Sector',
+    nearbyPlaces: 'Featured places near your',
+    nearbyPlacesGeneric: 'Nearby places',
+    servicesNearby: 'Services Summary',
+    theArea: 'the Area',
+    showMore: 'View all',
+    showLess: 'View less',
+    locationPreposition: 'in',
+    placesLabel: 'places',
+    propertyType: {
+      apartamento: 'apartment',
+      villa: 'villa',
+      casa: 'house',
+      penthouse: 'penthouse',
+      estudio: 'studio',
+      duplex: 'duplex',
+      default: 'property'
+    },
+    generalLocation: 'General Location',
+    addressNotSpecified: 'Address not specified',
+    exactLocation: 'Exact location',
+    approximateLocation: 'Approximate location',
+    generalArea: 'General area',
+    errorLoadingMap: 'Error loading map',
+    viewOnGoogleMaps: 'View on Google Maps',
+    mapLoadingError: 'Map loading error',
+    walkingDistance: 'Walking',
+    totalServices: 'services available',
+    mapLoading: 'Loading map...',
+    
+    // Categorías de lugares (singular y plural) - AMPLIADAS
+    banco: 'Bank',
+    bancos: 'Banks',
+    centro_comercial: 'Shopping Center',
+    centros_comerciales: 'Shopping Centers',
+    cine: 'Cinema',
+    cines: 'Cinemas',
+    colegio: 'School',
+    colegios: 'Schools',
+    farmacia: 'Pharmacy',
+    farmacias: 'Pharmacies',
+    gasolinera: 'Gas Station',
+    gasolineras: 'Gas Stations',
+    gimnasio: 'Gym',
+    gimnasios: 'Gyms',
+    hospital: 'Hospital',
+    hospitales: 'Hospitals',
+    restaurante: 'Restaurant',
+    restaurantes: 'Restaurants',
+    supermercado: 'Supermarket',
+    supermercados: 'Supermarkets',
+    bar: 'Bar',
+    bares: 'Bars',
+    hotel: 'Hotel',
+    hoteles: 'Hotels',
+    policia: 'Police Station',
+    policias: 'Police Stations',
+    veterinaria: 'Veterinary',
+    veterinarias: 'Veterinaries',
+    instituto: 'Institute',
+    institutos: 'Institutes',
+    bomberos: 'Fire Station',
+    estacion_bomberos: 'Fire Station',
+    parque: 'Park',
+    parques: 'Parks',
+    iglesia: 'Church',
+    iglesias: 'Churches',
+    biblioteca: 'Library',
+    bibliotecas: 'Libraries'
+  },
+  fr: {
+    propertyLocation: 'Emplacement de la Propriété',
+    exact: '* Exact',
+    approximate: '* Approximatif',
+    fromSector: '* Du Secteur',
+    nearbyPlaces: 'Lieux vedettes près de votre',
+    nearbyPlacesGeneric: 'Lieux à proximité',
+    servicesNearby: 'Résumé des Services',
+    theArea: 'la Zone',
+    showMore: 'Voir tout',
+    showLess: 'Voir moins',
+    locationPreposition: 'à',
+    placesLabel: 'lieux',
+    propertyType: {
+      apartamento: 'appartement',
+      villa: 'villa',
+      casa: 'maison',
+      penthouse: 'penthouse',
+      estudio: 'studio',
+      duplex: 'duplex',
+      default: 'propriété'
+    },
+    generalLocation: 'Emplacement Général',
+    addressNotSpecified: 'Adresse non spécifiée',
+    exactLocation: 'Emplacement exact',
+    approximateLocation: 'Emplacement approximatif',
+    generalArea: 'Zone générale',
+    errorLoadingMap: 'Erreur de chargement de la carte',
+    viewOnGoogleMaps: 'Voir sur Google Maps',
+    mapLoadingError: 'Erreur de chargement de la carte',
+    walkingDistance: 'À pied',
+    totalServices: 'services disponibles',
+    mapLoading: 'Chargement de la carte...',
+    
+    // Categorías de lugares (singular y plural) - AMPLIADAS
+    banco: 'Banque',
+    bancos: 'Banques',
+    centro_comercial: 'Centre Commercial',
+    centros_comerciales: 'Centres Commerciaux',
+    cine: 'Cinéma',
+    cines: 'Cinémas',
+    colegio: 'École',
+    colegios: 'Écoles',
+    farmacia: 'Pharmacie',
+    farmacias: 'Pharmacies',
+    gasolinera: 'Station-service',
+    gasolineras: 'Stations-service',
+    gimnasio: 'Gym',
+    gimnasios: 'Gyms',
+    hospital: 'Hôpital',
+    hospitales: 'Hôpitaux',
+    restaurante: 'Restaurant',
+    restaurantes: 'Restaurants',
+    supermercado: 'Supermarché',
+    supermercados: 'Supermarchés',
+    bar: 'Bar',
+    bares: 'Bars',
+    hotel: 'Hôtel',
+    hoteles: 'Hôtels',
+    policia: 'Poste de Police',
+    policias: 'Postes de Police',
+    veterinaria: 'Vétérinaire',
+    veterinarias: 'Vétérinaires',
+    instituto: 'Institut',
+    institutos: 'Instituts',
+    bomberos: 'Caserne de Pompiers',
+    estacion_bomberos: 'Caserne de Pompiers',
+    parque: 'Parc',
+    parques: 'Parcs',
+    iglesia: 'Église',
+    iglesias: 'Églises',
+    biblioteca: 'Bibliothèque',
+    bibliotecas: 'Bibliothèques'
+  }
+};
+
+const t = translations[language];
+
+// Función para obtener el nombre correcto de la categoría
+function getCategoryDisplayName(categoria, count) {
+  const baseKey = categoria.toLowerCase();
+  
+  if (count === 1) {
+    return t[baseKey] || categoria;
+  } else {
+    // Buscar la forma plural
+    const pluralKey = baseKey + 's';
+    if (t[pluralKey]) {
+      return t[pluralKey];
+    }
+    
+    // Plurales especiales
+    const specialPlurals = {
+      'centro_comercial': t['centros_comerciales'] || 'Centros Comerciales',
+      'policia': t['policias'] || 'Estaciones de Policía',
+      'veterinaria': t['veterinarias'] || 'Veterinarias',
+      'instituto': t['institutos'] || 'Institutos',
+      'bomberos': t['bomberos'] || 'Estaciones de Bomberos',
+      'estacion_bomberos': t['bomberos'] || 'Estaciones de Bomberos'
+    };
+    
+    return specialPlurals[baseKey] || (t[baseKey] || categoria) + 's';
+  }
+}
+
+// LÓGICA INTELIGENTE DE COORDENADAS (mantenida igual)
+function getDisplayCoordinates() {
+  console.log('🗺️ === DETERMINANDO COORDENADAS PARA MOSTRAR ===');
+  console.log('📍 Location data recibido:', locationData);
+  
+  if (locationData && locationData.coordinates) {
+    console.log('✅ Usando coordenadas del provider:', locationData.coordinates);
+    return {
+      coordinates: locationData.coordinates,
+      source: locationData.coordinatesSource || 'provider',
+      showExactLocation: locationData.showExactLocation || false,
+      hasExactCoordinates: locationData.hasExactCoordinates || false,
+      zoom: locationData.mapConfig?.zoom || 15,
+      showMarker: locationData.mapConfig?.showMarker !== false
+    };
+  }
+  
+  console.log('⚠️ Buscando coordenadas en ubicaciones alternativas...');
+  
+  if (data.location?.coordinates) {
+    console.log('✅ Encontradas en data.location:', data.location.coordinates);
+    return {
+      coordinates: data.location.coordinates,
+      source: data.location.coordinatesSource || 'direct',
+      showExactLocation: data.location.showExactLocation || false,
+      hasExactCoordinates: data.location.hasExactCoordinates || false,
+      zoom: data.location.mapConfig?.zoom || 15,
+      showMarker: true
+    };
+  }
+  
+  console.log('⚠️ Sin coordenadas reales válidas');
+  return {
+    coordinates: null,
+    source: 'none',
+    showExactLocation: false,
+    hasExactCoordinates: false,
+    zoom: 6,
+    showMarker: false
+  };
+}
+
+function getPrivacyAdjustedCoordinates(coords, showExact, hasExact) {
+  if (!coords) {
+    console.log('⚠️ No hay coordenadas para ajustar');
+    return null;
+  }
+  
+  if (typeof coords.lat !== 'number' || typeof coords.lng !== 'number') {
+    console.warn('⚠️ Coordenadas inválidas, no hay fallback hardcodeado:', coords);
+    return null;
+  }
+  
+  if (!hasExact || showExact) {
+    console.log('🎯 Usando coordenadas sin modificar');
+    return coords;
+  }
+  
+  const randomAngle = Math.random() * 2 * Math.PI;
+  const randomDistance = 0.002;
+  
+  const adjustedCoords = {
+    lat: coords.lat + (Math.cos(randomAngle) * randomDistance),
+    lng: coords.lng + (Math.sin(randomAngle) * randomDistance)
+  };
+  
+  console.log('🔒 Aplicando desplazamiento de privacidad:', {
+    original: coords,
+    adjusted: adjustedCoords,
+    displacement: '~200m'
+  });
+  
+  return adjustedCoords;
+}
+
+// Función para obtener el icono según la categoría
+function getCategoryIcon(categoria) {
+  switch (categoria) {
+    case 'supermercado':
+      return 'fas fa-shopping-cart';
+    case 'hospital':
+      return 'fas fa-hospital';
+    case 'banco':
+      return 'fas fa-university';
+    case 'colegio':
+    case 'school':
+      return 'fas fa-graduation-cap';
+    case 'centro_comercial':
+    case 'shopping':
+      return 'fas fa-shopping-bag';
+    case 'farmacia':
+      return 'fas fa-pills';
+    case 'gasolinera':
+      return 'fas fa-gas-pump';
+    case 'gimnasio':
+      return 'fas fa-dumbbell';
+    case 'cine':
+      return 'fas fa-film';
+    case 'restaurante':
+      return 'fas fa-utensils';
+    case 'bar':
+      return 'fas fa-wine-glass';
+    case 'hotel':
+      return 'fas fa-bed';
+    case 'policia':
+      return 'fas fa-shield-alt';
+    case 'veterinaria':
+      return 'fas fa-paw';
+    case 'instituto':
+      return 'fas fa-school';
+    case 'bomberos':
+    case 'estacion_bomberos':
+      return 'fas fa-fire-extinguisher';
+    case 'parque':
+      return 'fas fa-tree';
+    case 'iglesia':
+      return 'fas fa-church';
+    case 'biblioteca':
+      return 'fas fa-book';
+    default:
+      return 'fas fa-map-marker-alt';
+  }
+}
+
+// Función para obtener el color según la categoría
+function getCategoryColor(categoria) {
+  switch (categoria) {
+    case 'supermercado':
+      return '#f59e0b';
+    case 'hospital':
+      return '#dc2626';
+    case 'banco':
+      return '#3b82f6';
+    case 'colegio':
+    case 'school':
+      return '#10b981';
+    case 'centro_comercial':
+    case 'shopping':
+      return '#f04e00';
+    case 'farmacia':
+      return '#059669';
+    case 'gasolinera':
+      return '#f97316';
+    case 'gimnasio':
+      return '#8b5cf6';
+    case 'cine':
+      return '#ec4899';
+    case 'restaurante':
+      return '#ef4444';
+    case 'bar':
+      return '#a855f7';
+    case 'hotel':
+      return '#06b6d4';
+    case 'policia':
+      return '#1e40af';
+    case 'veterinaria':
+      return '#16a34a';
+    case 'instituto':
+      return '#0ea5e9';
+    case 'bomberos':
+    case 'estacion_bomberos':
+      return '#dc2626';
+    case 'parque':
+      return '#22c55e';
+    case 'iglesia':
+      return '#7c3aed';
+    case 'biblioteca':
+      return '#0891b2';
+    default:
+      return '#6b7280';
+  }
+}
+
+// Función para obtener el tipo de propiedad legible
+function getPropertyType() {
+  const propertyType = property?.tipo_propiedad || property?.type || property?.property_type;
+  if (!propertyType) return t.propertyType.default;
+  
+  const normalizedType = propertyType.toLowerCase();
+  return t.propertyType[normalizedType] || t.propertyType.default;
+}
+
+// Función para determinar si hay distancias reales calculadas
+function hasRealDistances(lugares) {
+  return lugares && lugares.some(lugar => 
+    lugar.distancia_display && 
+    lugar.distancia_display !== 'N/A' && 
+    lugar.distancia_display.trim() !== ''
+  );
+}
+
+const mapConfig = getDisplayCoordinates();
+const displayCoordinates = getPrivacyAdjustedCoordinates(
+  mapConfig.coordinates,
+  mapConfig.showExactLocation,
+  mapConfig.hasExactCoordinates
+);
+
+// Determinar si usar título específico o genérico
+const lugares = locationContext?.nearby_places?.lugares_destacados || [];
+const showSpecificTitle = hasRealDistances(lugares);
+
+console.log('🗺️ PropertyLocation loaded (GOOGLE MAPS):', {
+  language: language,
+  coordinates: displayCoordinates,
+  zoom: mapConfig.zoom,
+  source: mapConfig.source,
+  showMarker: mapConfig.showMarker,
+  privacyApplied: mapConfig.hasExactCoordinates && !mapConfig.showExactLocation,
+  hasLocationContext: !!locationContext,
+  nearbyPlacesCount: lugares.length,
+  hasRealDistances: showSpecificTitle
+});
+
+if (!displayCoordinates || typeof displayCoordinates.lat !== 'number' || typeof displayCoordinates.lng !== 'number') {
+  console.error('❌ Error: Coordenadas finales inválidas!', displayCoordinates);
+}
+---
+
+<!-- Mapa y Lugares Cercanos -->
+<div class="space-y-8">
+  <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block flex items-center gap-2">
+    {t.propertyLocation}
+    {mapConfig.hasExactCoordinates ? (
+      mapConfig.showExactLocation ? (
+        <span class="text-sm text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded font-normal">
+          {t.exact}
+        </span>
+      ) : (
+        <span class="text-sm text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded font-normal">
+          {t.approximate}
+        </span>
+      )
+    ) : (
+      <span class="text-sm text-[#f04e00] bg-[#f04e00]/10 px-2 py-1 rounded font-normal">
+        {t.fromSector}
+      </span>
+    )}
+  </h2>
+  
+  <!-- Google Maps Container -->
+  <div class="bg-gray-50 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+    <div 
+      id="google-map" 
+      class="w-full h-64"
+      data-map-initialized="false"
+    >
+      <!-- Fallback mientras carga Google Maps -->
+      <div class="w-full h-full flex items-center justify-center bg-gray-100">
+        <div class="text-center">
+          <i class="fas fa-map-marker-alt text-[#f04e00] text-4xl mb-2"></i>
+          <p class="text-gray-600">{t.mapLoading}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- NUEVO ORDEN: Primero lugares destacados, luego resumen de servicios -->
+  {locationContext && locationContext.nearby_places && (
+    <div class="space-y-8">
+      
+      <!-- 1. LUGARES DESTACADOS -->
+      {locationContext.nearby_places.lugares_destacados && locationContext.nearby_places.lugares_destacados.length > 0 && (
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-star text-[#f04e00] text-lg"></i>
+              {showSpecificTitle ? (
+                `${t.nearbyPlaces} ${getPropertyType()} ${t.locationPreposition} ${locationContext.nearby_places.ubicacion || locationData.sector || locationData.city || t.theArea}`
+              ) : (
+                t.nearbyPlacesGeneric
+              )}
+            </h3>
+            <span class="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              {locationContext.nearby_places.lugares_destacados.length} {t.placesLabel}
+            </span>
+          </div>
+          
+          <!-- Grid - MOSTRAR TODOS los lugares destacados, sin límite -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="places-grid">
+            {locationContext.nearby_places.lugares_destacados.map((place, index) => (
+              <div class="place-card group bg-white border border-gray-200 rounded-lg p-4 hover:border-[#f04e00]/30 hover:shadow-sm transition-all duration-200">
+                <div class="flex items-start gap-3">
+                  <!-- Icono -->
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" 
+                       style={`background: linear-gradient(135deg, ${getCategoryColor(place.categoria)}15, ${getCategoryColor(place.categoria)}25)`}>
+                    <i class={`${getCategoryIcon(place.categoria)} text-base`} style={`color: ${getCategoryColor(place.categoria)}`}></i>
+                  </div>
+                  
+                  <div class="flex-1 min-w-0">
+                    <!-- Línea 1: Nombre, categoría y badge destacado -->
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                      <div class="flex items-center gap-2 min-w-0 flex-1">
+                        <h4 class="font-semibold text-gray-900 text-sm leading-tight group-hover:text-[#f04e00] transition-colors truncate">
+                          {place.nombre}
+                        </h4>
+                        {place.es_destacado && (
+                          <div class="w-2 h-2 bg-[#f04e00] rounded-full flex-shrink-0"></div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <!-- Línea 2: Dirección y distancia -->
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-sm text-gray-600 truncate flex-1">{place.direccion}</p>
+                      {(place.distancia_display && place.distancia_display !== 'N/A') || place.distancia_metros !== undefined ? (
+                        <span class="text-xs text-[#f04e00] font-medium flex items-center gap-1 flex-shrink-0">
+                          <i class="fas fa-walking text-xs"></i>
+                          {place.distancia_display && place.distancia_display !== 'N/A' 
+                            ? place.distancia_display 
+                            : place.distancia_metros 
+                              ? (place.distancia_metros < 1000 ? `${place.distancia_metros}m` : `${(place.distancia_metros/1000).toFixed(1)}km`)
+                              : (language === 'en' ? '0.3 mi' : language === 'fr' ? '0,5 km' : '500m')
+                          }
+                        </span>
+                      ) : (
+                        <span class="text-xs text-[#f04e00] font-medium flex items-center gap-1 flex-shrink-0">
+                          <i class="fas fa-walking text-xs"></i>
+                          {language === 'en' ? '0.3 mi' : language === 'fr' ? '0,5 km' : '500m'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <!-- 2. RESUMEN DE SERVICIOS -->
+      {locationContext.nearby_places.conteos_por_categoria && Object.keys(locationContext.nearby_places.conteos_por_categoria).length > 0 && (
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-medium text-gray-800 flex items-center gap-2">
+              <i class="fas fa-chart-pie text-gray-600"></i>
+              {t.servicesNearby}
+            </h3>
+            <span class="text-sm text-gray-500">
+              {Object.values(locationContext.nearby_places.conteos_por_categoria).reduce((sum, count) => sum + count, 0)} {t.totalServices}
+            </span>
+          </div>
+          
+          <!-- Grid inicial - máximo 10 servicios para mostrar más variedad -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" id="services-grid">
+            {Object.entries(locationContext.nearby_places.conteos_por_categoria)
+              .sort(([,a], [,b]) => b - a)
+              .slice(0, 10)
+              .map(([categoria, count]) => (
+              <div class="service-card flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 hover:border-gray-200 transition-colors">
+                <div class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 bg-gray-200">
+                  <i class={`${getCategoryIcon(categoria)} text-xs text-gray-600`}></i>
+                </div>
+                
+                <div class="flex-1 min-w-0 flex items-center gap-2">
+                  <span class="font-semibold text-gray-800 text-sm flex-shrink-0">{count}</span>
+                  <span class="text-xs text-gray-600 truncate">
+                    {getCategoryDisplayName(categoria, count)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <!-- Servicios adicionales (ocultos inicialmente) -->
+          {Object.keys(locationContext.nearby_places.conteos_por_categoria).length > 10 && (
+            <div class="hidden grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" id="services-grid-extra">
+              {Object.entries(locationContext.nearby_places.conteos_por_categoria)
+                .sort(([,a], [,b]) => b - a)
+                .slice(10)
+                .map(([categoria, count]) => (
+                <div class="service-card flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 hover:border-gray-200 transition-colors">
+                  <div class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 bg-gray-200">
+                    <i class={`${getCategoryIcon(categoria)} text-xs text-gray-600`}></i>
+                  </div>
+                  
+                  <div class="flex-1 min-w-0 flex items-center gap-2">
+                    <span class="font-semibold text-gray-800 text-sm flex-shrink-0">{count}</span>
+                    <span class="text-xs text-gray-600 truncate">
+                      {getCategoryDisplayName(categoria, count)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <!-- Botón Ver más/menos para servicios - SOLO si hay más de 10 elementos -->
+          {Object.keys(locationContext.nearby_places.conteos_por_categoria).length > 10 && (
+            <div class="text-center">
+              <button 
+                id="toggle-services-btn" 
+                class="text-[#f04e00] hover:text-[#d63e00] font-medium text-sm flex items-center gap-2 mx-auto transition-colors"
+                onclick="toggleServices()"
+              >
+                <span id="toggle-services-text">{t.showMore}</span>
+                <i id="toggle-services-icon" class="fas fa-chevron-down text-xs"></i>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )}
+
+  <!-- Fallback: Lugares cercanos desde estructura anterior -->
+  {!locationContext?.nearby_places && data.seo?.structuredData?.nearbyPoints && data.seo.structuredData.nearbyPoints.length > 0 && (
+    <div class="space-y-4">
+      <h3 class="text-lg font-medium text-gray-900">
+        {t.nearbyPlacesGeneric} {locationData.sector || locationData.city || t.theArea}
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {data.seo.structuredData.nearbyPoints.slice(0, 6).map((place, index) => (
+          <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-100 hover:border-gray-200 transition-colors">
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" 
+                 style={`background-color: ${getCategoryColor(place.description)}15`}>
+              <i class={`${getCategoryIcon(place.description)} text-sm`} style={`color: ${getCategoryColor(place.description)}`}></i>
+            </div>
+            
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-gray-900 text-sm truncate">{place.name}</h4>
+              <p class="text-xs text-gray-500 truncate">{place.address}</p>
+            </div>
+            
+            <div class="text-right flex-shrink-0">
+              <span class="text-xs text-gray-600 font-medium">
+                {index < 2 ? '0.5 km' : index < 4 ? '1.2 km' : '2+ km'}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+</div>
+
+<!-- Script MEJORADO con manejo robusto -->
+<script define:vars={{ 
+  coordinates: displayCoordinates, 
+  propertyTitle: property.title_display || property.title || property.name || 'Propiedad',
+  mapConfig: mapConfig,
+  locationData: locationData,
+  language: language,
+  translations: translations,
+  nearbyPlaces: lugares
+}}>
+  // Estado global del mapa
+  window.mapState = window.mapState || {
+    map: null,
+    markers: [],
+    initialized: false,
+    retryCount: 0,
+    maxRetries: 3
+  };
+
+  // Hacer las traducciones globales
+  window.translations = translations;
+  window.language = language;
+
+  // Función para toggle de servicios
+  window.toggleServices = function() {
+    const extraGrid = document.getElementById('services-grid-extra');
+    const toggleBtn = document.getElementById('toggle-services-btn');
+    const toggleText = document.getElementById('toggle-services-text');
+    const toggleIcon = document.getElementById('toggle-services-icon');
+    const t = translations[language] || translations['es'];
+    
+    if (extraGrid && toggleBtn && toggleText && toggleIcon) {
+      if (extraGrid.classList.contains('hidden')) {
+        extraGrid.classList.remove('hidden');
+        extraGrid.classList.add('grid');
+        toggleText.textContent = t.showLess;
+        toggleIcon.classList.remove('fa-chevron-down');
+        toggleIcon.classList.add('fa-chevron-up');
+      } else {
+        extraGrid.classList.add('hidden');
+        extraGrid.classList.remove('grid');
+        toggleText.textContent = t.showMore;
+        toggleIcon.classList.remove('fa-chevron-up');
+        toggleIcon.classList.add('fa-chevron-down');
+      }
+    }
+  };
+
+  // FUNCIÓN PRINCIPAL DE INICIALIZACIÓN DEL MAPA - MEJORADA
+  window.initPropertyMapRobust = function() {
+    const mapElement = document.getElementById('google-map');
+    
+    if (!mapElement) {
+      console.warn('🗺️ Elemento del mapa no encontrado');
+      return false;
+    }
+
+    // Si ya está inicializado y el mapa existe, no reinicializar
+    if (window.mapState.initialized && window.mapState.map) {
+      console.log('🗺️ Mapa ya inicializado, skipping...');
+      return true;
+    }
+
+    if (!window.google || !window.google.maps) {
+      console.warn('🗺️ Google Maps API no disponible aún');
+      
+      // Retry con backoff
+      if (window.mapState.retryCount < window.mapState.maxRetries) {
+        window.mapState.retryCount++;
+        const delay = window.mapState.retryCount * 1000; // 1s, 2s, 3s
+        console.log(`🗺️ Reintentando en ${delay}ms (intento ${window.mapState.retryCount}/${window.mapState.maxRetries})`);
+        setTimeout(() => window.initPropertyMapRobust(), delay);
+      } else {
+        console.error('🗺️ Máximo de reintentos alcanzado');
+        showMapError();
+      }
+      return false;
+    }
+
+    try {
+      console.log('🗺️ Inicializando mapa con coordenadas:', coordinates);
+
+      const propertyLocation = {
+        lat: coordinates?.lat || 18.4682,
+        lng: coordinates?.lng || -69.9279
+      };
+
+      // Crear el mapa
+      window.mapState.map = new google.maps.Map(mapElement, {
+        zoom: mapConfig.zoom || 15,
+        center: propertyLocation,
+        styles: [
+          {
+            "featureType": "poi",
+            "elementType": "labels",
+            "stylers": [{"visibility": "simplified"}]
+          }
+        ],
+        gestureHandling: 'cooperative' // Mejor UX en mobile
+      });
+
+      // Marker principal de la propiedad
+      if (mapConfig.showMarker !== false) {
+        const propertyMarker = new google.maps.Marker({
+          position: propertyLocation,
+          map: window.mapState.map,
+          title: propertyTitle,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: '#f04e00',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3
+          },
+          zIndex: 999
+        });
+        
+        window.mapState.markers.push(propertyMarker);
+      }
+
+      // Agregar lugares cercanos si existen
+      if (nearbyPlaces && nearbyPlaces.length > 0) {
+        const geocoder = new google.maps.Geocoder();
+        
+        nearbyPlaces.slice(0, 5).forEach((place, index) => {
+          if (place.direccion) {
+            geocoder.geocode({ address: place.direccion }, (results, status) => {
+              if (status === 'OK' && results && results.length > 0 && window.mapState.map) {
+                const placeMarker = new google.maps.Marker({
+                  position: results[0].geometry.location,
+                  map: window.mapState.map,
+                  title: place.nombre,
+                  icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 6,
+                    fillColor: getCategoryColorForMarker(place.categoria),
+                    fillOpacity: 0.8,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2
+                  }
+                });
+
+                window.mapState.markers.push(placeMarker);
+
+                const infoWindow = new google.maps.InfoWindow({
+                  content: `
+                    <div class="p-2">
+                      <h4 class="font-semibold text-sm">${place.nombre}</h4>
+                      <p class="text-xs text-gray-600 capitalize">${place.categoria.replace('_', ' ')}</p>
+                      <p class="text-xs text-gray-500 mt-1">${place.direccion}</p>
+                    </div>
+                  `
+                });
+
+                placeMarker.addListener('click', () => {
+                  infoWindow.open(window.mapState.map, placeMarker);
+                });
+              }
+            });
+          }
+        });
+      }
+
+      // Marcar como inicializado
+      window.mapState.initialized = true;
+      mapElement.setAttribute('data-map-initialized', 'true');
+      console.log('✅ Mapa cargado exitosamente');
+      
+      return true;
+
+    } catch (error) {
+      console.error('❌ Error inicializando el mapa:', error);
+      showMapError();
+      return false;
+    }
+  };
+
+  // Función helper para colores de markers
+  function getCategoryColorForMarker(categoria) {
+    const colors = {
+      'supermercado': '#f59e0b',
+      'hospital': '#dc2626',
+      'banco': '#3b82f6',
+      'colegio': '#10b981',
+      'centro_comercial': '#f04e00',
+      'farmacia': '#059669',
+      'gasolinera': '#f97316',
+      'gimnasio': '#8b5cf6',
+      'cine': '#ec4899',
+      'restaurante': '#ef4444',
+      'bar': '#a855f7',
+      'hotel': '#06b6d4',
+      'policia': '#1e40af',
+      'veterinaria': '#16a34a',
+      'instituto': '#0ea5e9',
+      'bomberos': '#dc2626',
+      'parque': '#22c55e',
+      'iglesia': '#7c3aed',
+      'biblioteca': '#0891b2'
+    };
+    return colors[categoria] || '#6b7280';
+  }
+
+  // Función para mostrar error
+  function showMapError() {
+    const mapElement = document.getElementById('google-map');
+    if (mapElement) {
+      mapElement.innerHTML = `
+        <div class="w-full h-64 bg-gradient-to-br from-orange-50 via-gray-50 to-orange-100 flex items-center justify-center rounded-xl">
+          <div class="text-center">
+            <i class="fas fa-map-marker-alt text-[#f04e00] text-4xl mb-2"></i>
+            <p class="text-gray-800 font-semibold mb-1">Mapa no disponible</p>
+            <p class="text-sm text-gray-600">${propertyTitle}</p>
+            <button 
+              onclick="window.mapState.retryCount = 0; window.initPropertyMapRobust();"
+              class="mt-3 text-xs text-[#f04e00] hover:underline"
+            >
+              Reintentar carga
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // DATOS PARA COMPATIBILIDAD CON LAYOUT
+  if (typeof window !== 'undefined') {
+    window.propertyData = {
+      coordinates: coordinates,
+      title: propertyTitle,
+      showMarker: mapConfig.showMarker,
+      zoom: mapConfig.zoom,
+      nearbyPoints: nearbyPlaces.slice(0, 5).map(place => ({
+        name: place.nombre,
+        description: place.categoria,
+        address: `${place.direccion} - ${place.distancia_display || '500m'}`
+      }))
+    };
+  }
+
+  // INICIALIZACIÓN AUTOMÁTICA CON MÚLTIPLES TRIGGERS
+  
+  // 1. DOMContentLoaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => window.initPropertyMapRobust(), 500);
+    });
+  } else {
+    // DOM ya cargado
+    setTimeout(() => window.initPropertyMapRobust(), 500);
+  }
+
+  // 2. Visibility Change - Reinicializar si la página vuelve a ser visible
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !window.mapState.initialized) {
+      console.log('🗺️ Página visible de nuevo, reinicializando mapa...');
+      window.mapState.retryCount = 0;
+      setTimeout(() => window.initPropertyMapRobust(), 300);
+    }
+  });
+
+  // 3. Page Show - Para casos de back/forward cache (bfcache)
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted && !window.mapState.initialized) {
+      console.log('🗺️ Página restaurada desde cache, reinicializando mapa...');
+      window.mapState.retryCount = 0;
+      setTimeout(() => window.initPropertyMapRobust(), 300);
+    }
+  });
+
+  // 4. Intersection Observer - Inicializar cuando el mapa sea visible
+  if ('IntersectionObserver' in window) {
+    const mapElement = document.getElementById('google-map');
+    if (mapElement) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !window.mapState.initialized) {
+            console.log('🗺️ Mapa visible en viewport, inicializando...');
+            window.initPropertyMapRobust();
+            observer.disconnect(); // Solo observar una vez
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      observer.observe(mapElement);
+    }
+  }
+</script>
+
+<style>
+  /* Estilos para Google Maps */
+  #google-map {
+    border-radius: 12px;
+  }
+  
+  /* Clamp para truncar texto */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* Estilos para info windows de Google Maps */
+  .gm-style-iw-content {
+    padding: 8px !important;
+  }
+  
+  .gm-style-iw-content h4 {
+    margin: 0 0 4px 0;
+    font-weight: 600;
+  }
+  
+  .gm-style-iw-content p {
+    margin: 0;
+    font-size: 12px;
+    color: #666;
+  }
+  
+  @media (max-width: 640px) {
+    .gm-style-iw {
+      max-width: 250px !important;
+    }
+  }
+</style>

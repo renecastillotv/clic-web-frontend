@@ -1,0 +1,217 @@
+---
+// src/components/property/PropertySEOContent.astro
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+// Función para limpiar texto SEO
+function cleanSeoText(text) {
+  if (!text) return '';
+  
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')  // Remover **texto**
+    .replace(/<b>(.*?)<\/b>/gi, '$1') // Remover <b>texto</b>
+    .replace(/<strong>(.*?)<\/strong>/gi, '$1') // Remover <strong>texto</strong>
+    .replace(/<i>(.*?)<\/i>/gi, '$1') // Remover <i>texto</i>
+    .replace(/<em>(.*?)<\/em>/gi, '$1') // Remover <em>texto</em>
+    .replace(/&nbsp;/g, ' ') // Remover &nbsp;
+    .replace(/&amp;/g, '&') // Decodificar &amp;
+    .replace(/&lt;/g, '<') // Decodificar &lt;
+    .replace(/&gt;/g, '>') // Decodificar &gt;
+    .replace(/&quot;/g, '"') // Decodificar &quot;
+    .replace(/&#39;/g, "'") // Decodificar &#39;
+    .replace(/\s+/g, ' ') // Múltiples espacios a uno
+    .trim();
+}
+
+// Función para limpiar HTML manteniendo estructura básica
+function cleanSeoContent(htmlContent) {
+  if (!htmlContent) return '';
+  
+  return htmlContent
+    .replace(/\r\n/g, '\n')
+    .replace(/\n\n+/g, '\n\n')
+    .replace(/style\s*=\s*["'][^"']*["']/gi, '') // Remover estilos inline
+    .replace(/class\s*=\s*["'][^"']*["']/gi, '') // Remover clases
+    .trim();
+}
+
+// Obtener contenido SEO que no sean videos ni FAQs
+const seoContentItems = data.content?.seo_content?.filter(item => 
+  item.content_type === 'seo_content' && 
+  item.content && 
+  item.title
+) || [];
+
+// Limpiar textos de cada item
+const cleanedSeoItems = seoContentItems.map(item => ({
+  ...item,
+  title: cleanSeoText(item.title),
+  h1_title: cleanSeoText(item.h1_title),
+  h2_subtitle: cleanSeoText(item.h2_subtitle),
+  description: cleanSeoText(item.description),
+  content: cleanSeoContent(item.seo_content || item.content)
+}));
+---
+
+<!-- SEO Content Adicional -->
+{cleanedSeoItems.length > 0 && (
+  <div class="space-y-6">
+    <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+      Información Adicional
+    </h2>
+    
+    {cleanedSeoItems.slice(0, 2).map((seoItem, index) => (
+      <article class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+        <!-- Header del artículo -->
+        <div class="bg-gradient-to-r from-orange-50 to-gray-50 px-6 py-4 border-b border-gray-100">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <h3 class="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                {seoItem.h1_title || seoItem.title}
+              </h3>
+              
+              {seoItem.h2_subtitle && (
+                <p class="text-lg font-medium text-gray-700 mb-2">
+                  {seoItem.h2_subtitle}
+                </p>
+              )}
+              
+              {seoItem.description && (
+                <p class="text-gray-600 text-sm leading-relaxed">
+                  {seoItem.description}
+                </p>
+              )}
+            </div>
+            
+            <!-- Icono de información -->
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-10 h-10 bg-[#f04e00]/10 rounded-full flex items-center justify-center">
+                <i class="fas fa-info-circle text-[#f04e00]"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Contenido del artículo con "Leer más" -->
+        <div class="p-6">
+          <div class="prose prose-gray max-w-none text-gray-700">
+            <!-- Preview del contenido -->
+            <div id={`seo-preview-${index}`}>
+              <div 
+                class="leading-relaxed"
+                set:html={seoItem.content.length > 500 ? 
+                  seoItem.content.substring(0, 500) + '...' : 
+                  seoItem.content
+                }
+              ></div>
+            </div>
+            
+            <!-- Contenido completo (oculto inicialmente) -->
+            {seoItem.content.length > 500 && (
+              <div id={`seo-full-${index}`} class="hidden">
+                <div 
+                  class="leading-relaxed"
+                  set:html={seoItem.content}
+                ></div>
+              </div>
+            )}
+          </div>
+          
+          <!-- Botón "Leer más" -->
+          {seoItem.content.length > 500 && (
+            <div class="mt-4">
+              <button 
+                id={`seo-toggle-${index}`}
+                onclick={`toggleSeoContent(${index})`}
+                class="text-[#f04e00] font-medium hover:text-[#d94400] transition-colors text-sm inline-flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-lg"
+              >
+                <span>Leer más</span>
+                <i class="fas fa-chevron-down text-xs"></i>
+              </button>
+            </div>
+          )}
+        </div>
+      </article>
+    ))}
+  </div>
+)}
+
+<script>
+  // Función para toggle del contenido SEO
+  window.toggleSeoContent = function(index) {
+    const preview = document.getElementById(`seo-preview-${index}`);
+    const full = document.getElementById(`seo-full-${index}`);
+    const btn = document.getElementById(`seo-toggle-${index}`);
+    
+    if (full && full.classList.contains('hidden')) {
+      if (preview) preview.style.display = 'none';
+      full.classList.remove('hidden');
+      if (btn) {
+        btn.innerHTML = `
+          <span>Leer menos</span>
+          <i class="fas fa-chevron-up text-xs"></i>
+        `;
+      }
+    } else if (full) {
+      if (preview) preview.style.display = 'block';
+      full.classList.add('hidden');
+      if (btn) {
+        btn.innerHTML = `
+          <span>Leer más</span>
+          <i class="fas fa-chevron-down text-xs"></i>
+        `;
+      }
+    }
+  };
+</script>
+
+<style>
+  .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    color: #1f2937;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .prose h1 {
+    font-size: 1.5rem;
+    border-bottom: 2px solid #f04e00;
+    padding-bottom: 0.5rem;
+  }
+  
+  .prose h2 {
+    font-size: 1.25rem;
+    color: #f04e00;
+  }
+  
+  .prose p {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+  }
+  
+  .prose ul, .prose ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .prose li {
+    margin-bottom: 0.25rem;
+  }
+  
+  .prose strong {
+    font-weight: 600;
+    color: #374151;
+  }
+  
+  .prose a {
+    color: #f04e00;
+    text-decoration: underline;
+  }
+  
+  .prose a:hover {
+    color: #d94400;
+  }
+</style>

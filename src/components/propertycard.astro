@@ -1,0 +1,63 @@
+---
+// src/components/PropertyCard.astro
+const { property, text } = Astro.props;
+
+const formatPrice = (priceString) => {
+  if (!priceString || typeof priceString !== 'string') return '';
+  // Elimina 'USD' y espacios, convierte a número, y formatea con comas.
+  const number = parseFloat(priceString.replace(/[^0-9.-]+/g,""));
+  if (isNaN(number)) return priceString; // Devuelve original si no es un número válido
+  return `US$ ${new Intl.NumberFormat('en-US').format(number)}`;
+};
+---
+
+<div class="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl group border border-gray-200/80">
+  <div class="relative">
+    <a href={property.url} class="block">
+      <img
+        src={property.featuredImage || '/images/properties/default.jpg'}
+        alt={property.title}
+        width="400"
+        height="300"
+        loading="lazy"
+        decoding="async"
+        class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+    </a>
+    <div class="absolute top-2 right-2 bg-[#f04e00] text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+      {formatPrice(property.price)}
+    </div>
+  </div>
+  
+  <div class="p-4">
+    <h3 class="font-bold text-md mb-1 truncate leading-tight">
+      <a href={property.url} class="hover:text-[#f04e00] transition-colors">{property.title}</a>
+    </h3>
+    <p class="text-gray-500 text-sm mb-4 truncate">{property.location}</p>
+    
+    <div class="grid grid-cols-3 gap-x-2 text-center text-sm border-t pt-3">
+      {property.bedrooms && (
+        <div class="flex flex-col items-center text-gray-700">
+          <svg class="w-5 h-5 mb-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+          <span class="font-bold">{property.bedrooms}</span>
+          <span class="text-xs text-gray-500">{text.bedrooms}</span>
+        </div>
+      )}
+      {property.bathrooms && (
+        <div class="flex flex-col items-center text-gray-700">
+          <svg class="w-5 h-5 mb-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+          <span class="font-bold">{property.bathrooms}</span>
+          <span class="text-xs text-gray-500">{text.bathrooms}</span>
+        </div>
+      )}
+      {property.area && (
+        <div class="flex flex-col items-center text-gray-700">
+          <svg class="w-5 h-5 mb-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5v4m0 0h4"></path></svg>
+          <span class="font-bold">{property.area}</span>
+          <span class="text-xs text-gray-500">{text.areaUnit}</span>
+        </div>
+      )}
+    </div>
+  </div>
+</div>

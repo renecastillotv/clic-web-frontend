@@ -1,0 +1,991 @@
+---
+// src/layouts/SinglePropertyLayout.astro - UPDATED FOR NEW DATA STRUCTURE
+// Actualizado para usar la nueva estructura de datos del enhanced handler
+
+import Layout from './Layout.astro';
+
+// Importar componentes modulares
+import PropertyHero from '../components/property/PropertyHero.astro';
+import PropertyDetails from '../components/property/PropertyDetails.astro';
+import PropertyDescription from '../components/property/PropertyDescription.astro';
+import PropertyAmenities from '../components/property/PropertyAmenities.astro';
+import PropertySimilar from '../components/property/PropertySimilar.astro';
+import PropertyLocation from '../components/property/PropertyLocation.astro';
+import PropertyVideos from '../components/property/PropertyVideos.astro';
+import PropertyFAQs from '../components/property/PropertyFAQs.astro';
+import AgentPropertiesCarousel from '../components/property/AgentPropertiesCarousel.astro';
+
+// Sidebar widgets
+import AgentWidget from '../components/property/sidebar/AgentWidget.astro';
+import ProjectWidget from '../components/property/sidebar/ProjectWidget.astro';
+import ShareWidget from '../components/property/sidebar/ShareWidget.astro';
+import TestimonialsWidget from '../components/property/sidebar/TestimonialsWidget.astro';
+import CalculatorWidget from '../components/property/sidebar/CalculatorWidget.astro';
+import ArticlesWidget from '../components/property/sidebar/ArticlesWidget.astro';
+
+export interface Props {
+  data: any;
+}
+
+const { data } = Astro.props;
+
+// ===== EXTRAER DATOS DE LA NUEVA ESTRUCTURA =====
+const property = data.property || {};
+const agent = data.agent || {};
+const language = data.meta?.language || 'es';
+const trackingString = data.trackingString || '';
+
+console.log('SinglePropertyLayout ACTUALIZADO - Nueva estructura:', {
+  language: language,
+  trackingString: trackingString,
+  dataStructure: 'enhanced_handler_v2',
+  agentStructure: {
+    hasMain: !!agent.main,
+    source: agent.source,
+    shouldShowProperties: agent.should_show_properties,
+    propertiesCount: agent.properties_count,
+    cocaptorsCount: agent.cocaptors_count
+  },
+  propertyData: {
+    hasProcessedImages: !!property.processed_images,
+    hasPriceDisplay: !!property.price_display,
+    hasOperationDisplay: !!property.operation_display
+  },
+  relatedContent: {
+    similarProperties: data.related_content?.similar_properties?.length || 0,
+    articles: data.related_content?.articles?.length || 0,
+    videos: data.related_content?.videos?.length || 0,
+    faqs: data.related_content?.faqs?.length || 0,
+    testimonials: data.related_content?.testimonials?.length || 0
+  }
+});
+
+// ===== FUNCIONES HELPER MÍNIMAS =====
+
+// Función para procesar amenidades (necesaria para estructura de componentes)
+function processAmenities(property) {
+  if (!property?.property_amenities || !Array.isArray(property.property_amenities)) {
+    return [];
+  }
+  
+  return property.property_amenities.map(item => ({
+    name: item.amenities?.name || item.name || 'Amenidad',
+    icon: item.amenities?.icon || item.icon || 'fas fa-star',
+    category: item.amenities?.category || 'General',
+    name_en: item.amenities?.name_en,
+    name_fr: item.amenities?.name_fr
+  }));
+}
+
+// Función para procesar coordenadas PostgreSQL (necesaria para mapa)
+function processCoordinates(property) {
+  // Primero intentar coordenadas exactas
+  if (property?.exact_coordinates) {
+    try {
+      const coordsString = property.exact_coordinates.replace(/[()]/g, '').trim();
+      const coords = coordsString.split(',');
+      
+      if (coords.length === 2) {
+        const lat = parseFloat(coords[0].trim());
+        const lng = parseFloat(coords[1].trim());
+        
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return { lat, lng };
+        }
+      }
+    } catch (e) {
+      console.warn('Error parsing exact_coordinates:', e);
+    }
+  }
+  
+  // Luego intentar coordenadas de la ciudad
+  if (property?.cities?.coordinates) {
+    try {
+      const coordsString = property.cities.coordinates.replace(/[()]/g, '').trim();
+      const coords = coordsString.split(',');
+      
+      if (coords.length === 2) {
+        const lng = parseFloat(coords[0].trim());
+        const lat = parseFloat(coords[1].trim());
+        
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          return { lat, lng };
+        }
+      }
+    } catch (e) {
+      console.warn('Error parsing city coordinates:', e);
+    }
+  }
+  
+  return null;
+}
+
+// Función para procesar ubicación (necesaria para display)
+function processLocation(property) {
+  const parts = [];
+  
+  if (property?.sectors?.name) {
+    parts.push(property.sectors.name);
+  }
+  
+  if (property?.cities?.name) {
+    parts.push(property.cities.name);
+  }
+  
+  return parts.length > 0 ? parts.join(', ') : 'Ubicación no disponible';
+}
+
+// ===== PROCESAR DATOS NECESARIOS =====
+
+// Usar imágenes ya procesadas de la edge function
+const processedImages = property.processed_images || {
+  final_images: [property.main_image_url || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'],
+  main_image: property.main_image_url || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'
+};
+
+// Procesar solo datos UI necesarios que no están en la edge function
+const processedAmenities = processAmenities(property);
+const locationString = processLocation(property);
+const propertyCoordinates = processCoordinates(property);
+
+// Extraer datos para SEO y Layout
+const seoData = data.seo || {};
+const title = seoData.title || property?.title_display || property?.name || 'CLIC Inmobiliaria';
+const description = seoData.description || property?.description_display || property?.description || 'Encuentra tu próxima propiedad en República Dominicana';
+const ogImage = seoData.open_graph?.image || property?.main_image_url || '/og-default.jpg';
+
+// Preparar datos para el Layout padre
+const layoutProps = {
+  title,
+  description,
+  ogImage,
+  hreflangData: seoData.hreflang || {},
+  globalConfig: data.globalConfig || {},
+  language: language,
+  trackingString: trackingString
+};
+
+// ===== DATOS PARA COMPONENTES (usando nueva estructura) =====
+
+// Datos para PropertyHero - USAR DATOS DISPLAY de la edge function
+const heroData = {
+  ...data,
+  images: processedImages.final_images,
+  mainImage: processedImages.main_image,
+  isProject: property?.is_project || false,
+  language: language,
+  property: {
+    ...property,
+    title: property?.title_display || property?.name,
+    subtitle: property?.private_name,
+    reference: property?.code,
+    price: property?.price_display, // YA FORMATEADO por edge function
+    operation: property?.operation_display, // YA TRADUCIDO por edge function
+    reservation: (() => {
+      // Extraer reserva de project_payment_plans si es proyecto
+      if (property?.is_project && data.project_details?.project_payment_plans?.length > 0) {
+        const defaultPlan = data.project_details.project_payment_plans.find(plan => plan.is_default) || 
+                            data.project_details.project_payment_plans[0];
+        
+        if (defaultPlan?.reservation_amount) {
+          const symbol = defaultPlan.reservation_currency === 'USD' ? 'US$' : 'RD$';
+          return `${symbol}${defaultPlan.reservation_amount.toLocaleString()}`;
+        }
+      }
+      
+      // Fallback a separation_price si existe
+      if (property?.separation_price) {
+        const symbol = property.separation_currency === 'USD' ? 'US$' : 'RD$';
+        return `${symbol}${property.separation_price.toLocaleString()}`;
+      }
+      
+      return null;
+    })()
+  }
+};
+
+// Datos para PropertyDetails
+const detailsData = {
+  ...data,
+  language: language,
+  property: {
+    ...property,
+    location: locationString,
+    bedrooms: property?.bedrooms || 0,
+    bathrooms: property?.bathrooms || 0,
+    built_area: property?.built_area || 0,
+    parking_spots: property?.parking_spots || 0,
+    nivel: property?.nivel || null
+  }
+};
+
+// Datos para PropertyAmenities
+const amenitiesData = {
+  ...data,
+  language: language,
+  amenities: processedAmenities
+};
+
+// Datos para PropertyDescription - USAR DATOS DISPLAY de la edge function
+const descriptionData = {
+  ...data,
+  language: language,
+  property: {
+    ...property,
+    description: property?.description_display || property?.description || ''
+  }
+};
+
+// Datos para PropertySimilar - USAR DATOS DIRECTOS de la edge function
+const similarData = {
+  ...data,
+  language: language,
+  // Los datos ya vienen procesados con title_display, price_display, etc.
+  hasSimilarProperties: !!(data.related_content?.similar_properties?.length),
+  similarProperties: data.related_content?.similar_properties || []
+};
+
+// Datos para AgentPropertiesCarousel - USAR NUEVA ESTRUCTURA
+const agentCarouselData = {
+  ...data,
+  language: language,
+  trackingString: trackingString
+  // Ya no necesitamos pasar agentProperties ni agentPropertiesInfo
+  // El componente usará data.agent.properties y data.agent.should_show_properties directamente
+};
+
+// Datos para AgentWidget - USAR NUEVA ESTRUCTURA
+const agentWidgetData = {
+  ...data,
+  language: language,
+  // El componente usará data.agent.main directamente
+  property: {
+    ...property,
+    id: property?.id,
+    title: property?.title_display || property?.name
+  },
+  trackingString: trackingString
+};
+
+// Datos para ProjectWidget
+const projectData = {
+  ...data,
+  language: language,
+  isProject: property?.is_project || false,
+  project: data.project_details ? {
+    name: property?.title_display || property?.name,
+    typologies: data.project_details.project_typologies?.map(typo => ({
+      bedrooms: typo.bedrooms,
+      bathrooms: typo.bathrooms,
+      area: typo.built_area,
+      priceFrom: typo.sale_price_from,
+      priceTo: typo.sale_price_to,
+      currency: typo.sale_currency === 'USD' ? 'US$' : 'RD$',
+      availableUnits: typo.available_units
+    })) || [],
+    paymentPlans: data.project_details.project_payment_plans?.map(plan => ({
+      reservation: plan.reservation_amount,
+      reservationCurrency: plan.reservation_currency === 'USD' ? 'US$' : 'RD$',
+      separationPercentage: plan.separation_percentage,
+      constructionPercentage: plan.construction_percentage,
+      deliveryPercentage: plan.delivery_percentage
+    })) || [],
+    phases: data.project_details.project_phases?.map(phase => ({
+      name: phase.phase_name,
+      estimatedDelivery: phase.estimated_delivery,
+      completionPercentage: phase.completion_percentage
+    })) || [],
+    // Beneficios y garantías del proyecto (desde la BD)
+    benefits: data.project_details.benefits || [],
+    guarantees: data.project_details.guarantees || [],
+    developer: data.project_details.developers ? {
+      name: data.project_details.developers.name,
+      logo_url: data.project_details.developers.logo_url,
+      years_experience: data.project_details.developers.years_experience,
+      total_projects: data.project_details.developers.total_projects || 'Varios'
+    } : null
+  } : null,
+  property: {
+    ...property,
+    title: property?.title_display || property?.name,
+    location: locationString,
+    price: property?.price_display // YA FORMATEADO
+  }
+};
+
+// Datos para el mapa
+const locationDataForMap = {
+  ...data,
+  language: language,
+  property: {
+    ...property,
+    title: property?.title_display || property?.name
+  },
+  location: {
+    coordinates: propertyCoordinates,
+    coordinatesSource: propertyCoordinates ? 
+      (property?.exact_coordinates ? 'exact' : 'city') : 'none',
+    showExactLocation: property?.show_exact_location || false,
+    hasExactCoordinates: !!(property?.exact_coordinates),
+    sector: property?.sectors?.name,
+    city: property?.cities?.name,
+    address: property?.exact_address || locationString,
+    mapConfig: {
+      zoom: propertyCoordinates ? 15 : 6,
+      showMarker: !!propertyCoordinates
+    }
+  },
+  location_context: data.location_context || null,
+  seo: data.seo
+};
+
+// Datos para contenido adicional - USAR DATOS DIRECTOS de la edge function
+const contentData = {
+  ...data,
+  language: language,
+   agent: agent,  // 👈 AGREGAR ESTO
+  globalConfig: data.globalConfig,  // 👈 AGREGAR ESTO
+  content: {
+    // Los datos ya vienen procesados con *_display fields y URLs
+    articles: data.related_content?.articles || [],
+    faqs: data.related_content?.faqs || [],
+    videos: data.related_content?.videos || [],
+    testimonials: data.related_content?.testimonials || []
+  }
+};
+
+// Verificar si es proyecto
+const isProject = property?.is_project || false;
+
+// Control del carrusel de propiedades del agente - USAR NUEVA ESTRUCTURA
+const showAgentProperties = agent?.should_show_properties && (agent?.properties?.length > 0);
+
+// Información de cocaptadores - NUEVA FUNCIONALIDAD
+const hasCocaptors = agent?.cocaptors_count > 0;
+const cocaptors = agent?.cocaptors || [];
+
+console.log('Layout procesado con nueva estructura:', {
+  agentInfo: {
+    mainAgentId: agent?.main?.id,
+    agentSource: agent?.source,
+    shouldShowProperties: agent?.should_show_properties,
+    propertiesCount: agent?.properties_count,
+    hasCocaptors: hasCocaptors,
+    cocaptorsCount: agent?.cocaptors_count
+  },
+  propertyInfo: {
+    title: property?.title_display,
+    price: property?.price_display,
+    operation: property?.operation_display,
+    hasProcessedImages: !!processedImages.final_images?.length
+  },
+  componentData: {
+    showAgentCarousel: showAgentProperties,
+    similarPropertiesCount: similarData.similarProperties?.length || 0,
+    articlesCount: contentData.content.articles?.length || 0,
+    faqsCount: contentData.content.faqs?.length || 0
+  }
+});
+---
+
+<Layout {...layoutProps}>
+  <div class="min-h-screen bg-white">
+
+    <!-- Hero Gallery Section -->
+    <PropertyHero data={heroData} />
+
+    <!-- Property Details Bar -->
+    <PropertyDetails data={detailsData} />
+
+    <!-- Main Content Layout -->
+    <div class="container mx-auto px-3 py-8 max-w-none">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Main Content (Left Column) -->
+        <main class="lg:col-span-2 space-y-8">
+
+          <!-- Description Section -->
+          <PropertyDescription data={descriptionData} />
+
+          <!-- FAQs Section -->
+          <PropertyFAQs data={contentData} />
+
+          <!-- Building Amenities -->
+          <PropertyAmenities data={amenitiesData} />
+
+          <!-- Propiedades Similares -->
+          <PropertySimilar data={similarData} />
+
+          <!-- Mapa y Lugares Cercanos -->
+          <PropertyLocation data={locationDataForMap} language={language} />
+
+          <!-- Tour Virtual y Videos -->
+          <PropertyVideos data={contentData} />
+
+          <!-- Más propiedades del Asesor - USAR NUEVA LÓGICA -->
+          {showAgentProperties && (
+            <section 
+              id="agent-properties-carousel-section"
+              class="bg-white rounded-xl shadow-lg p-6 border border-gray-200 transition-all duration-300"
+            >
+              <AgentPropertiesCarousel data={agentCarouselData} />
+            </section>
+          )}
+
+      
+        </main>
+
+        <!-- Sidebar (Right Column) -->
+        <aside class="space-y-6">
+          
+          <!-- Agent Widget - USAR NUEVA ESTRUCTURA -->
+          <AgentWidget data={agentWidgetData} language={language} />
+
+          <!-- Project Information Widget -->
+          {isProject && <ProjectWidget data={projectData} language={language} />}
+
+          <!-- Testimonials Widget -->
+          <TestimonialsWidget data={contentData} language={language} />
+
+          <!-- Calculadora de Prestamos -->
+          <CalculatorWidget data={projectData} language={language} />
+
+          <!-- Articles Widget -->
+          <ArticlesWidget data={contentData} language={language} />
+
+          <!-- Share Property Widget -->
+          <ShareWidget data={detailsData} language={language} />
+
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify(seoData.structured_data || {})}></script>
+
+  <!-- Product Schema for Property (Rich Snippets) -->
+  <script type="application/ld+json">
+    {
+      JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": property?.title_display || property?.name || "Propiedad",
+        "description": property?.description_display || property?.description || description,
+        "image": processedImages.final_images || [ogImage],
+        "brand": {
+          "@type": "Brand",
+          "name": "CLIC Inmobiliaria"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": property?.sale_price || property?.rental_price || 0,
+          "priceCurrency": property?.sale_currency || property?.rental_currency || "USD",
+          "availability": property?.property_status === 'Publicada' && property?.availability === 1
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+          "url": `${Astro.url.origin}${Astro.url.pathname}`,
+          "priceValidUntil": new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          "seller": {
+            "@type": "Organization",
+            "name": "CLIC Inmobiliaria"
+          }
+        },
+        "category": property?.category_name || "Real Estate",
+        "additionalProperty": [
+          {
+            "@type": "PropertyValue",
+            "name": language === 'es' ? "Habitaciones" : language === 'en' ? "Bedrooms" : "Chambres",
+            "value": property?.bedrooms || 0
+          },
+          {
+            "@type": "PropertyValue",
+            "name": language === 'es' ? "Baños" : language === 'en' ? "Bathrooms" : "Salles de bain",
+            "value": property?.bathrooms || 0
+          },
+          {
+            "@type": "PropertyValue",
+            "name": language === 'es' ? "Área Construida" : language === 'en' ? "Built Area" : "Surface Construite",
+            "value": property?.built_area ? `${property.built_area} m²` : "N/A"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": language === 'es' ? "Parqueos" : language === 'en' ? "Parking" : "Stationnement",
+            "value": property?.parking_spots || 0
+          }
+        ].filter(prop => prop.value && prop.value !== "N/A" && prop.value !== 0),
+        "aggregateRating": property?.reviews_count > 0 ? {
+          "@type": "AggregateRating",
+          "ratingValue": property?.average_rating || "4.8",
+          "reviewCount": property?.reviews_count || "1"
+        } : undefined
+      })
+    }
+  </script>
+</Layout>
+
+<!-- Estilos (mantener iguales) -->
+<style>
+  .text-shadow {
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+  }
+  
+  .prose p:last-child {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 640px) {
+    .container {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+  }
+
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+</style>
+
+<!-- JavaScript Global (mantener igual) -->
+<script>
+  // Gallery Lightbox Functionality (GLOBAL)
+  let currentImageIndex = 0;
+  const propertyImages = window.propertyImagesData || [];
+
+  function openLightbox(index) {
+    currentImageIndex = index;
+    
+    let modal = document.getElementById('lightbox-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'lightbox-modal';
+      modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+          <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+            <img id="lightbox-image" style="max-width: 95%; max-height: 95%; width: auto; height: auto; object-fit: contain; border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);" />
+
+            <!-- Close Button - Más sutil -->
+            <button onclick="closeLightbox()" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.5); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: normal; backdrop-filter: blur(10px); transition: all 0.3s ease; z-index: 10001; opacity: 0.7;" onmouseover="this.style.background='rgba(0,0,0,0.8)'; this.style.opacity='1'" onmouseout="this.style.background='rgba(0,0,0,0.5)'; this.style.opacity='0.7'">
+              ✕
+            </button>
+
+            <!-- Prev Button - Más sutil y pequeño -->
+            <button onclick="prevImage()" style="position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); border: none; color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: normal; backdrop-filter: blur(10px); transition: all 0.3s ease; z-index: 10001; opacity: 0.6;" onmouseover="this.style.background='rgba(0,0,0,0.7)'; this.style.opacity='1'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(0,0,0,0.4)'; this.style.opacity='0.6'; this.style.transform='translateY(-50%) scale(1)'">
+              ‹
+            </button>
+
+            <!-- Next Button - Más sutil y pequeño -->
+            <button onclick="nextImage()" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.4); border: none; color: white; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: normal; backdrop-filter: blur(10px); transition: all 0.3s ease; z-index: 10001; opacity: 0.6;" onmouseover="this.style.background='rgba(0,0,0,0.7)'; this.style.opacity='1'; this.style.transform='translateY(-50%) scale(1.1)'" onmouseout="this.style.background='rgba(0,0,0,0.4)'; this.style.opacity='0.6'; this.style.transform='translateY(-50%) scale(1)'">
+              ›
+            </button>
+
+            <!-- Counter - Más compacto -->
+            <div style="position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; font-size: 14px; font-weight: 500; background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px; backdrop-filter: blur(10px); z-index: 10001; opacity: 0.9;">
+              <span id="lightbox-counter"></span>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    updateLightboxImage();
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+  }
+
+  function prevImage() {
+    currentImageIndex = currentImageIndex > 0 ? currentImageIndex - 1 : propertyImages.length - 1;
+    updateLightboxImage();
+  }
+
+  function nextImage() {
+    currentImageIndex = currentImageIndex < propertyImages.length - 1 ? currentImageIndex + 1 : 0;
+    updateLightboxImage();
+  }
+
+  function updateLightboxImage() {
+    const image = document.getElementById('lightbox-image');
+    const counter = document.getElementById('lightbox-counter');
+    
+    if (image && counter && propertyImages.length > 0) {
+      image.src = propertyImages[currentImageIndex];
+      counter.textContent = `${currentImageIndex + 1} / ${propertyImages.length}`;
+    }
+  }
+
+  // Copy property link function
+  window.copyPropertyLink = function() {
+    const url = window.location.href;
+    
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(() => {
+        showCopyFeedback('Enlace copiado!');
+      }).catch(() => {
+        fallbackCopyTextToClipboard(url);
+      });
+    } else {
+      fallbackCopyTextToClipboard(url);
+    }
+  };
+
+  function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showCopyFeedback('Enlace copiado!');
+    } catch (err) {
+      showCopyFeedback('Error al copiar');
+    }
+    
+    document.body.removeChild(textArea);
+  }
+
+  function showCopyFeedback(message) {
+    let notification = document.getElementById('copy-notification');
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'copy-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #22c55e;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      `;
+      document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.style.background = message.includes('Error') ? '#ef4444' : '#22c55e';
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
+  }
+
+  // Función para solicitar visita a la propiedad
+  window.requestPropertyVisit = function() {
+    const propertyTitle = document.querySelector('h1')?.textContent || 'Propiedad de interés';
+    const message = `Hola! Me interesa agendar una visita para: ${propertyTitle}. ¿Cuándo podríamos coordinar una cita?`;
+    
+    const whatsappUrl = `https://wa.me/18295550100?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    showCopyFeedback('Perfecto! Te contactaremos para coordinar la visita.');
+  };
+
+  // Abrir modal de video
+  window.openVideoModal = function(videoId, title) {
+    let modal = document.getElementById('video-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'video-modal';
+      modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+          <div style="position: relative; width: 100%; max-width: 900px; aspect-ratio: 16/9;">
+            <iframe id="video-iframe" style="width: 100%; height: 100%; border: none; border-radius: 12px;" allowfullscreen></iframe>
+            <button onclick="closeVideoModal()" style="position: absolute; top: -40px; right: 0; background: rgba(255,255,255,0.9); border: none; color: #333; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">x</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    const iframe = document.getElementById('video-iframe');
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+    
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Cerrar modal de video
+  window.closeVideoModal = function() {
+    const modal = document.getElementById('video-modal');
+    const iframe = document.getElementById('video-iframe');
+    
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+    
+    if (iframe) {
+      iframe.src = '';
+    }
+  };
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    window.propertyImagesData = window.propertyImagesData || [];
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeLightbox();
+        closeVideoModal();
+      } else if (e.key === 'ArrowLeft') {
+        prevImage();
+      } else if (e.key === 'ArrowRight') {
+        nextImage();
+      }
+    });
+
+    // Close on backdrop click
+    document.addEventListener('click', function(e) {
+      const lightboxModal = document.getElementById('lightbox-modal');
+      const videoModal = document.getElementById('video-modal');
+      
+      if (lightboxModal && e.target === lightboxModal.firstElementChild) {
+        closeLightbox();
+      }
+      
+      if (videoModal && e.target === videoModal.firstElementChild) {
+        closeVideoModal();
+      }
+    });
+
+    // Inicializar formulario de leads
+    const leadForm = document.getElementById('property-contact-form');
+    if (leadForm) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const utmSource = document.getElementById('lead-utm-source');
+      const utmMedium = document.getElementById('lead-utm-medium');
+      const utmCampaign = document.getElementById('lead-utm-campaign');
+      const referidor = document.getElementById('lead-referidor');
+      const userAgent = document.getElementById('lead-user-agent');
+      const ipOrigen = document.getElementById('lead-ip-origen');
+      
+      if (utmSource) utmSource.value = urlParams.get('utm_source') || '';
+      if (utmMedium) utmMedium.value = urlParams.get('utm_medium') || '';
+      if (utmCampaign) utmCampaign.value = urlParams.get('utm_campaign') || '';
+      
+      if (userAgent) userAgent.value = navigator.userAgent;
+      
+      if (referidor && document.referrer) {
+        referidor.value = document.referrer;
+      }
+    }
+  });
+
+  // Make functions globally available
+  window.openLightbox = openLightbox;
+  window.closeLightbox = closeLightbox;
+  window.prevImage = prevImage;
+  window.nextImage = nextImage;
+</script>
+
+<!-- Scripts de Google Maps (OPTIMIZED - Lazy Load with Intersection Observer) -->
+<script>
+  // Lazy load Google Maps solo cuando el usuario scrollea al mapa
+  (function() {
+    let mapsLoaded = false;
+
+    function loadGoogleMaps() {
+      if (mapsLoaded) return;
+      mapsLoaded = true;
+
+      console.log('🗺️ Loading Google Maps...');
+      const script = document.createElement('script');
+      script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyCpzGsbg52e2HqFXCXA6_5alq2OYwVjvSU&callback=initPropertyMap&libraries=geometry';
+      script.async = true;
+      script.onerror = () => {
+        console.error('❌ Error loading Google Maps');
+        if (window.handleMapError) window.handleMapError();
+      };
+      document.head.appendChild(script);
+    }
+
+    // Cargar el mapa cuando sea visible
+    const mapContainer = document.getElementById('google-map');
+    if (mapContainer) {
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting) {
+            loadGoogleMaps();
+            observer.disconnect();
+          }
+        }, { rootMargin: '200px' }); // Pre-cargar 200px antes de que sea visible
+
+        observer.observe(mapContainer);
+      } else {
+        // Fallback para navegadores antiguos
+        loadGoogleMaps();
+      }
+    }
+  })();
+</script>
+
+<script>
+  window.handleMapError = function() {
+    const mapElement = document.getElementById('google-map');
+    if (mapElement) {
+      mapElement.innerHTML = `
+        <div class="w-full h-64 bg-gradient-to-br from-orange-50 via-gray-50 to-orange-100 flex items-center justify-center rounded-xl">
+          <div class="text-center">
+            <i class="fas fa-map-marker-alt text-[#f04e00] text-4xl mb-2"></i>
+            <p class="text-gray-800 font-semibold mb-1">Mapa no disponible</p>
+            <p class="text-sm text-gray-600">${window.propertyData?.title || 'Propiedad'}</p>
+            <p class="text-xs text-gray-500 mt-2">Ver ubicación exacta</p>
+          </div>
+        </div>
+      `;
+    }
+  };
+
+  window.initPropertyMap = function() {
+    const mapElement = document.getElementById('google-map');
+    if (!mapElement) {
+      console.log('Elemento del mapa no encontrado');
+      return;
+    }
+
+    if (!window.google || !window.google.maps) {
+      console.log('Google Maps API no disponible');
+      window.handleMapError();
+      return;
+    }
+
+    try {
+      const propertyLocation = {
+        lat: window.propertyData?.coordinates?.lat || 18.4682,
+        lng: window.propertyData?.coordinates?.lng || -69.9279
+      };
+
+      const map = new google.maps.Map(mapElement, {
+        zoom: 15,
+        center: propertyLocation,
+        styles: [
+          {
+            "featureType": "poi",
+            "elementType": "labels",
+            "stylers": [{"visibility": "simplified"}]
+          }
+        ]
+      });
+
+      const propertyMarker = new google.maps.Marker({
+        position: propertyLocation,
+        map: map,
+        title: window.propertyData?.title || 'Propiedad',
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#f04e00',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        },
+        zIndex: 999
+      });
+
+      if (window.propertyData?.nearbyPoints && window.propertyData.nearbyPoints.length > 0) {
+        window.propertyData.nearbyPoints.forEach((place, index) => {
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ address: place.address }, (results, status) => {
+            if (status === 'OK' && results && results.length > 0) {
+              const placeMarker = new google.maps.Marker({
+                position: results[0].geometry.location,
+                map: map,
+                title: place.name,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 6,
+                  fillColor: place.description.includes('shopping') ? '#f04e00' :
+                            place.description.includes('hospital') ? '#dc2626' :
+                            place.description.includes('bank') ? '#3b82f6' :
+                            place.description.includes('supermarket') ? '#f59e0b' : '#6b7280',
+                  fillOpacity: 0.8,
+                  strokeColor: '#ffffff',
+                  strokeWeight: 2
+                }
+              });
+
+              const infoWindow = new google.maps.InfoWindow({
+                content: `
+                  <div class="p-2">
+                    <h4 class="font-semibold text-sm">${place.name}</h4>
+                    <p class="text-xs text-gray-600 capitalize">${place.description.replace('_', ' ')}</p>
+                    <p class="text-xs text-gray-500 mt-1">${place.address}</p>
+                  </div>
+                `
+              });
+
+              placeMarker.addListener('click', () => {
+                infoWindow.open(map, placeMarker);
+              });
+            }
+          });
+        });
+      }
+
+      console.log('Mapa cargado exitosamente');
+    } catch (error) {
+      console.error('Error inicializando el mapa:', error);
+      window.handleMapError();
+    }
+  };
+</script>
+
+<!-- Datos para el mapa y lightbox -->
+<script define:vars={{ propertyCoordinates, property }}>
+  if (typeof window !== 'undefined') {
+    window.propertyData = {
+      coordinates: propertyCoordinates,
+      title: property?.title_display || property?.name || 'Propiedad'
+    };
+  }
+</script>
+
+<script define:vars={{ finalImages: processedImages.final_images }}>
+  if (typeof window !== 'undefined') {
+    window.propertyImagesData = finalImages;
+  }
+</script>

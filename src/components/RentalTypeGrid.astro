@@ -1,0 +1,182 @@
+---
+// RentalTypeGrid.astro
+export interface Props {
+  title?: string;
+  subtitle?: string;
+  types?: Array<{
+    slug: string;
+    title: string;
+    description: string;
+    image: string;
+    propertyCount: number;
+    avgNightly: string;
+    maxGuests: string;
+    features: string[];
+  }>;
+}
+
+const { 
+  title = "Encuentra tu propiedad ideal",
+  subtitle = "Desde villas de lujo hasta apartamentos modernos, tenemos la opción perfecta para tus vacaciones",
+  types = []
+} = Astro.props;
+
+// Datos por defecto si no se pasan props
+const defaultTypes = [
+  {
+    slug: 'villa',
+    title: 'Villas Vacacionales',
+    description: 'Villas de lujo con piscina privada, perfectas para familias y grupos',
+    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+    propertyCount: 45,
+    avgNightly: '$180-450',
+    maxGuests: '8-12 personas',
+    features: ['Piscina privada', 'Jardín', 'BBQ', 'Parking']
+  },
+  {
+    slug: 'apartamento',
+    title: 'Apartamentos Vacacionales',
+    description: 'Apartamentos modernos en complejos con amenidades de resort',
+    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+    propertyCount: 68,
+    avgNightly: '$85-220',
+    maxGuests: '4-6 personas',
+    features: ['Gym', 'Piscina', 'Seguridad 24/7', 'Playa']
+  },
+  {
+    slug: 'casa',
+    title: 'Casas Vacacionales',
+    description: 'Casas familiares cómodas en las mejores zonas turísticas',
+    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
+    propertyCount: 32,
+    avgNightly: '$120-300',
+    maxGuests: '6-8 personas',
+    features: ['3-4 habitaciones', 'Cocina completa', 'Sala', 'Terraza']
+  },
+  {
+    slug: 'lujo',
+    title: 'Propiedades de Lujo',
+    description: 'Experiencias premium con servicios exclusivos y ubicaciones únicas',
+    image: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+    propertyCount: 18,
+    avgNightly: '$400-1200',
+    maxGuests: '10+ personas',
+    features: ['Servicio concierge', 'Chef privado', 'Playa privada', 'Spa']
+  }
+];
+
+const finalTypes = types.length > 0 ? types : defaultTypes;
+---
+
+<section id="tipos-propiedades" class="py-16 bg-white">
+  <div class="container mx-auto px-4">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        {title}
+      </h2>
+      <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+        {subtitle}
+      </p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {finalTypes.map((tipo) => (
+        <article class="rental-type-card group">
+          <a 
+            href={`/rentas-vacacionales/${tipo.slug}`}
+            class="block bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 h-full"
+            aria-label={`Ver ${tipo.title.toLowerCase()}`}
+          >
+            <div class="aspect-video overflow-hidden rounded-t-xl">
+              <img 
+                src={tipo.image} 
+                alt={tipo.title}
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+            </div>
+            
+            <div class="p-6 flex flex-col h-[calc(100%-theme(spacing.40))]">
+              <header class="mb-4">
+                <h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-[#f04e00] transition-colors">
+                  {tipo.title}
+                </h3>
+                <p class="text-gray-600 text-sm line-clamp-2">{tipo.description}</p>
+              </header>
+              
+              <div class="space-y-2 mb-4 flex-grow">
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Disponibles:</span>
+                  <span class="font-medium">{tipo.propertyCount} propiedades</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Capacidad:</span>
+                  <span class="font-medium text-blue-600">{tipo.maxGuests}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-500">Desde:</span>
+                  <span class="font-medium text-[#f04e00]">{tipo.avgNightly}/noche</span>
+                </div>
+              </div>
+              
+              <footer class="border-t pt-3 mt-auto">
+                <div class="flex flex-wrap gap-1">
+                  {tipo.features.slice(0, 2).map(feature => (
+                    <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                      {feature}
+                    </span>
+                  ))}
+                  {tipo.features.length > 2 && (
+                    <span class="text-xs text-gray-500">+{tipo.features.length - 2} más</span>
+                  )}
+                </div>
+              </footer>
+            </div>
+          </a>
+        </article>
+      ))}
+    </div>
+    
+    <!-- Schema.org structured data -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": title,
+      "description": subtitle,
+      "itemListElement": finalTypes.map((tipo, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "item": {
+          "@type": "Product",
+          "name": tipo.title,
+          "description": tipo.description,
+          "image": tipo.image,
+          "offers": {
+            "@type": "AggregateOffer",
+            "priceCurrency": "USD",
+            "lowPrice": tipo.avgNightly.match(/\$(\d+)/)?.[1] || "0",
+            "offerCount": tipo.propertyCount
+          }
+        }
+      }))
+    })} />
+  </div>
+</section>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .rental-type-card {
+    height: 100%;
+  }
+  
+  .rental-type-card a {
+    display: flex;
+    flex-direction: column;
+  }
+</style>

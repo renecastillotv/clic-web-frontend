@@ -1,0 +1,301 @@
+---
+// components/propertylist/PropertyListSEOContent.astro
+export interface Props {
+  seoContent: Array<{
+    id?: string;
+    title: string;
+    h1_title?: string;
+    h2_subtitle?: string;
+    description?: string;
+    content: string;
+    enhanced_content?: string;
+    seo_content?: string;
+    location_context?: string;
+    property_type_context?: string;
+    operation_context?: string;
+    is_tag_related?: boolean;
+    content_priority?: string;
+    matched_tags?: number;
+    total_weight?: number;
+    generated_dynamically?: boolean;
+    places_enriched?: boolean;
+    nearby_services?: any[];
+  }>;
+  searchInfo: {
+    location?: string;
+    propertyType?: string;
+    operation?: string;
+    sector?: string;
+  };
+}
+
+const { seoContent, searchInfo } = Astro.props;
+
+// Función para limpiar y formatear HTML del contenido SEO
+function cleanSeoContent(htmlContent: string) {
+  if (!htmlContent) return '';
+  
+  return htmlContent
+    .replace(/\r\n/g, '\n')
+    .replace(/\n\n+/g, '\n\n')
+    .trim();
+}
+---
+
+{seoContent.length > 0 && (
+  <section class="bg-white py-16 border-t border-gray-200">
+    <div class="container mx-auto px-4">
+      <div class="max-w-6xl mx-auto">
+        
+        <!-- Header de la sección SEO -->
+        <div class="text-center mb-12">
+          <div class="inline-flex items-center gap-2 bg-[#f04e00]/10 text-[#f04e00] px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span>Contenido Especializado</span>
+          </div>
+          
+          <h3 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            {searchInfo.propertyType ? `Guía sobre ${searchInfo.propertyType}s` : 'Guía de Propiedades'}
+            {searchInfo.location && (
+              <span class="text-[#f04e00]"> en {searchInfo.location}</span>
+            )}
+          </h3>
+          
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Información especializada para ayudarte a tomar la mejor decisión
+          </p>
+        </div>
+
+        <!-- Grid de contenido SEO -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          {seoContent.slice(0, 4).map((seoItem, index) => (
+            <article class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group">
+              
+              <!-- Header del artículo -->
+              <div class="bg-gradient-to-r from-gray-50 to-orange-50 px-6 py-5 border-b border-gray-100 relative overflow-hidden">
+                <div class="absolute inset-0 opacity-5">
+                  <div class="absolute top-0 right-0 w-32 h-32 bg-[#f04e00] rounded-full transform translate-x-16 -translate-y-16"></div>
+                </div>
+                
+                <div class="relative z-10">
+                  {seoItem.h1_title ? (
+                    <h4 class="text-xl font-bold text-gray-900 mb-2 leading-tight group-hover:text-[#f04e00] transition-colors">
+                      {seoItem.h1_title}
+                    </h4>
+                  ) : (
+                    <h4 class="text-xl font-bold text-gray-900 mb-2 leading-tight group-hover:text-[#f04e00] transition-colors">
+                      {seoItem.title}
+                    </h4>
+                  )}
+                  
+                  {seoItem.h2_subtitle && (
+                    <h5 class="text-lg font-medium text-gray-700 mb-2">
+                      {seoItem.h2_subtitle}
+                    </h5>
+                  )}
+                  
+                  {seoItem.description && (
+                    <p class="text-gray-600 text-sm leading-relaxed">
+                      {seoItem.description}
+                    </p>
+                  )}
+                  
+                  <!-- Badges informativos -->
+                  <div class="flex items-center gap-2 mt-3 flex-wrap">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full">
+                      {seoItem.generated_dynamically ? 'Generado Dinámicamente' : 'Contenido API'}
+                    </span>
+                    {seoItem.is_tag_related && (
+                      <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                        Personalizado
+                      </span>
+                    )}
+                    {seoItem.places_enriched && (
+                      <span class="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
+                        Con Servicios
+                      </span>
+                    )}
+                    {seoItem.content_priority && (
+                      <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded-full capitalize">
+                        {seoItem.content_priority}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Contenido del artículo -->
+              <div class="p-6">
+                {/* Contexto de ubicación si está disponible */}
+                {seoItem.location_context && (
+                  <div class="flex items-center gap-2 text-sm text-gray-500 mb-4 pb-3 border-b border-gray-100">
+                    <svg class="w-4 h-4 text-[#f04e00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>{seoItem.location_context}</span>
+                    {seoItem.property_type_context && (
+                      <>
+                        <span class="text-gray-400">•</span>
+                        <span class="capitalize">{seoItem.property_type_context}</span>
+                      </>
+                    )}
+                    {seoItem.operation_context && (
+                      <>
+                        <span class="text-gray-400">•</span>
+                        <span class="capitalize">{seoItem.operation_context}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+                
+                <!-- Contenido principal del SEO -->
+                <div class="prose prose-gray max-w-none">
+                  <div 
+                    class="text-gray-700 leading-relaxed space-y-3 [&>p]:mb-3 [&>ul]:ml-4 [&>ul]:space-y-1 [&>li]:marker:text-[#f04e00] [&>strong]:text-[#f04e00] [&>strong]:font-semibold [&>h3]:text-lg [&>h3]:font-bold [&>h3]:text-gray-900 [&>h3]:mt-4 [&>h3]:mb-2"
+                    set:html={cleanSeoContent(seoItem.enhanced_content || seoItem.seo_content || seoItem.content)}
+                  ></div>
+                </div>
+              </div>
+              
+              <!-- Footer del artículo con metadatos -->
+              <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                <div class="flex items-center justify-between text-sm text-gray-500">
+                  <div class="flex items-center gap-3">
+                    {seoItem.matched_tags && seoItem.matched_tags > 0 && (
+                      <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        <span>{seoItem.matched_tags} coincidencias</span>
+                      </div>
+                    )}
+                    
+                    {seoItem.total_weight && seoItem.total_weight > 0 && (
+                      <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <span>Relevancia: {seoItem.total_weight}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div class="text-xs text-gray-400">
+                    Artículo #{index + 1}
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <!-- Sección de resumen y estadísticas -->
+        <div class="bg-gradient-to-r from-gray-50 to-orange-50 rounded-2xl p-8 border border-orange-100">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <!-- Estadísticas del contenido -->
+            <div class="md:col-span-2">
+              <h4 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4zm2.5 2.25h-15V5.75h15v13.5zm0-15.5h-15c-1.1 0-2 .9-2 2v13c0 1.1.9 2 2 2h15c1.1 0 2-.9 2-2v-13c0-1.1-.9-2-2-2z"/>
+                </svg>
+                Información Especializada
+              </h4>
+              
+              <p class="text-gray-700 leading-relaxed mb-4">
+                {searchInfo.propertyType || searchInfo.location ? 
+                  `Nuestro contenido está especializado en ${searchInfo.propertyType?.toLowerCase() || 'propiedades'}${searchInfo.location ? ` en ${searchInfo.location}` : ''}. Información verificada y actualizada.` :
+                  'Contenido especializado diseñado para ayudarte a tomar decisiones informadas. Información verificada por nuestros expertos inmobiliarios.'
+                }
+              </p>
+              
+              <!-- Estadísticas -->
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center p-3 bg-white rounded-lg border border-orange-200">
+                  <div class="text-2xl font-bold text-[#f04e00]">{seoContent.length}</div>
+                  <div class="text-xs text-gray-600">Artículos</div>
+                </div>
+                
+                <div class="text-center p-3 bg-white rounded-lg border border-orange-200">
+                  <div class="text-2xl font-bold text-[#f04e00]">24/7</div>
+                  <div class="text-xs text-gray-600">Disponible</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="flex flex-col justify-center">
+              <div class="text-center">
+                <h5 class="text-lg font-bold text-gray-900 mb-3">
+                  ¿Necesitas Asesoría Personalizada?
+                </h5>
+                <p class="text-gray-600 mb-4 text-sm">
+                  Habla con nuestros expertos y recibe recomendaciones específicas para tu caso
+                </p>
+                <button 
+                  onclick="requestExpertConsultation()"
+                  class="w-full bg-[#f04e00] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#d94400] transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                  </svg>
+                  Consultar Experto
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer de la sección SEO -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+          <div class="flex flex-wrap items-center justify-between gap-4 text-sm text-gray-600">
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-[#f04e00]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                </svg>
+                <span>Contenido verificado</span>
+              </div>
+              
+              {searchInfo.location && (
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  </svg>
+                  <span>Especializado para {searchInfo.location}</span>
+                </div>
+              )}
+            </div>
+            
+            <div class="flex items-center gap-3 text-xs">
+              <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                {seoContent[0]?.generated_dynamically ? 'Contenido Dinámico' : 'Contenido API'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+<script>
+  // Función para solicitar consulta con experto (dinámica)
+  window.requestExpertConsultation = function() {
+    // Extraer información dinámica del contexto actual
+    const pageTitle = document.querySelector('h1')?.textContent || '';
+    const location = pageTitle.match(/en\s+([^-]+)/)?.[1]?.trim() || 'esta zona';
+    const propertyType = pageTitle.match(/^([^e]+)/)?.[1]?.trim() || 'propiedades';
+    
+    const message = `¡Hola! Me interesa recibir asesoría personalizada sobre ${propertyType.toLowerCase()} en ${location}. ¿Podrían ayudarme con información específica?`;
+    
+    // Integración con WhatsApp
+    const whatsappUrl = `https://wa.me/18295550100?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    console.log('Consulta con experto solicitada:', { propertyType, location });
+  };
+</script>

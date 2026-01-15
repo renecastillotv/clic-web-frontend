@@ -1,0 +1,262 @@
+---
+// RentalStats.astro
+export interface Props {
+  stats?: Array<{
+    number: string;
+    label: string;
+    icon?: string;
+    color?: string;
+  }>;
+  background?: 'light' | 'dark' | 'brand';
+  animated?: boolean;
+  layout?: 'horizontal' | 'grid';
+}
+
+const { 
+  stats = [],
+  background = 'light',
+  animated = true,
+  layout = 'grid'
+} = Astro.props;
+
+// Datos por defecto si no se pasan props
+const defaultStats = [
+  { 
+    number: '250+', 
+    label: 'Propiedades disponibles',
+    icon: 'properties',
+    color: 'text-[#f04e00]'
+  },
+  { 
+    number: '4.8/5', 
+    label: 'Rating de huéspedes',
+    icon: 'rating',
+    color: 'text-yellow-500'
+  },
+  { 
+    number: '$150', 
+    label: 'Precio promedio/noche',
+    icon: 'price',
+    color: 'text-green-600'
+  },
+  { 
+    number: '24/7', 
+    label: 'Soporte al huésped',
+    icon: 'support',
+    color: 'text-blue-600'
+  }
+];
+
+const finalStats = stats.length > 0 ? stats : defaultStats;
+
+const backgroundClasses = {
+  light: 'bg-gray-50',
+  dark: 'bg-gray-900',
+  brand: 'bg-[#f04e00]'
+};
+
+const textClasses = {
+  light: 'text-gray-900',
+  dark: 'text-white',
+  brand: 'text-white'
+};
+
+const subtextClasses = {
+  light: 'text-gray-600',
+  dark: 'text-gray-300', 
+  brand: 'text-white/90'
+};
+
+// Función para obtener el icono SVG
+function getIcon(iconName: string) {
+  const icons = {
+    properties: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>`,
+    rating: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>`,
+    price: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>`,
+    support: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 12l.01 0M12 12l.01.01M12 12l.01-.01M12 12l-.01.01M12 12h.01m-.01 0h.01m-.01 0h-.01m0 0h-.01M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/>`,
+    default: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>`
+  };
+  return icons[iconName] || icons.default;
+}
+---
+
+<section class={`py-12 ${backgroundClasses[background]}`}>
+  <div class="container mx-auto px-4">
+    <div class={`${layout === 'grid' ? 'grid grid-cols-2 md:grid-cols-4 gap-8' : 'flex flex-wrap justify-center gap-12'} text-center`}>
+      {finalStats.map((stat, index) => (
+        <div 
+          class={`rental-stat-item ${animated ? 'animate-on-scroll' : ''}`}
+          style={animated ? `animation-delay: ${index * 100}ms` : ''}
+          data-stat-number={stat.number}
+        >
+          <!-- Icon (opcional) -->
+          {stat.icon && (
+            <div class="flex justify-center mb-3">
+              <div class={`w-12 h-12 rounded-full ${background === 'light' ? 'bg-white' : background === 'dark' ? 'bg-gray-800' : 'bg-white/20'} flex items-center justify-center`}>
+                <svg 
+                  class={`w-6 h-6 ${stat.color || 'text-[#f04e00]'}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  set:html={getIcon(stat.icon)}
+                />
+              </div>
+            </div>
+          )}
+          
+          <!-- Número -->
+          <div class={`text-3xl md:text-4xl font-bold mb-2 ${stat.color || textClasses[background]} stat-number`}>
+            {stat.number}
+          </div>
+          
+          <!-- Label -->
+          <div class={`${subtextClasses[background]} text-sm md:text-base font-medium`}>
+            {stat.label}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+  
+  <!-- Schema.org structured data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "CLIC Inmobiliaria",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": finalStats.find(s => s.label.includes('Rating'))?.number.split('/')[0] || "4.8",
+      "bestRating": "5",
+      "ratingCount": finalStats.find(s => s.label.includes('Propiedades'))?.number.replace('+', '') || "250"
+    },
+    "priceRange": "$" + (finalStats.find(s => s.label.includes('Precio'))?.number.replace('$', '') || "150")
+  })} />
+</section>
+
+{animated && (
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Intersection Observer para animar cuando entran en viewport
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const statElement = entry.target;
+            const numberElement = statElement.querySelector('.stat-number');
+            const finalNumber = statElement.dataset.statNumber;
+            
+            if (numberElement && finalNumber) {
+              animateNumber(numberElement, finalNumber);
+            }
+            
+            observer.unobserve(statElement);
+          }
+        });
+      }, {
+        threshold: 0.1
+      });
+      
+      // Observar todos los elementos de estadísticas
+      document.querySelectorAll('.rental-stat-item').forEach(item => {
+        observer.observe(item);
+      });
+      
+      function animateNumber(element, finalValue) {
+        const hasPlus = finalValue.includes('+');
+        const hasSlash = finalValue.includes('/');
+        const hasDollar = finalValue.includes('$');
+        
+        if (hasSlash) {
+          // Para ratings como "4.8/5"
+          const rating = parseFloat(finalValue.split('/')[0]);
+          animateFloat(element, 0, rating, finalValue);
+        } else if (hasDollar) {
+          // Para precios como "$150"
+          const price = parseInt(finalValue.replace(/[^0-9]/g, ''));
+          animateInteger(element, 0, price, '$', '');
+        } else if (hasPlus) {
+          // Para números como "250+"
+          const number = parseInt(finalValue.replace('+', ''));
+          animateInteger(element, 0, number, '', '+');
+        } else if (finalValue.includes('24/7')) {
+          // Para textos especiales como "24/7"
+          element.textContent = finalValue;
+        } else {
+          // Para números simples
+          const number = parseInt(finalValue);
+          if (!isNaN(number)) {
+            animateInteger(element, 0, number, '', '');
+          } else {
+            element.textContent = finalValue;
+          }
+        }
+      }
+      
+      function animateInteger(element, start, end, prefix = '', suffix = '') {
+        const duration = 2000;
+        const startTime = performance.now();
+        
+        function updateNumber(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          // Ease out animation
+          const easeProgress = 1 - Math.pow(1 - progress, 3);
+          const current = Math.floor(start + (end - start) * easeProgress);
+          
+          element.textContent = prefix + current.toLocaleString() + suffix;
+          
+          if (progress < 1) {
+            requestAnimationFrame(updateNumber);
+          }
+        }
+        
+        requestAnimationFrame(updateNumber);
+      }
+      
+      function animateFloat(element, start, end, originalText) {
+        const duration = 2000;
+        const startTime = performance.now();
+        const suffix = originalText.substring(originalText.indexOf('/'));
+        
+        function updateNumber(currentTime) {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          
+          const easeProgress = 1 - Math.pow(1 - progress, 3);
+          const current = start + (end - start) * easeProgress;
+          
+          element.textContent = current.toFixed(1) + suffix;
+          
+          if (progress < 1) {
+            requestAnimationFrame(updateNumber);
+          }
+        }
+        
+        requestAnimationFrame(updateNumber);
+      }
+    });
+  </script>
+)}
+
+<style>
+  .animate-on-scroll {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .rental-stat-item {
+    transition: transform 0.3s ease;
+  }
+  
+  .rental-stat-item:hover {
+    transform: translateY(-5px);
+  }
+</style>

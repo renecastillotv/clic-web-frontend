@@ -1,0 +1,492 @@
+---
+// RentalSearchBox.astro - Versión mejorada con estrategia híbrida SEO
+export interface Props {
+  style?: 'hero' | 'compact';
+  showTitle?: boolean;
+  currentDestination?: string;
+  currentCategory?: string;
+  currentBudget?: string;
+  currentGuests?: string;
+  currentAmenities?: string[];
+}
+
+const { 
+  style = 'hero', 
+  showTitle = true,
+  currentDestination = '',
+  currentCategory = '',
+  currentBudget = '',
+  currentGuests = '',
+  currentAmenities = []
+} = Astro.props;
+
+// Función para extraer parámetros de la URL actual
+function extractParamsFromURL() {
+  const url = Astro.url;
+  const pathname = url.pathname;
+  
+  // Si estamos en una página de búsqueda, extraer parámetros de la URL
+  if (pathname.includes('/rentas-vacacionales')) {
+    const pathParts = pathname.split('/').filter(part => part !== '' && part !== 'rentas-vacacionales');
+    
+    let destino = '';
+    let tipo = '';
+    let amenidades = [];
+    
+    // Mapeos simplificados - solo lo importante para SEO
+    const tipoMap = {
+      'villa': 'villa',
+      'apartamento': 'apartamento', 
+      'casa': 'casa',
+      'lujo': 'lujo'
+    };
+    
+    const destinoMap = {
+      'punta-cana': 'punta-cana',
+      'cap-cana': 'cap-cana',
+      'las-terrenas': 'las-terrenas',
+      'casa-de-campo': 'casa-de-campo',
+      'samana': 'samana',
+      'bavaro': 'bavaro'
+    };
+    
+    // Amenidades valiosas para SEO
+    const amenidadesMap = {
+      'con-piscina': 'piscina',
+      'frente-a-la-playa': 'playa',
+      'wifi-incluido': 'wifi',
+      'aire-acondicionado': 'ac',
+      'parking-gratuito': 'parking',
+      'para-familias': 'familia',
+      'luna-de-miel': 'romance',
+      'grupos-amigos': 'grupos'
+    };
+    
+    // Procesar cada parte de la URL
+    pathParts.forEach(part => {
+      if (tipoMap[part]) {
+        tipo = tipoMap[part];
+      } else if (destinoMap[part]) {
+        destino = destinoMap[part];
+      } else if (amenidadesMap[part]) {
+        amenidades.push(amenidadesMap[part]);
+      }
+    });
+    
+    // Revisar query parameters para filtros específicos
+    const searchParams = url.searchParams;
+    const presupuesto = searchParams.get('precio') || '';
+    const huespedes = searchParams.get('huespedes') || '';
+    
+    // Fallback a props si no hay URL params
+    if (!destino && searchParams.get('destino')) destino = searchParams.get('destino');
+    if (!tipo && searchParams.get('tipo')) tipo = searchParams.get('tipo');
+    
+    return { destino, tipo, presupuesto, huespedes, amenidades };
+  }
+  
+  return { destino: '', tipo: '', presupuesto: '', huespedes: '', amenidades: [] };
+}
+
+// Extraer parámetros de la URL o usar los pasados como props
+const urlParams = extractParamsFromURL();
+const finalDestination = currentDestination || urlParams.destino;
+const finalCategory = currentCategory || urlParams.tipo;
+const finalBudget = currentBudget || urlParams.presupuesto;
+const finalGuests = currentGuests || urlParams.huespedes;
+const finalAmenities = currentAmenities.length > 0 ? currentAmenities : urlParams.amenidades;
+
+const destinos = [
+  { value: "", label: "¿A dónde quieres ir?" },
+  { value: "punta-cana", label: "Punta Cana" },
+  { value: "cap-cana", label: "Cap Cana" },
+  { value: "las-terrenas", label: "Las Terrenas" },
+  { value: "casa-de-campo", label: "Casa de Campo" },
+  { value: "samana", label: "Samaná" },
+  { value: "bavaro", label: "Bávaro" }
+];
+
+const tipos = [
+  { value: "", label: "Cualquier tipo" },
+  { value: "villa", label: "Villa" },
+  { value: "apartamento", label: "Apartamento" },
+  { value: "casa", label: "Casa" },
+  { value: "lujo", label: "Propiedad de lujo" }
+];
+
+const presupuestos = [
+  { value: "", label: "Cualquier precio" },
+  { value: "0-100", label: "$0 - $100" },
+  { value: "100-200", label: "$100 - $200" },
+  { value: "200-400", label: "$200 - $400" },
+  { value: "400-600", label: "$400 - $600" },
+  { value: "600+", label: "$600+" }
+];
+
+const huespedes = [
+  { value: "", label: "Huéspedes" },
+  { value: "1", label: "1 huésped" },
+  { value: "2", label: "2 huéspedes" },
+  { value: "3", label: "3 huéspedes" },
+  { value: "4", label: "4 huéspedes" },
+  { value: "5", label: "5 huéspedes" },
+  { value: "6+", label: "6+ huéspedes" }
+];
+
+// Amenidades valiosas que la gente realmente busca
+const amenidades = [
+  { value: "piscina", label: "Con piscina", icon: "🏊‍♀️" },
+  { value: "playa", label: "Frente a la playa", icon: "🏖️" },
+  { value: "wifi", label: "WiFi incluido", icon: "📶" },
+  { value: "ac", label: "Aire acondicionado", icon: "❄️" },
+  { value: "parking", label: "Parking gratuito", icon: "🚗" },
+  { value: "familia", label: "Para familias", icon: "👨‍👩‍👧‍👦" },
+  { value: "romance", label: "Luna de miel", icon: "💑" },
+  { value: "grupos", label: "Grupos de amigos", icon: "👥" }
+];
+---
+
+<div class={`rental-search-box ${style === 'hero' ? 'hero-style' : 'compact-style'}`}>
+  {showTitle && style === 'hero' && (
+    <div class="text-center mb-8">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white">
+        Encuentra tu escape perfecto
+      </h1>
+      <p class="text-xl md:text-2xl mb-12 max-w-3xl mx-auto opacity-90 text-white">
+        Rentas vacacionales únicas en los destinos más hermosos de República Dominicana
+      </p>
+    </div>
+  )}
+
+  <!-- Search Form -->
+  <div class={`${style === 'hero' ? 'bg-white rounded-2xl shadow-2xl p-6 border border-gray-100' : 'bg-white rounded-xl shadow-lg p-4 border border-gray-200'}`}>
+    <form class="rental-search-form" data-style={style}>
+      
+      <!-- Filtros principales -->
+      <div class={`flex ${style === 'hero' ? 'flex-col lg:flex-row' : 'flex-wrap xl:flex-nowrap'} items-center gap-4 mb-4`}>
+        
+        <!-- Destino -->
+        <div class="flex-1 min-w-[200px]">
+          <label class="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
+            🏝️ Destino
+          </label>
+          <select 
+            name="destino" 
+            class="w-full text-base text-gray-700 bg-white border border-gray-300 rounded-lg px-4 py-3 pr-10 focus:ring-2 focus:ring-[#f04e00] focus:border-transparent outline-none font-medium appearance-none custom-select"
+            aria-label="Seleccionar destino"
+          >
+            {destinos.map(destino => (
+              <option 
+                value={destino.value}
+                selected={destino.value === finalDestination}
+              >
+                {destino.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <!-- Tipo -->
+        <div class="flex-1 min-w-[180px]">
+          <label class="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
+            🏠 Tipo
+          </label>
+          <select 
+            name="tipo" 
+            class="w-full text-base text-gray-700 bg-white border border-gray-300 rounded-lg px-4 py-3 pr-10 focus:ring-2 focus:ring-[#f04e00] focus:border-transparent outline-none font-medium appearance-none custom-select"
+            aria-label="Seleccionar tipo de propiedad"
+          >
+            {tipos.map(tipo => (
+              <option 
+                value={tipo.value}
+                selected={tipo.value === finalCategory}
+              >
+                {tipo.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <!-- Presupuesto -->
+        <div class="flex-1 min-w-[160px]">
+          <label class="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
+            💰 Presupuesto/noche
+          </label>
+          <select 
+            name="presupuesto" 
+            class="w-full text-base text-gray-700 bg-white border border-gray-300 rounded-lg px-4 py-3 pr-10 focus:ring-2 focus:ring-[#f04e00] focus:border-transparent outline-none font-medium appearance-none custom-select"
+            aria-label="Seleccionar presupuesto"
+          >
+            {presupuestos.map(presupuesto => (
+              <option 
+                value={presupuesto.value}
+                selected={presupuesto.value === finalBudget}
+              >
+                {presupuesto.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <!-- Huéspedes -->
+        <div class="flex-1 min-w-[140px]">
+          <label class="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
+            👥 Huéspedes
+          </label>
+          <select 
+            name="huespedes" 
+            class="w-full text-base text-gray-700 bg-white border border-gray-300 rounded-lg px-4 py-3 pr-10 focus:ring-2 focus:ring-[#f04e00] focus:border-transparent outline-none font-medium appearance-none custom-select"
+            aria-label="Seleccionar número de huéspedes"
+          >
+            {huespedes.map(huesped => (
+              <option 
+                value={huesped.value}
+                selected={huesped.value === finalGuests}
+              >
+                {huesped.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <!-- Botón de búsqueda -->
+        <div class="flex-shrink-0">
+          <label class="block text-xs font-bold text-transparent uppercase tracking-wide mb-2">
+            &nbsp;
+          </label>
+          <button 
+            type="submit"
+            class={`${style === 'hero' ? 'bg-[#f04e00] hover:bg-[#d94400] text-white rounded-xl px-8 py-3' : 'bg-[#f04e00] hover:bg-[#d94400] text-white rounded-lg px-6 py-3'} transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 font-semibold min-w-[120px] justify-center`}
+            aria-label="Buscar propiedades vacacionales"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <span>Buscar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtros avanzados (amenidades) -->
+      <div class="border-t border-gray-200 pt-4">
+        <div class="flex items-center justify-between mb-3">
+          <button 
+            type="button" 
+            id="toggleAmenities"
+            class="text-xs text-[#f04e00] hover:text-[#d94400] font-medium flex items-center gap-2 transition-colors"
+          >
+            <span>✨</span>
+            <span id="toggleText">Mostrar más filtros</span>
+            <svg id="toggleIcon" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div id="amenitiesContainer" class="hidden">
+          <div class="mb-3">
+            <label class="text-xs font-bold text-gray-700 uppercase tracking-wide">
+              Amenidades populares
+            </label>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {amenidades.map(amenidad => (
+              <label class="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors">
+                <input 
+                  type="checkbox" 
+                  name="amenidades" 
+                  value={amenidad.value}
+                  checked={finalAmenities.includes(amenidad.value)}
+                  class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00] focus:ring-2"
+                />
+                <span class="text-sm flex items-center gap-1">
+                  <span>{amenidad.icon}</span>
+                  <span class="text-gray-700">{amenidad.label}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Toggle amenidades
+    const toggleBtn = document.getElementById('toggleAmenities');
+    const container = document.getElementById('amenitiesContainer');
+    const toggleText = document.getElementById('toggleText');
+    const toggleIcon = document.getElementById('toggleIcon');
+    
+    if (toggleBtn && container && toggleText && toggleIcon) {
+      toggleBtn.addEventListener('click', function() {
+        const isHidden = container.classList.contains('hidden');
+        
+        if (isHidden) {
+          container.classList.remove('hidden');
+          toggleText.textContent = 'Ocultar filtros';
+          toggleIcon.style.transform = 'rotate(180deg)';
+        } else {
+          container.classList.add('hidden');
+          toggleText.textContent = 'Mostrar más filtros';
+          toggleIcon.style.transform = 'rotate(0deg)';
+        }
+      });
+    }
+
+    // Función para crear slug SEO-friendly
+    function createSEOSlug(text) {
+      return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remover acentos
+        .replace(/[^a-z0-9\s-]/g, '') // Solo letras, números, espacios y guiones
+        .replace(/\s+/g, '-') // Espacios a guiones
+        .replace(/-+/g, '-') // Múltiples guiones a uno
+        .trim();
+    }
+
+    // Manejar envío del formulario
+    const forms = document.querySelectorAll('.rental-search-form');
+    
+    forms.forEach(form => {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const destino = formData.get('destino');
+        const tipo = formData.get('tipo');
+        const presupuesto = formData.get('presupuesto');
+        const huespedes = formData.get('huespedes');
+        const amenidadesSeleccionadas = formData.getAll('amenidades');
+        
+        // ESTRATEGIA HÍBRIDA OPTIMIZADA PARA SEO
+        let searchURL = '/rentas-vacacionales';
+        
+        // Construir URL principal (solo tipo + destino + amenidades valiosas)
+        const urlParts = [];
+        
+        // 1. Tipo (alta prioridad SEO)
+        if (tipo) {
+          urlParts.push(tipo);
+        }
+        
+        // 2. Destino (alta prioridad SEO)
+        if (destino) {
+          urlParts.push(destino);
+        }
+        
+        // 3. Amenidades valiosas para SEO (solo las más buscadas)
+        const amenidadesSEO = {
+          'piscina': 'con-piscina',
+          'playa': 'frente-a-la-playa',
+          'familia': 'para-familias',
+          'romance': 'luna-de-miel',
+          'grupos': 'grupos-amigos'
+        };
+        
+        // Solo agregar UNA amenidad principal a la URL
+        const amenidadPrincipal = amenidadesSeleccionadas.find(a => amenidadesSEO[a]);
+        if (amenidadPrincipal && amenidadesSEO[amenidadPrincipal]) {
+          urlParts.push(amenidadesSEO[amenidadPrincipal]);
+        }
+        
+        // Construir URL principal
+        if (urlParts.length > 0) {
+          searchURL += '/' + urlParts.join('/');
+        }
+        
+        // Query params para filtros específicos - MEJORADO PARA SEO
+        const queryParams = new URLSearchParams();
+        
+        if (presupuesto) queryParams.set('precio', presupuesto);
+        if (huespedes) queryParams.set('huespedes', huespedes);
+        
+        // Amenidades adicionales como query params - SIN ENCODING PROBLEMÁTICO
+        const amenidadesRestantes = amenidadesSeleccionadas.filter(a => a !== amenidadPrincipal);
+        if (amenidadesRestantes.length > 0) {
+          // Usar array notation para múltiples valores - mejor para SEO
+          amenidadesRestantes.forEach(amenidad => {
+            queryParams.append('amenidad', amenidad);
+          });
+        }
+        
+        // Agregar query params si existen
+        const queryString = queryParams.toString();
+        if (queryString) {
+          searchURL += '?' + queryString;
+        }
+        
+        console.log('URL optimizada generada:', searchURL);
+        
+        // Navegar a la URL construida
+        window.location.href = searchURL;
+      });
+    });
+  });
+</script>
+
+<style>
+  .hero-style {
+    @apply max-w-6xl mx-auto;
+  }
+  
+  .compact-style {
+    @apply max-w-7xl mx-auto;
+  }
+  
+  /* SOLUCIÓN AL PROBLEMA DEL DOBLE CHEVRON */
+  .custom-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1rem 1rem;
+  }
+  
+  /* Asegurar que no haya ícono nativo del browser */
+  .custom-select::-ms-expand {
+    display: none;
+  }
+  
+  /* Animaciones suaves */
+  #amenitiesContainer {
+    transition: all 0.3s ease-in-out;
+  }
+  
+  #toggleIcon {
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  /* Estilos mejorados para checkboxes */
+  input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+  }
+  
+  /* Hover effects */
+  label:has(input[type="checkbox"]):hover {
+    border-color: #f04e00;
+    background-color: #fef7f0;
+  }
+  
+  /* Estados activos */
+  label:has(input[type="checkbox"]:checked) {
+    border-color: #f04e00;
+    background-color: #fef7f0;
+  }
+
+  /* Mejorar la apariencia del botón toggle */
+  #toggleAmenities {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  #toggleAmenities:hover {
+    background-color: #fef7f0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+  }
+</style>

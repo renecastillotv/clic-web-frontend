@@ -1,0 +1,537 @@
+---
+// SEOContentRentals.astro - Componente especializado para rentas vacacionales
+export interface Props {
+  destino?: string;
+  tipo?: string;
+  presupuesto?: string;
+  huespedes?: string;
+  totalProperties: number;
+  listings: any[];
+  seasonalData?: {
+    highSeason: string;
+    lowSeason: string;
+    bestMonths: string[];
+    averageOccupancy: number;
+  };
+  experienceData?: {
+    nearbyAttractions: string[];
+    popularActivities: string[];
+    restaurantsNearby: number;
+    beachDistance: string;
+    nightlifeOptions: string[];
+  };
+}
+
+const { 
+  destino, 
+  tipo, 
+  presupuesto, 
+  huespedes, 
+  totalProperties, 
+  listings,
+  seasonalData,
+  experienceData
+} = Astro.props;
+
+// Data específica para RENTAS VACACIONALES - Enfoque en experiencias y comodidad
+const destinoDataRentals = {
+  'punta-cana': {
+    name: 'Punta Cana',
+    vacationDescription: 'el paraíso tropical perfecto para unas vacaciones inolvidables',
+    rentalHighlights: 'playas de arena blanca, resorts de clase mundial, golf, vida nocturna y aventuras acuáticas',
+    experiencePromise: 'días llenos de diversión bajo el sol caribeño y noches mágicas',
+    familyFriendly: 'ideal para familias con niños, parejas en luna de miel y grupos de amigos',
+    vacationVibes: 'relajación total, entretenimiento sin límites y memorias para toda la vida',
+    seasonalBenefits: {
+      high: 'clima perfecto, máxima diversión, todos los servicios disponibles',
+      low: 'precios increíbles, menos multitudes, experiencia más íntima'
+    },
+    rentReason: 'despertar cada mañana a metros de la playa más hermosa del Caribe'
+  },
+  'cap-cana': {
+    name: 'Cap Cana',
+    vacationDescription: 'el destino de lujo exclusivo para vacaciones de ensueño',
+    rentalHighlights: 'marina privada, golf de campeonato, playa exclusiva, servicios premium',
+    experiencePromise: 'días de lujo absoluto con servicios de clase mundial',
+    familyFriendly: 'perfecto para familias que buscan privacidad y servicios excepcionales',
+    vacationVibes: 'exclusividad, sofisticación y atención personalizada',
+    seasonalBenefits: {
+      high: 'servicios completos, clima ideal, experiencias premium',
+      low: 'lujo accesible, atención VIP, tranquilidad absoluta'
+    },
+    rentReason: 'vivir como millonario durante tus vacaciones'
+  },
+  'las-terrenas': {
+    name: 'Las Terrenas',
+    vacationDescription: 'el refugio bohemio perfecto para desconectar del mundo',
+    rentalHighlights: 'ambiente relajado, cultura local auténtica, naturaleza virgen, surf',
+    experiencePromise: 'días de tranquilidad absoluta conectando con la naturaleza',
+    familyFriendly: 'ideal para familias aventureras y parejas que buscan autenticidad',
+    vacationVibes: 'bohemio, auténtico, natural y relajante',
+    seasonalBenefits: {
+      high: 'clima seco perfecto, todos los servicios, vida nocturna activa',
+      low: 'paraíso personal, precios locales, experiencia auténtica'
+    },
+    rentReason: 'despertarte con el sonido de las olas en un paraíso bohemio'
+  },
+  'casa-de-campo': {
+    name: 'Casa de Campo',
+    vacationDescription: 'el resort de lujo más exclusivo para vacaciones VIP',
+    rentalHighlights: 'golf Pete Dye, marina internacional, Altos de Chavón, servicios de lujo',
+    experiencePromise: 'vacaciones de clase mundial con servicios dignos de celebridades',
+    familyFriendly: 'perfecto para familias que valoran privacidad, seguridad y lujo',
+    vacationVibes: 'elegancia, exclusividad, servicios impecables',
+    seasonalBenefits: {
+      high: 'experiencia completa, clima perfecto, máximo lujo',
+      low: 'lujo accesible, atención personalizada, privacidad total'
+    },
+    rentReason: 'vacaciones dignas de celebrities en el resort más exclusivo del Caribe'
+  },
+  'samana': {
+    name: 'Samaná',
+    vacationDescription: 'el santuario natural para vacaciones de ecoturismo y aventura',
+    rentalHighlights: 'ballenas jorobadas, parques nacionales, cascadas, playas vírgenes',
+    experiencePromise: 'aventuras únicas en uno de los ecosistemas más ricos del Caribe',
+    familyFriendly: 'perfecto para familias aventureras y amantes de la naturaleza',
+    vacationVibes: 'aventura, naturaleza, sostenibilidad, descubrimiento',
+    seasonalBenefits: {
+      high: 'temporada de ballenas, clima ideal, tours disponibles',
+      low: 'naturaleza en su estado puro, precios accesibles, menos turistas'
+    },
+    rentReason: 'vivir aventuras únicas rodeado de naturaleza virgen'
+  },
+  'bavaro': {
+    name: 'Bávaro',
+    vacationDescription: 'el corazón del entretenimiento para vacaciones llenas de diversión',
+    rentalHighlights: 'playa espectacular, parques temáticos, shopping, vida nocturna',
+    experiencePromise: 'vacaciones llenas de actividades, entretenimiento y diversión familiar',
+    familyFriendly: 'el destino familiar por excelencia con actividades para todas las edades',
+    vacationVibes: 'diversión, entretenimiento, comodidad, variedad',
+    seasonalBenefits: {
+      high: 'máxima diversión, todos los parques abiertos, clima perfecto',
+      low: 'diversión familiar a precios increíbles, menos multitudes'
+    },
+    rentReason: 'tener todo el entretenimiento del Caribe a unos pasos de tu alojamiento'
+  }
+};
+
+const tipoDataRentals = {
+  'villa': {
+    name: 'Villas',
+    rentalDescription: 'tu hogar temporal con todas las comodidades para unas vacaciones perfectas',
+    vacationFeatures: ['Piscina privada para disfrutar en familia', 'Cocina completa para preparar tus comidas favoritas', 'BBQ para cenas al aire libre', 'Espacios amplios para relajarte', 'Jardín tropical privado', 'Parking seguro'],
+    experienceBenefits: 'máxima privacidad para disfrutar con tu familia y amigos sin interrupciones',
+    vacationCapacity: '4-12 huéspedes cómodamente',
+    idealFor: 'familias grandes, grupos de amigos, celebraciones especiales, retiros familiares',
+    rentAdvantages: 'espacio ilimitado, privacidad total, libertad de horarios, experiencia personalizada',
+    memoryMaking: 'crear recuerdos inolvidables en tu propia villa privada',
+    comfortLevel: 'lujo residencial con servicios hoteleros'
+  },
+  'apartamento': {
+    name: 'Apartamentos',
+    rentalDescription: 'tu base perfecta para explorar con todas las comodidades modernas',
+    vacationFeatures: ['Vista espectacular desde tu balcón', 'Piscina del edificio para refrescarte', 'Gimnasio para mantenerte activo', 'Seguridad 24/7 para total tranquilidad', 'Concierge para ayudarte', 'Ubicación central'],
+    experienceBenefits: 'comodidades de hotel con la libertad de un apartamento',
+    vacationCapacity: '2-8 huéspedes cómodamente',
+    idealFor: 'parejas románticas, familias pequeñas, viajeros que valoran ubicación y servicios',
+    rentAdvantages: 'ubicación premium, servicios incluidos, seguridad garantizada, comodidad urbana',
+    memoryMaking: 'despertar cada día con vistas espectaculares',
+    comfortLevel: 'elegancia moderna con servicios premium'
+  },
+  'casa': {
+    name: 'Casas',
+    rentalDescription: 'tu hogar lejos de casa para unas vacaciones auténticas y relajantes',
+    vacationFeatures: ['Espacios familiares amplios', 'Cocina completa como en casa', 'Jardín para los niños', 'Áreas de descanso', 'Parking privado', 'Ambiente hogareño'],
+    experienceBenefits: 'ambiente familiar auténtico en un destino paradisíaco',
+    vacationCapacity: '4-10 huéspedes como en familia',
+    idealFor: 'familias con niños, estadías largas, huéspedes que buscan autenticidad',
+    rentAdvantages: 'ambiente hogareño, espacios familiares, comodidad total, precios accesibles',
+    memoryMaking: 'vivir como local en tu destino de ensueño',
+    comfortLevel: 'comodidad familiar con toque caribeño'
+  },
+  'lujo': {
+    name: 'Propiedades de Lujo',
+    rentalDescription: 'tu palacio temporal para vacaciones dignas de celebridades',
+    vacationFeatures: ['Servicio de concierge personalizado', 'Chef privado disponible', 'Mayordomo dedicado', 'Spa privado para relajarte', 'Servicios premium 24/7', 'Ubicaciones exclusivas'],
+    experienceBenefits: 'experiencia VIP con atención personalizada y servicios de clase mundial',
+    vacationCapacity: '2-16 huéspedes en lujo absoluto',
+    idealFor: 'celebraciones especiales, lunas de miel VIP, grupos que buscan experiencias únicas',
+    rentAdvantages: 'servicios exclusivos, privacidad total, experiencias personalizadas, memorias únicas',
+    memoryMaking: 'vivir como royalty durante tus vacaciones',
+    comfortLevel: 'lujo absoluto con servicios dignos de celebridades'
+  }
+};
+
+// Obtener datos contextuales
+const currentDestino = destino ? destinoDataRentals[destino] : null;
+const currentTipo = tipo ? tipoDataRentals[tipo] : null;
+
+// Calcular precios promedio reales
+const realAvgPrice = listings.length > 0 
+  ? `$${Math.round(listings.reduce((sum, prop) => sum + parseInt(prop.precio.replace(/[^\d]/g, '')), 0) / listings.length)}`
+  : currentDestino ? '$200' : '$180';
+
+// Generar consejos específicos para rentas
+const generateRentalTips = () => {
+  const tips = [
+    {
+      title: 'Reserva con anticipación',
+      content: `Para conseguir las mejores ${currentTipo?.name.toLowerCase() || 'propiedades'} ${currentDestino ? `en ${currentDestino.name}` : ''}, recomendamos reservar con 2-3 meses de anticipación, especialmente para temporada alta (diciembre-abril).`
+    },
+    {
+      title: 'Considera la temporada',
+      content: `${currentDestino ? `En ${currentDestino.name}, la temporada alta ofrece ${currentDestino.seasonalBenefits.high}, mientras que la temporada baja te da ${currentDestino.seasonalBenefits.low}.` : 'Cada temporada tiene sus ventajas únicas.'}`
+    },
+    {
+      title: 'Aprovecha las amenidades',
+      content: `${currentTipo ? `Las ${currentTipo.name.toLowerCase()} incluyen ${currentTipo.vacationFeatures.slice(0, 3).join(', ')}. Úsalas al máximo para ${currentTipo.memoryMaking}.` : 'Aprovecha todas las amenidades incluidas.'}`
+    },
+    {
+      title: 'Explora la zona',
+      content: `${currentDestino ? `No te pierdas ${currentDestino.rentalHighlights}. ${currentDestino.experiencePromise}.` : 'Explora las atracciones locales y sumérgete en la cultura.'}`
+    }
+  ];
+  
+  return tips;
+};
+
+const rentalTips = generateRentalTips();
+---
+
+<!-- Contenido SEO Profundo para RENTAS VACACIONALES -->
+<section class="py-16 bg-white">
+  <div class="container mx-auto px-4">
+    <div class="max-w-7xl mx-auto">
+      
+      <!-- Grid principal: contenido + sidebar -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 lg:gap-12 mb-16">
+        
+        <!-- Contenido principal - 3 columnas en desktop -->
+        <div class="lg:col-span-3">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">
+            {currentTipo && currentDestino 
+              ? `${currentTipo.name} para Rentar en ${currentDestino.name}: Tu Guía Completa de Vacaciones`
+              : currentTipo 
+                ? `Renta las Mejores ${currentTipo.name} en República Dominicana para tus Vacaciones`
+                : currentDestino
+                  ? `Alquiler Vacacional en ${currentDestino.name}: Encuentra tu Escape Perfecto`
+                  : 'Rentas Vacacionales en República Dominicana: Tu Guía de Experiencias'
+            }
+          </h2>
+        
+          {currentDestino && (
+            <div class="mb-8">
+              <h3 class="text-xl font-semibold mb-4">¿Por qué elegir {currentDestino.name} para tus próximas vacaciones?</h3>
+              <p class="text-gray-700 mb-4">
+                {currentDestino.name} es {currentDestino.vacationDescription}, donde {currentDestino.experiencePromise}. 
+                Es {currentDestino.familyFriendly}, ofreciendo {currentDestino.vacationVibes} en cada momento de tu estadía.
+                La razón principal para elegir {currentDestino.name} es simple: {currentDestino.rentReason}.
+              </p>
+              <p class="text-gray-700 mb-4">
+                Durante tu estadía, podrás disfrutar de {currentDestino.rentalHighlights}, 
+                creando memorias que durarán toda la vida. Ya sea que viajes en temporada alta o baja, 
+                {currentDestino.name} siempre tiene algo mágico que ofrecer. {currentDestino.seasonalBenefits.high} en temporada alta, 
+                y {currentDestino.seasonalBenefits.low} en temporada baja.
+              </p>
+              
+              {experienceData && (
+                <div class="bg-blue-50 p-6 rounded-lg mb-6">
+                  <h4 class="font-semibold text-blue-900 mb-3">Experiencias únicas en {currentDestino.name}</h4>
+                  <ul class="text-sm text-blue-800 space-y-2">
+                    {experienceData.nearbyAttractions?.map(attraction => (
+                      <li class="flex items-start gap-2">
+                        <span class="text-blue-600 mt-1">•</span>
+                        <a 
+                          href={`/articulos/rentas-vacacionales/${attraction.toLowerCase().replace(/\s+/g, '-')}-${currentDestino.name.toLowerCase().replace(/\s+/g, '-')}`}
+                          class="hover:text-blue-900 transition-colors underline"
+                        >
+                          {attraction}
+                        </a>
+                      </li>
+                    ))}
+                    {experienceData.beachDistance && (
+                      <li class="flex items-start gap-2">
+                        <span class="text-blue-600 mt-1">•</span>
+                        <span>Playa a solo {experienceData.beachDistance} de distancia</span>
+                      </li>
+                    )}
+                    {experienceData.restaurantsNearby && (
+                      <li class="flex items-start gap-2">
+                        <span class="text-blue-600 mt-1">•</span>
+                        <a 
+                          href={`/articulos/rentas-vacacionales/restaurantes-cerca-${currentDestino.name.toLowerCase().replace(/\s+/g, '-')}`}
+                          class="hover:text-blue-900 transition-colors underline"
+                        >
+                          Más de {experienceData.restaurantsNearby} restaurantes en los alrededores
+                        </a>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {currentTipo && (
+            <div class="mb-8">
+              <h3 class="text-xl font-semibold mb-4">¿Por qué rentar {currentTipo.name.toLowerCase()} para tus vacaciones?</h3>
+              <p class="text-gray-700 mb-4">
+                Las {currentTipo.name.toLowerCase()} son {currentTipo.rentalDescription}, 
+                perfectas para {currentTipo.idealFor}. Ofrecen {currentTipo.experienceBenefits} 
+                con {currentTipo.comfortLevel}, permitiéndote {currentTipo.memoryMaking}.
+              </p>
+              <p class="text-gray-700 mb-4">
+                Con capacidad para {currentTipo.vacationCapacity}, las {currentTipo.name.toLowerCase()} 
+                incluyen {currentTipo.vacationFeatures.join(', ')}. Los principales beneficios de elegir 
+                este tipo de alojamiento son: {currentTipo.rentAdvantages}.
+              </p>
+              
+              <div class="bg-green-50 p-6 rounded-lg mb-6">
+                <h4 class="font-semibold text-green-900 mb-3">Amenidades incluidas en {currentTipo.name}</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {currentTipo.vacationFeatures.map(feature => (
+                    <div class="flex items-center gap-2 text-sm text-green-800">
+                      <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4">Precios y Mejores Ofertas para tu Alquiler Vacacional</h3>
+            <p class="text-gray-700 mb-4">
+              Actualmente tenemos {totalProperties} {currentTipo?.name.toLowerCase() || 'propiedades'} 
+              increíbles disponibles para rentar {currentDestino ? `en ${currentDestino.name}` : 'en República Dominicana'} 
+              desde {realAvgPrice} por noche. Los precios incluyen las amenidades básicas y servicios de limpieza inicial, 
+              dándote la mejor relación calidad-precio para tus vacaciones soñadas.
+            </p>
+            
+            {seasonalData && (
+              <div class="bg-yellow-50 p-6 rounded-lg mb-4">
+                <h4 class="font-semibold text-yellow-900 mb-3">Información de temporadas</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-yellow-800">
+                  <div>
+                    <strong>Temporada Alta:</strong> {seasonalData.highSeason}
+                    <br />
+                    <strong>Mejores meses:</strong> {seasonalData.bestMonths.join(', ')}
+                  </div>
+                  <div>
+                    <strong>Temporada Baja:</strong> {seasonalData.lowSeason}
+                    <br />
+                    <strong>Ocupación promedio:</strong> {seasonalData.averageOccupancy}%
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <p class="text-gray-700 mb-4">
+              Para conseguir las mejores tarifas, considera reservar durante temporada baja (mayo-noviembre) cuando los precios 
+              pueden ser hasta 40% más económicos. Sin embargo, temporada alta garantiza el mejor clima y la máxima disponibilidad 
+              de actividades y servicios {currentDestino ? `en ${currentDestino.name}` : ''}.
+            </p>
+          </div>
+          
+          <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4">Qué Incluye tu Alquiler Vacacional</h3>
+            <p class="text-gray-700 mb-4">
+              Todos nuestros alquileres {currentTipo ? `de ${currentTipo.name.toLowerCase()}` : ''} incluyen 
+              servicios esenciales para que disfrutes desde el primer día: WiFi de alta velocidad para compartir 
+              tus momentos perfectos, ropa de cama premium de calidad hotelera, toallas frescas, limpieza inicial 
+              profesional, y soporte 24/7 en español para cualquier necesidad durante tu estadía.
+            </p>
+            <p class="text-gray-700 mb-4">
+              {currentTipo ? `Las ${currentTipo.name.toLowerCase()} específicamente incluyen ${currentTipo.vacationFeatures.slice(0, 4).join(', ')}.` : ''}
+              Servicios adicionales disponibles bajo solicitud incluyen: chef privado para cenas especiales, 
+              servicio de limpieza diario, masajes en la propiedad, transporte privado desde/hacia el aeropuerto, 
+              organización de tours y actividades, y compras pre-llegada para llenar tu refrigerador.
+            </p>
+          </div>
+          
+          <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4">Consejos de Expertos para Planificar tus Vacaciones Perfectas</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {rentalTips.map((tip, index) => (
+                <div key={index} class="bg-gray-50 p-4 rounded-lg">
+                  <h4 class="font-semibold text-gray-900 mb-2">{tip.title}</h4>
+                  <p class="text-sm text-gray-700">{tip.content}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4">Actividades y Experiencias Recomendadas</h3>
+            <p class="text-gray-700 mb-4">
+              {currentDestino ? `${currentDestino.name} ofrece experiencias únicas que harán de tus vacaciones algo inolvidable. ` : ''}
+              Desde el momento que llegues, tendrás acceso a {experienceData?.popularActivities?.join(', ') || 'actividades acuáticas, tours culturales, aventuras en la naturaleza'}.
+              {currentDestino ? ` La magia de ${currentDestino.name} está en ${currentDestino.rentalHighlights}.` : ''}
+            </p>
+            <p class="text-gray-700 mb-4">
+              Para familias con niños, recomendamos actividades como parques acuáticos, tours en catamarán con fondo de cristal, 
+              y visitas a santuarios de vida silvestre. Parejas en luna de miel disfrutarán de cenas románticas en la playa, 
+              spa treatments, y atardeceres en velero. Grupos de amigos pueden aprovechar deportes acuáticos, vida nocturna, 
+              y tours de aventura.
+            </p>
+          </div>
+          
+          <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4">Cómo Reservar y Qué Esperar</h3>
+            <p class="text-gray-700 mb-4">
+              El proceso de reserva es simple y seguro. Una vez selecciones tu {currentTipo?.name.toLowerCase().slice(0, -1) || 'propiedad'} 
+              perfecta {currentDestino ? `en ${currentDestino.name}` : ''}, confirmas fechas y huéspedes, procedes con el pago seguro, 
+              y recibes información detallada sobre check-in, amenidades, y recomendaciones locales.
+            </p>
+            <p class="text-gray-700 mb-4">
+              Nuestro equipo local te contactará 48 horas antes de tu llegada para coordinar el check-in y responder cualquier pregunta. 
+              {currentDestino ? `Para llegar a ${currentDestino.name}, el aeropuerto más cercano está a aproximadamente 30-45 minutos, ` : ''}
+              y podemos organizar transporte privado por una tarifa adicional. Durante tu estadía, nuestro soporte está disponible 
+              24/7 para garantizar que tengas las mejores vacaciones de tu vida.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Sidebar - 1 columna -->
+        <div class="lg:col-span-1">
+          <div class="sticky top-4 space-y-6">
+            
+            <!-- Destacados del destino - Mostrar SIEMPRE que haya destino -->
+            {destino && destinoDataRentals[destino] && (
+              <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-100">
+                <h3 class="font-bold text-gray-900 mb-4 text-lg">Destacados de {destinoDataRentals[destino].name}</h3>
+                <ul class="space-y-2 text-sm text-gray-700">
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>{destinoDataRentals[destino].vacationVibes}</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>{destinoDataRentals[destino].familyFriendly}</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>Mejor época: temporada alta</span>
+                  </li>
+                </ul>
+              </div>
+            )}
+
+            <!-- Tipos de propiedades en mismo destino - Mostrar SIEMPRE que haya destino -->
+            {destino && destinoDataRentals[destino] && (
+              <div class="bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-xl border border-orange-100">
+                <h3 class="font-bold text-gray-900 mb-4 text-lg">
+                  Otros Tipos en {destinoDataRentals[destino].name}
+                </h3>
+                <div class="space-y-3">
+                  {Object.entries(tipoDataRentals).slice(0, 3).map(([key, tipoItem]) => (
+                    <a 
+                      href={`/rentas-vacacionales/${key}/${destino}`}
+                      class="block p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors group"
+                    >
+                      <h4 class="font-medium text-gray-900 group-hover:text-[#f04e00] transition-colors text-sm">
+                        {tipoItem.name}
+                      </h4>
+                      <p class="text-xs text-gray-600 mt-1">{tipoItem.idealFor}</p>
+                      <div class="flex items-center justify-between mt-2 text-xs">
+                        <span class="text-[#f04e00] font-medium">{tipoItem.vacationCapacity}</span>
+                        <svg class="w-3 h-3 text-gray-400 group-hover:text-[#f04e00] group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <!-- Propiedades relacionadas en otros destinos - Mostrar SIEMPRE que haya tipo -->
+            {tipo && tipoDataRentals[tipo] && (
+              <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
+                <h3 class="font-bold text-gray-900 mb-4 text-lg">
+                  {tipoDataRentals[tipo].name} en Otros Destinos
+                </h3>
+                <div class="space-y-3">
+                  {Object.entries(destinoDataRentals).slice(0, 4).map(([key, destinoItem]) => (
+                    <a 
+                      href={`/rentas-vacacionales/${tipo}/${key}`}
+                      class="block p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors group"
+                    >
+                      <h4 class="font-medium text-gray-900 group-hover:text-[#f04e00] transition-colors text-sm">
+                        {destinoItem.name}
+                      </h4>
+                      <p class="text-xs text-gray-600 mt-1 line-clamp-2">{destinoItem.vacationDescription}</p>
+                      <div class="flex items-center justify-between mt-2 text-xs">
+                        <span class="text-[#f04e00] font-medium">Desde $200/noche</span>
+                        <svg class="w-3 h-3 text-gray-400 group-hover:text-[#f04e00] group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <!-- Tips rápidos - SIEMPRE mostrar -->
+            <div class="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-xl border border-yellow-100">
+              <h3 class="font-bold text-gray-900 mb-4 text-lg">Tips de Expertos</h3>
+              <ul class="space-y-3 text-sm text-gray-700">
+                <li class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                  </svg>
+                  <span>Reserva con 60 días de anticipación para mejores precios</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                  </svg>
+                  <span>Temporada baja ofrece hasta 40% de descuento</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  </svg>
+                  <span>Contacta directamente al propietario para ofertas especiales</span>
+                </li>
+              </ul>
+            </div>
+            
+            <!-- CTA especializado - SIEMPRE mostrar -->
+            <div class="bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] p-6 rounded-xl text-white text-center">
+              <h3 class="font-bold mb-3 text-lg">¿Necesitas ayuda personalizada?</h3>
+              <p class="text-sm mb-4 text-white/90">
+                Nuestros expertos locales te ayudan a encontrar la propiedad perfecta{destino && destinoDataRentals[destino] ? ` en ${destinoDataRentals[destino].name}` : ''}{tipo ? ` tipo ${tipo}` : ''}
+              </p>
+              <a 
+                href="/contacto-huespedes"
+                class="inline-block px-4 py-2 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium text-sm"
+              >
+                Consulta Gratuita
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

@@ -1,0 +1,573 @@
+---
+// Interfaz para los datos exactos de la edge function
+export interface Props {
+  testimonials: Array<{
+    id: string;
+    content_type: string;
+    title: string;
+    author: {
+      name: string;
+      avatar?: string;
+      slug: string;
+      position?: string;
+      country?: string;
+    };
+    category: string;
+    excerpt: string;
+    full_testimonial: string;
+    subtitle?: string;
+    rating: number;
+    client_name: string;
+    client_avatar?: string;
+    client_location?: string;
+    client_verified?: boolean;
+    client_profession?: string;
+    transaction_location?: string;
+    featured?: boolean;
+    published_at: string;
+    views?: string;
+    read_time?: string;
+    url?: string;
+    slug: string;
+  }>;
+  title?: string;
+  subtitle?: string;
+  showTitle?: boolean;
+  layout?: 'default' | 'grid' | 'minimal';
+  maxItems?: number;
+  language?: 'es' | 'en' | 'fr';
+  context?: {
+    location?: string;
+    propertyType?: string;
+    totalProperties?: number;
+  };
+}
+
+const { 
+  testimonials = [], 
+  title,
+  subtitle,
+  showTitle = true,
+  layout = 'minimal',
+  maxItems = 4,
+  language = 'es',
+  context = {}
+} = Astro.props;
+
+// Traducciones para textos estáticos
+const translations = {
+  es: {
+    // Títulos dinámicos basados en contexto
+    defaultTitle: "Lo que dicen nuestros clientes",
+    defaultSubtitle: "Experiencias reales de personas que han confiado en nosotros",
+    titleWithLocation: (location: string) => `Lo que dicen nuestros clientes sobre ${location}`,
+    subtitleWithLocation: (location: string) => `Experiencias reales de personas que encontraron su propiedad ideal en ${location}`,
+    titleWithPropertyType: (type: string) => `Experiencias comprando ${type.toLowerCase()}`,
+    subtitleWithPropertyType: (type: string) => `Historias de éxito de clientes que adquirieron su ${type.toLowerCase()} ideal`,
+    titleManyProperties: "Miles de clientes han confiado en nosotros",
+    subtitleManyProperties: "Únete a nuestra comunidad de propietarios satisfechos",
+    // Estadísticas
+    rating: "Calificación",
+    averageRating: "Calificación promedio",
+    testimonials: "Testimonios",
+    satisfied: "Clientes satisfechos",
+    recommend: "Recomiendan",
+    wouldRecommend: "Recomendarían CLIC",
+    // Textos de UI
+    readMore: "Leer más",
+    readings: "lecturas",
+    verified: "Verificado",
+    in: "en",
+    readyToFind: "¿Listo para encontrar tu próxima propiedad?",
+    talkToAdvisor: "Habla con un asesor",
+    viewAllTestimonials: "Ver todos los testimonios",
+    readFullTestimonial: "Leer testimonio completo de",
+    // Meses
+    months: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+             'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+  },
+  en: {
+    defaultTitle: "What our clients say",
+    defaultSubtitle: "Real experiences from people who have trusted us",
+    titleWithLocation: (location: string) => `What our clients say about ${location}`,
+    subtitleWithLocation: (location: string) => `Real experiences from people who found their ideal property in ${location}`,
+    titleWithPropertyType: (type: string) => `Experiences buying ${type.toLowerCase()}`,
+    subtitleWithPropertyType: (type: string) => `Success stories from clients who acquired their ideal ${type.toLowerCase()}`,
+    titleManyProperties: "Thousands of clients have trusted us",
+    subtitleManyProperties: "Join our community of satisfied owners",
+    rating: "Rating",
+    averageRating: "Average rating",
+    testimonials: "Testimonials",
+    satisfied: "Satisfied clients",
+    recommend: "Recommend",
+    wouldRecommend: "Would recommend CLIC",
+    readMore: "Read more",
+    readings: "views",
+    verified: "Verified",
+    in: "in",
+    readyToFind: "Ready to find your next property?",
+    talkToAdvisor: "Talk to an advisor",
+    viewAllTestimonials: "View all testimonials",
+    readFullTestimonial: "Read full testimonial from",
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+             'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  },
+  fr: {
+    defaultTitle: "Découvrez ce que disent nos clients",
+    defaultSubtitle: "Expériences réelles de personnes qui nous ont fait confiance",
+    titleWithLocation: (location: string) => `Expériences de clients à ${location}`,
+    subtitleWithLocation: (location: string) => `Découvrez les histoires de ceux qui ont trouvé leur maison à ${location}`,
+    titleWithPropertyType: (type: string) => `Expériences d'achat ${type.toLowerCase()}`,
+    subtitleWithPropertyType: (type: string) => `Histoires réelles de clients qui ont acheté ${type.toLowerCase()}`,
+    titleManyProperties: "Nos clients partagent leur expérience",
+    subtitleManyProperties: "Chaque témoignage est une histoire de confiance",
+    rating: "Évaluation",
+    averageRating: "Note moyenne",
+    testimonials: "Témoignages",
+    satisfied: "Clients satisfaits",
+    recommend: "Recommandent",
+    wouldRecommend: "Recommanderaient CLIC",
+    readMore: "Lire plus",
+    readings: "lectures",
+    verified: "Vérifié",
+    in: "à",
+    readyToFind: "Prêt à trouver votre prochaine propriété?",
+    talkToAdvisor: "Parler à un conseiller",
+    viewAllTestimonials: "Voir tous les témoignages",
+    readFullTestimonial: "Lire le témoignage complet de",
+    months: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+             'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
+  }
+};
+
+// Obtener las traducciones para el idioma actual
+const t = translations[language] || translations.es;
+
+// Generar título y subtítulo basados en contexto
+function getContextualTitle() {
+  if (title) return title;
+  
+  if (context.location) {
+    return t.titleWithLocation(context.location);
+  }
+  
+  if (context.propertyType) {
+    return t.titleWithPropertyType(context.propertyType);
+  }
+  
+  if (context.totalProperties && context.totalProperties > 20) {
+    return t.titleManyProperties;
+  }
+  
+  return t.defaultTitle;
+}
+
+function getContextualSubtitle() {
+  if (subtitle) return subtitle;
+  
+  if (context.location) {
+    return t.subtitleWithLocation(context.location);
+  }
+  
+  if (context.propertyType) {
+    return t.subtitleWithPropertyType(context.propertyType);
+  }
+  
+  if (context.totalProperties && context.totalProperties > 20) {
+    return t.subtitleManyProperties;
+  }
+  
+  return t.defaultSubtitle;
+}
+
+const finalTitle = getContextualTitle();
+const finalSubtitle = getContextualSubtitle();
+
+// Early return si no hay testimonios
+if (!testimonials || testimonials.length === 0) return null;
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  return `${t.months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+// Función para limpiar HTML del excerpt
+function cleanExcerpt(htmlText: string | undefined | null): string {
+  if (!htmlText) return '';
+  return htmlText.replace(/<[^>]*>/g, '').trim();
+}
+
+// Función para extraer ubicación simple
+function getSimpleLocation(location?: string): string {
+  if (!location) return '';
+  return location.split(',')[0].replace('Republica Dominicana', '').replace('Dominican Republic', '').replace('République Dominicaine', '').trim();
+}
+
+// Separar testimonios destacados y regulares
+const featuredTestimonials = testimonials.filter(t => t.featured).slice(0, 1);
+const regularTestimonials = testimonials
+  .filter(t => !t.featured)
+  .slice(0, maxItems - featuredTestimonials.length);
+
+// Función para obtener el avatar correcto
+function getDisplayAvatar(testimonial: any): string | null {
+  return testimonial.client_avatar || testimonial.author?.avatar || null;
+}
+
+// Función para obtener el nombre correcto
+function getDisplayName(testimonial: any): string {
+  return testimonial.client_name || testimonial.author?.name || 'Cliente';
+}
+
+// URLs adaptadas al idioma
+const contactUrl = language === 'en' ? '/en/contact' : language === 'fr' ? '/fr/contact' : '/contacto';
+const testimonialsUrl = language === 'en' ? '/en/testimonials' : language === 'fr' ? '/fr/temoignages' : '/testimonios';
+---
+
+<!-- Layout Minimal - Para no interrumpir la experiencia -->
+{layout === 'minimal' && (
+  <section class="py-12 bg-gray-50/50">
+    <div class="container mx-auto px-4">
+      {showTitle && (
+        <div class="text-center mb-8">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{finalTitle}</h2>
+          <p class="text-gray-600 max-w-xl mx-auto text-sm">{finalSubtitle}</p>
+        </div>
+      )}
+      
+      <!-- Testimonios en grid compacto -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
+        {[...featuredTestimonials, ...regularTestimonials].map((testimonial) => {
+          const displayAvatar = getDisplayAvatar(testimonial);
+          const displayName = getDisplayName(testimonial);
+          const cleanText = cleanExcerpt(testimonial.excerpt || testimonial.full_testimonial);
+          const simpleLocation = getSimpleLocation(testimonial.transaction_location);
+          
+          return (
+            <article class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 p-4 border border-gray-100 hover:border-gray-200 relative">
+              {/* Rating compacto */}
+              <div class="flex items-center gap-1 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <svg 
+                    class={`w-3 h-3 ${i < testimonial.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                    fill="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                ))}
+              </div>
+              
+              {/* Testimonio corto */}
+              <blockquote class="text-gray-700 text-sm mb-4 line-clamp-3 leading-relaxed">
+                "{cleanText}"
+              </blockquote>
+              
+              {/* Autor compacto */}
+              <div class="flex items-center gap-2">
+                {displayAvatar ? (
+                  <img 
+                    src={displayAvatar} 
+                    alt={displayName}
+                    class="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span class="text-xs font-medium text-gray-600">
+                      {displayName.charAt(0)}
+                    </span>
+                  </div>
+                )}
+                <div class="flex-1 min-w-0">
+                  <cite class="not-italic">
+                    <div class="font-medium text-gray-900 text-xs flex items-center gap-1 truncate">
+                      {displayName}
+                      {testimonial.client_verified && (
+                        <svg class="w-3 h-3 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" title={t.verified}>
+                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                      )}
+                    </div>
+                    <div class="text-xs text-gray-500 truncate">
+                      {simpleLocation && <span>{simpleLocation}</span>}
+                      {simpleLocation && testimonial.client_profession && <span> • </span>}
+                      {testimonial.client_profession && <span>{testimonial.client_profession}</span>}
+                    </div>
+                  </cite>
+                </div>
+              </div>
+              
+              {/* Link sutil si existe */}
+              {testimonial.url && (
+                <a 
+                  href={testimonial.url}
+                  class="absolute inset-0 z-10"
+                  aria-label={`${t.readFullTestimonial} ${displayName}`}
+                ></a>
+              )}
+            </article>
+          );
+        })}
+      </div>
+      
+      {/* Stats mínimas */}
+      <div class="flex justify-center gap-6 mt-8 text-center">
+        <div>
+          <div class="text-lg font-bold text-[#f04e00]">4.9/5</div>
+          <div class="text-xs text-gray-600">{t.rating}</div>
+        </div>
+        <div>
+          <div class="text-lg font-bold text-[#f04e00]">{testimonials.length}+</div>
+          <div class="text-xs text-gray-600">{t.testimonials}</div>
+        </div>
+        <div>
+          <div class="text-lg font-bold text-[#f04e00]">98%</div>
+          <div class="text-xs text-gray-600">{t.recommend}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+<!-- Layout Default - Para páginas dedicadas -->
+{layout === 'default' && (
+  <section class="py-16 bg-gradient-to-b from-gray-50 to-white">
+    <div class="container mx-auto px-4">
+      {showTitle && (
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{finalTitle}</h2>
+          <p class="text-lg text-gray-600 max-w-2xl mx-auto">{finalSubtitle}</p>
+          
+          {/* Stats */}
+          <div class="flex justify-center gap-8 mt-8">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-[#f04e00]">4.9</div>
+              <div class="text-sm text-gray-600">{t.averageRating}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-[#f04e00]">{testimonials.length}+</div>
+              <div class="text-sm text-gray-600">{t.satisfied}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-[#f04e00]">98%</div>
+              <div class="text-sm text-gray-600">{t.wouldRecommend}</div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Testimonios en grid */}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...featuredTestimonials, ...regularTestimonials].map((testimonial) => {
+          const displayAvatar = getDisplayAvatar(testimonial);
+          const displayName = getDisplayName(testimonial);
+          const cleanText = cleanExcerpt(testimonial.excerpt || testimonial.full_testimonial);
+          const simpleLocation = getSimpleLocation(testimonial.transaction_location);
+          
+          return (
+            <article class="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-6 h-full hover:border hover:border-[#f04e00]/20 relative">
+              {/* Rating */}
+              <div class="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <svg 
+                    class={`w-5 h-5 ${i < testimonial.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                    fill="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                ))}
+              </div>
+              
+              {/* Testimonio */}
+              <blockquote class="text-gray-700 mb-6 line-clamp-4">
+                "{cleanText}"
+              </blockquote>
+              
+              {/* Autor */}
+              <div class="flex items-center gap-3 mb-4">
+                {displayAvatar ? (
+                  <img 
+                    src={displayAvatar} 
+                    alt={displayName}
+                    class="w-10 h-10 rounded-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-medium text-gray-600">
+                      {displayName.charAt(0)}
+                    </span>
+                  </div>
+                )}
+                <div class="flex-1">
+                  <cite class="not-italic">
+                    <div class="font-medium text-gray-900 flex items-center gap-2">
+                      {displayName}
+                      {testimonial.client_verified && (
+                        <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24" title={t.verified}>
+                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                      )}
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      {simpleLocation && testimonial.client_profession && (
+                        <span>{testimonial.client_profession} {t.in} {simpleLocation} • </span>
+                      )}
+                      {!simpleLocation && testimonial.client_profession && (
+                        <span>{testimonial.client_profession} • </span>
+                      )}
+                      {simpleLocation && !testimonial.client_profession && (
+                        <span>{simpleLocation} • </span>
+                      )}
+                      {formatDate(testimonial.published_at)}
+                    </div>
+                  </cite>
+                </div>
+              </div>
+              
+              {/* Metadata y CTA */}
+              <div class="flex items-center justify-between text-xs text-gray-500">
+                <div class="flex items-center gap-3">
+                  {testimonial.views && testimonial.views !== '0' && (
+                    <span>{testimonial.views} {t.readings}</span>
+                  )}
+                  {testimonial.read_time && (
+                    <span>{testimonial.read_time}</span>
+                  )}
+                </div>
+                {testimonial.url && (
+                  <a 
+                    href={testimonial.url}
+                    class="inline-flex items-center gap-1 text-[#f04e00] hover:gap-2 transition-all font-medium z-20 relative"
+                  >
+                    {t.readMore}
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </a>
+                )}
+              </div>
+              
+              {/* Link invisible para toda la tarjeta */}
+              {testimonial.url && (
+                <a 
+                  href={testimonial.url}
+                  class="absolute inset-0 z-10"
+                  aria-label={`${t.readFullTestimonial} ${displayName}`}
+                ></a>
+              )}
+            </article>
+          );
+        })}
+      </div>
+      
+      {/* CTA */}
+      <div class="text-center mt-12">
+        <p class="text-gray-600 mb-4">{t.readyToFind}</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href={contactUrl}
+            class="inline-block px-8 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors"
+          >
+            {t.talkToAdvisor}
+          </a>
+          <a 
+            href={testimonialsUrl}
+            class="inline-block px-8 py-3 bg-white text-[#f04e00] border border-[#f04e00] rounded-lg hover:bg-[#f04e00] hover:text-white transition-colors"
+          >
+            {t.viewAllTestimonials}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+<!-- Layout Grid - Ultra compacto -->
+{layout === 'grid' && (
+  <section class="py-12 bg-white">
+    <div class="container mx-auto px-4">
+      {showTitle && (
+        <div class="text-center mb-8">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{finalTitle}</h2>
+          <p class="text-gray-600 max-w-2xl mx-auto">{finalSubtitle}</p>
+        </div>
+      )}
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+        {[...featuredTestimonials, ...regularTestimonials].map((testimonial) => {
+          const displayAvatar = getDisplayAvatar(testimonial);
+          const displayName = getDisplayName(testimonial);
+          const cleanText = cleanExcerpt(testimonial.excerpt || testimonial.full_testimonial);
+          
+          return (
+            <article class="bg-gray-50 rounded-lg p-4 hover:bg-white hover:shadow-md transition-all duration-300 relative">
+              <div class="flex items-center gap-1 mb-2">
+                {[...Array(5)].map((_, i) => (
+                  <svg 
+                    class={`w-3 h-3 ${i < testimonial.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                    fill="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                ))}
+              </div>
+              
+              <blockquote class="text-sm text-gray-700 mb-3 line-clamp-3">
+                "{cleanText}"
+              </blockquote>
+              
+              <div class="flex items-center gap-2">
+                {displayAvatar ? (
+                  <img 
+                    src={displayAvatar} 
+                    alt={displayName}
+                    class="w-6 h-6 rounded-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                    <span class="text-xs text-gray-600">
+                      {displayName.charAt(0)}
+                    </span>
+                  </div>
+                )}
+                <cite class="text-xs font-medium text-gray-900 not-italic truncate">
+                  {displayName}
+                </cite>
+              </div>
+              
+              {/* Link invisible */}
+              {testimonial.url && (
+                <a 
+                  href={testimonial.url}
+                  class="absolute inset-0 z-10"
+                  aria-label={`${t.readFullTestimonial} ${displayName}`}
+                ></a>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+)}
+
+<style>
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

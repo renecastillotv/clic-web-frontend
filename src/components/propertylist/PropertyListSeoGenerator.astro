@@ -1,0 +1,242 @@
+---
+// components/propertylist/PropertyListSEOGenerator.astro
+// Componente para generar títulos SEO y contenido dinámico
+
+export interface Props {
+  data: any;
+  tags: any[];
+}
+
+const { data, tags } = Astro.props;
+
+// Función para extraer información de los tags de manera dinámica
+function extractInfoFromTags(tags) {
+  const info = {
+    location: null,
+    propertyType: null,
+    operation: null,
+    sector: null,
+    province: null,
+    features: []
+  };
+
+  tags.forEach(tag => {
+    switch(tag.category) {
+      case 'ciudad':
+        info.location = tag.display_name || tag.name;
+        break;
+      case 'sector': 
+        info.sector = tag.display_name || tag.name;
+        break;
+      case 'provincia':
+        info.province = tag.display_name || tag.name;
+        break;
+      case 'categoria':
+      case 'property_type':
+        info.propertyType = tag.display_name || tag.name;
+        break;
+      case 'operacion':
+      case 'operation':
+        info.operation = tag.display_name || tag.name;
+        break;
+      case 'caracteristica':
+      case 'amenity':
+        info.features.push(tag.display_name || tag.name);
+        break;
+    }
+  });
+
+  return info;
+}
+
+// Función para normalizar texto
+function normalizeText(text) {
+  if (!text) return text;
+  
+  return text
+    .replace(/apartamentoss/gi, 'apartamentos')
+    .replace(/casass/gi, 'casas')
+    .replace(/villass/gi, 'villas')
+    .replace(/proyectoss/gi, 'proyectos')
+    .replace(/propiedadess/gi, 'propiedades')
+    .replace(/comprarr/gi, 'comprar')
+    .replace(/ventaa/gi, 'venta')
+    .replace(/alquilerr/gi, 'alquiler')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Función para generar contenido SEO dinámico
+function generateDynamicSEOContent(searchInfo, apiData) {
+  const content = [];
+  const location = searchInfo.location || searchInfo.sector || 'la zona';
+  const propertyType = searchInfo.propertyType || 'propiedades';
+  const operation = searchInfo.operation || 'comprar';
+  
+  // Obtener información de precios si está disponible
+  const properties = apiData.searchResults?.properties || apiData.properties || [];
+  const prices = properties
+    .map(p => p.pricing_unified?.display_price?.amount)
+    .filter(price => price && price > 0)
+    .sort((a, b) => a - b);
+  
+  const minPrice = prices.length > 0 ? prices[0] : null;
+  const maxPrice = prices.length > 0 ? prices[prices.length - 1] : null;
+  
+  let priceContext = '';
+  if (minPrice && maxPrice) {
+    if (minPrice === maxPrice) {
+      priceContext = `con precios desde $${minPrice.toLocaleString()}.`;
+    } else {
+      priceContext = `con precios desde $${minPrice.toLocaleString()} hasta $${maxPrice.toLocaleString()}.`;
+    }
+  }
+
+  // Información de servicios de Google Places
+  let servicesContext = '';
+  if (apiData.googlePlacesData && apiData.googlePlacesData.featured_places) {
+    const topServices = apiData.googlePlacesData.featured_places.slice(0, 3);
+    servicesContext = `La zona cuenta con excelente acceso a servicios como ${topServices.map(s => s.place_name).join(', ')}.`;
+  }
+
+  // Generar contenido principal
+  content.push({
+    title: `${propertyType} en ${location}: Guía Completa ${new Date().getFullYear()}`,
+    h1_title: `Todo sobre ${propertyType} en ${location}`,
+    h2_subtitle: `Mercado Inmobiliario y Oportunidades`,
+    description: `Información completa sobre ${propertyType.toLowerCase()} en ${location}`,
+    content: `
+      <h3>Mercado de ${propertyType} en ${location}</h3>
+      <p>El mercado de ${propertyType.toLowerCase()} en ${location} ofrece excelentes oportunidades ${priceContext} ${servicesContext}</p>
+      
+      <h3>¿Por qué Elegir ${location}?</h3>
+      <ul>
+        <li><strong>Ubicación estratégica</strong> con fácil acceso a servicios</li>
+        <li><strong>Crecimiento sostenido</strong> de la zona</li>
+        <li><strong>Opciones de financiamiento</strong> disponibles</li>
+        <li><strong>Excelente conectividad</strong> de transporte</li>
+      </ul>
+      
+      <h3>Proceso de ${operation}</h3>
+      <p>Te acompañamos en todo el proceso de ${operation.toLowerCase()}, desde la búsqueda inicial hasta la entrega de llaves.</p>
+    `,
+    seo_content: `
+      <h3>Mercado de ${propertyType} en ${location}</h3>
+      <p>El mercado de ${propertyType.toLowerCase()} en ${location} ofrece excelentes oportunidades ${priceContext} ${servicesContext}</p>
+      
+      <h3>¿Por qué Elegir ${location}?</h3>
+      <ul>
+        <li><strong>Ubicación estratégica</strong> con fácil acceso a servicios</li>
+        <li><strong>Crecimiento sostenido</strong> de la zona</li>
+        <li><strong>Opciones de financiamiento</strong> disponibles</li>
+        <li><strong>Excelente conectividad</strong> de transporte</li>
+      </ul>
+      
+      <h3>Proceso de ${operation}</h3>
+      <p>Te acompañamos en todo el proceso de ${operation.toLowerCase()}, desde la búsqueda inicial hasta la entrega de llaves.</p>
+    `,
+    location_context: location,
+    property_type_context: propertyType.toLowerCase(),
+    operation_context: operation.toLowerCase(),
+    is_tag_related: true,
+    content_priority: 'high',
+    matched_tags: tags.length,
+    total_weight: 85,
+    generated_dynamically: true
+  });
+
+  return content;
+}
+
+// Función para enriquecer contenido con datos de Google Places
+function enrichContentWithPlaces(content, placesData) {
+  if (!placesData || !placesData.featured_places) return content;
+  
+  const nearbyServices = placesData.featured_places.slice(0, 5);
+  const servicesList = nearbyServices.map(place => place.place_name).join(', ');
+  
+  return content.map(item => ({
+    ...item,
+    enhanced_content: item.content ? 
+      item.content + `\n\n<h4>Servicios Cercanos</h4>\n<p>En la zona encontrarás: ${servicesList}.</p>` : 
+      item.content,
+    places_enriched: true,
+    nearby_services: nearbyServices
+  }));
+}
+
+// Procesar datos
+const searchInfo = extractInfoFromTags(tags);
+const seoData = data.seo || {};
+
+// Generar H1 optimizado dinámicamente
+let seoH1 = seoData.h1;
+if (seoH1) {
+  // Limpiar H1 de la API si contiene información redundante del contador
+  seoH1 = seoH1
+    .replace(/\s*-\s*\d+\s*Propiedades?\s*Disponibles?/i, '')
+    .replace(/\s*\(\d+\s*propiedades?\)/i, '')
+    .trim();
+}
+
+if (!seoH1) {
+  // Generar H1 basado en la información de tags dinámicamente
+  if (searchInfo.location && searchInfo.propertyType) {
+    seoH1 = `${searchInfo.propertyType}s en ${searchInfo.location}`;
+  } else if (searchInfo.sector && searchInfo.propertyType) {
+    seoH1 = `${searchInfo.propertyType}s en ${searchInfo.sector}`;
+  } else if (searchInfo.location) {
+    seoH1 = `Propiedades en ${searchInfo.location}`;
+  } else if (searchInfo.propertyType) {
+    seoH1 = `${searchInfo.propertyType}s Disponibles`;
+  } else {
+    seoH1 = `Propiedades Disponibles`;
+  }
+}
+
+// Generar H2 complementario dinámicamente
+let seoH2 = '';
+const operation = searchInfo.operation || 'Comprar';
+
+if (searchInfo.location && searchInfo.propertyType) {
+  seoH2 = `${operation} ${searchInfo.propertyType}s de Calidad en ${searchInfo.location}`;
+} else if (searchInfo.location) {
+  seoH2 = `${operation} tu Hogar Ideal en ${searchInfo.location}`;
+} else if (searchInfo.propertyType) {
+  seoH2 = `${operation} ${searchInfo.propertyType}s con las Mejores Opciones`;
+} else {
+  seoH2 = `${operation} Propiedades Verificadas`;
+}
+
+// Normalizar texto
+seoH1 = normalizeText(seoH1);
+seoH2 = normalizeText(seoH2);
+
+// Procesar contenido SEO
+const contentSeoItems = data.relatedContent?.seo_content || [];
+const additionalSeoItems = data.content?.seoContent || [];
+let allSeoContent = [...contentSeoItems, ...additionalSeoItems];
+
+// Enriquecer contenido con datos de Google Places si están disponibles
+if (data.googlePlacesData) {
+  allSeoContent = enrichContentWithPlaces(allSeoContent, data.googlePlacesData);
+}
+
+// Solo generar contenido si no hay contenido de la API
+if (allSeoContent.length === 0) {
+  const dynamicContent = generateDynamicSEOContent(searchInfo, data);
+  allSeoContent = dynamicContent;
+}
+
+// Exportar datos procesados
+export const processedSEOData = {
+  seoH1,
+  seoH2,
+  searchInfo,
+  allSeoContent,
+  seoData
+};
+---
+
+<!-- Este componente solo procesa datos y los exporta -->
+<!-- No renderiza nada directamente -->

@@ -1,0 +1,740 @@
+---
+// src/layouts/ArticlesCategoryLayout.astro - Layout moderno para categorías de artículos con paginación
+import Layout from './Layout.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// Limpiar slug si viene con prefijos
+const rawCategorySlug = safeString(data?.category?.slug || data?.categorySlug || data?.slug, 'general');
+const categorySlug = rawCategorySlug.split('/').pop();
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+let categoryData = safeObject(data);
+
+// Iconos de categorías
+const categoryIcons = {
+  'guias-de-compra': 'fa-book',
+  'inversion': 'fa-chart-line',
+  'analisis-de-mercado': 'fa-chart-bar',
+  'tips': 'fa-lightbulb',
+  'comparativas': 'fa-balance-scale',
+  'ubicacion': 'fa-map-marker-alt'
+};
+
+// Crear datos seguros de categoría
+const safeCategoryData = {
+  language: language,
+  category: categorySlug,
+  categorySlug: categorySlug,
+  title: safeString(
+    data?.seo?.h1 ||
+    data?.category?.name ||
+    (language === 'es' ? 'Artículos' : language === 'en' ? 'Articles' : 'Articles')
+  ),
+  description: safeString(
+    data?.seo?.h2 ||
+    data?.seo?.description ||
+    (language === 'es' ? 'Explora nuestra colección de artículos sobre el mercado inmobiliario.' :
+     language === 'en' ? 'Explore our collection of articles about the real estate market.' :
+     'Explorez notre collection d\'articles sur le marché immobilier.')
+  ),
+  icon: categoryIcons[categorySlug] || 'fa-newspaper',
+  slug: categorySlug,
+  url: safeString(data?.category?.url || `#${categorySlug}`)
+};
+
+// Procesar artículos
+const rawArticles = safeArray(categoryData.articles);
+const safeArticles = rawArticles.map((article, index) => ({
+  id: safeString(article.id, `article-${index}`),
+  slug: safeString(article.slug, `articulo-${index}`),
+  title: safeString(article.title, 'Artículo sin título'),
+  excerpt: safeString(article.excerpt, 'Extracto no disponible'),
+  subtitle: safeString(article.subtitle),
+  featuredImage: safeString(
+    article.featuredImage || article.featured_image,
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'
+  ),
+  publishedAt: safeString(article.publishedAt || article.published_at, new Date().toISOString()),
+  readTime: safeString(article.readTime || article.read_time, '5 min'),
+  views: safeNumber(article.views, 0),
+  featured: Boolean(article.featured),
+  author: safeObject(article.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    position: language === 'es' ? 'Especialista Inmobiliario' : language === 'en' ? 'Real Estate Specialist' : 'Spécialiste Immobilier'
+  }),
+  url: safeString(article.url, '#')
+}));
+
+// SEO Seguro
+const rawSeo = safeObject(categoryData.seo);
+const safeBreadcrumbs = safeArray(rawSeo.breadcrumbs).length > 0
+  ? safeArray(rawSeo.breadcrumbs)
+  : [
+      {
+        name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+        url: language === 'es' ? '/' : `/${language}/`
+      },
+      {
+        name: language === 'en' ? 'Articles' : language === 'fr' ? 'Articles' : 'Artículos',
+        url: language === 'es' ? '/articulos' : `/${language}/articles`
+      },
+      {
+        name: safeCategoryData.title,
+        url: language === 'es' ? `/articulos/${categorySlug}` : `/${language}/articles/${categorySlug}`
+      }
+    ];
+
+const canonicalUrl = safeString(
+  rawSeo.canonical_url,
+  language === 'es' ? `/articulos/${categorySlug}` : `/${language}/articles/${categorySlug}`
+);
+
+// Layout Props
+const layoutProps = {
+  title: safeString(rawSeo.title, safeCategoryData.title),
+  description: safeString(rawSeo.description, safeCategoryData.description),
+  ogImage: safeString(rawSeo.ogImage, '/og-articles.jpg'),
+  canonical: canonicalUrl,
+  keywords: safeString(rawSeo.keywords, `${safeCategoryData.title}, artículos inmobiliarios`),
+  hreflangData: safeObject(rawSeo.hreflang),
+  globalConfig: data?.globalConfig || {},
+  language: language,
+  breadcrumbs: safeBreadcrumbs
+};
+
+// ===================================================================
+// PAGINACIÓN CLIENT-SIDE
+// ===================================================================
+
+const ITEMS_PER_PAGE = 12;
+const totalArticles = safeArticles.length;
+const totalPages = Math.ceil(totalArticles / ITEMS_PER_PAGE);
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    readMore: 'Leer más',
+    minRead: 'min de lectura',
+    views: 'vistas',
+    author: 'Por',
+    articles: 'artículos',
+    noArticles: 'Aún no hay artículos en esta categoría',
+    noArticlesDesc: 'Vuelve pronto para encontrar nuevo contenido.',
+    backToArticles: 'Ver todos los artículos',
+    showing: 'Mostrando',
+    of: 'de',
+    sortBy: 'Ordenar por',
+    mostRecent: 'Más recientes',
+    mostViewed: 'Más vistos',
+    oldest: 'Más antiguos',
+    previous: 'Anterior',
+    next: 'Siguiente',
+    page: 'Página'
+  },
+  en: {
+    readMore: 'Read more',
+    minRead: 'min read',
+    views: 'views',
+    author: 'By',
+    articles: 'articles',
+    noArticles: 'No articles in this category yet',
+    noArticlesDesc: 'Check back soon for new content.',
+    backToArticles: 'View all articles',
+    showing: 'Showing',
+    of: 'of',
+    sortBy: 'Sort by',
+    mostRecent: 'Most recent',
+    mostViewed: 'Most viewed',
+    oldest: 'Oldest',
+    previous: 'Previous',
+    next: 'Next',
+    page: 'Page'
+  },
+  fr: {
+    readMore: 'Lire plus',
+    minRead: 'min de lecture',
+    views: 'vues',
+    author: 'Par',
+    articles: 'articles',
+    noArticles: 'Pas encore d\'articles dans cette catégorie',
+    noArticlesDesc: 'Revenez bientôt pour du nouveau contenu.',
+    backToArticles: 'Voir tous les articles',
+    showing: 'Affichage',
+    of: 'de',
+    sortBy: 'Trier par',
+    mostRecent: 'Plus récents',
+    mostViewed: 'Plus vus',
+    oldest: 'Plus anciens',
+    previous: 'Précédent',
+    next: 'Suivant',
+    page: 'Page'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: { articlesBase: '/articulos' },
+  en: { articlesBase: '/en/articles' },
+  fr: { articlesBase: '/fr/articles' }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+    }
+
+    const months = {
+      es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+    };
+
+    const monthNames = months[language] || months.es;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} de ${date.getFullYear()}`;
+  } catch (error) {
+    return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+  }
+}
+
+console.log('✅ ArticlesCategoryLayout preparado:', {
+  language,
+  category: categorySlug,
+  title: safeCategoryData.title,
+  articlesCount: safeArticles.length,
+  totalPages
+});
+---
+
+<Layout {...layoutProps}>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+  <div class="min-h-screen bg-white">
+
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+
+      <div class="w-full px-4 relative z-10">
+        <div class="max-w-6xl mx-auto">
+
+          <!-- Breadcrumbs -->
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {safeBreadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === safeBreadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+
+          <!-- Title -->
+          <div class="text-center">
+            <div class="flex items-center justify-center gap-4 mb-4">
+              <i class={`fas ${safeCategoryData.icon} text-4xl text-white`}></i>
+              <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight">
+                {safeCategoryData.title}
+              </h1>
+            </div>
+
+            <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              {safeCategoryData.description}
+            </p>
+
+            {/* Stats */}
+            <div class="mt-8">
+              <div class="text-3xl font-bold text-white mb-2">{totalArticles}</div>
+              <div class="text-sm text-gray-300">{text.articles}</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="py-12 md:py-16 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="max-w-7xl mx-auto">
+
+          {safeArticles.length > 0 ? (
+            <div>
+              <!-- Controls: Search, Sort & Count -->
+              <div class="flex flex-col lg:flex-row items-center justify-between mb-8 gap-4">
+                <div class="text-sm text-gray-600">
+                  <span id="showing-text">{text.showing} <span id="showing-count">1-{Math.min(ITEMS_PER_PAGE, totalArticles)}</span> {text.of} <span id="total-count">{totalArticles}</span> {text.articles}</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                  <!-- Search box -->
+                  {safeArticles.length > 3 && (
+                    <div class="search-box">
+                      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                      </svg>
+                      <input
+                        type="text"
+                        id="article-search"
+                        placeholder={language==='es'?'Buscar artículo...':language==='en'?'Search article...':'Rechercher article...'}
+                        class="search-input"
+                      />
+                    </div>
+                  )}
+
+                  <!-- Sort dropdown -->
+                  <div class="flex items-center gap-2">
+                    <label for="sort-select" class="text-sm text-gray-600 whitespace-nowrap">{text.sortBy}:</label>
+                    <select
+                      id="sort-select"
+                      class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm"
+                    >
+                      <option value="recent">{text.mostRecent}</option>
+                      <option value="views">{text.mostViewed}</option>
+                      <option value="oldest">{text.oldest}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Articles Grid -->
+              <div id="articles-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                {safeArticles.map((article) => (
+                  <article
+                    class="article-card bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
+                    data-published={article.publishedAt}
+                    data-views={article.views}
+                    data-article-title={article.title.toLowerCase()}
+                    key={article.id}
+                  >
+                    <a href={article.url} class="block">
+                      <div class="aspect-[16/10] relative overflow-hidden">
+                        <img
+                          src={article.featuredImage}
+                          alt={article.title}
+                          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                        <div class="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium">
+                          <i class="far fa-clock mr-1"></i>
+                          {article.readTime}
+                        </div>
+                      </div>
+
+                      <div class="p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
+                          {article.title}
+                        </h3>
+
+                        {article.subtitle && (
+                          <h4 class="text-sm text-gray-600 mb-3 font-medium line-clamp-1">
+                            {article.subtitle}
+                          </h4>
+                        )}
+
+                        <p class="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
+                          {article.excerpt}
+                        </p>
+
+                        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                          <div class="flex items-center gap-2">
+                            <img
+                              src={article.author.avatar}
+                              alt={article.author.name}
+                              class="w-6 h-6 rounded-full"
+                            />
+                            <span class="truncate font-medium">{article.author.name}</span>
+                          </div>
+                          <span class="flex items-center gap-1">
+                            <i class="far fa-eye"></i>
+                            {article.views.toLocaleString()}
+                          </span>
+                        </div>
+
+                        <div class="inline-flex items-center gap-2 text-[#f04e00] font-medium text-sm group-hover:gap-3 transition-all">
+                          <span>{text.readMore}</span>
+                          <i class="fas fa-arrow-right transition-transform group-hover:translate-x-1"></i>
+                        </div>
+                      </div>
+                    </a>
+                  </article>
+                ))}
+              </div>
+
+              <!-- Pagination -->
+              {totalPages > 1 && (
+                <div id="pagination" class="flex items-center justify-center gap-2">
+                  <button
+                    id="prev-btn"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled
+                  >
+                    <i class="fas fa-chevron-left mr-2"></i>
+                    {text.previous}
+                  </button>
+
+                  <div id="page-numbers" class="flex items-center gap-2">
+                    <!-- Page numbers will be rendered by JS -->
+                  </div>
+
+                  <button
+                    id="next-btn"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {text.next}
+                    <i class="fas fa-chevron-right ml-2"></i>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <!-- Empty State -->
+            <div class="text-center py-16 max-w-2xl mx-auto">
+              <div class="text-8xl mb-6">📚</div>
+              <h3 class="text-2xl font-bold text-gray-900 mb-4">
+                {text.noArticles}
+              </h3>
+              <p class="text-gray-600 mb-8 text-lg">
+                {text.noArticlesDesc}
+              </p>
+              <a
+                href={currentRoutes.articlesBase}
+                class="inline-flex items-center gap-2 bg-[#f04e00] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d94400] transition-colors"
+              >
+                <i class="fas fa-arrow-left"></i>
+                {text.backToArticles}
+              </a>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </main>
+
+  </div>
+</Layout>
+
+<!-- Client-side pagination, sorting and search -->
+<script define:vars={{ ITEMS_PER_PAGE, totalArticles, totalPages, text }}>
+  let currentPage = 1;
+  let currentSort = 'recent';
+  let allArticles = [];
+  let filteredArticles = [];
+  let searchTerm = '';
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    // Store all articles
+    allArticles = Array.from(document.querySelectorAll('.article-card'));
+    filteredArticles = [...allArticles];
+
+    // Initial render
+    renderPage();
+
+    // Search functionality
+    document.getElementById('article-search')?.addEventListener('input', (e) => {
+      searchTerm = e.target.value.toLowerCase().trim();
+      currentPage = 1;
+      filterAndRender();
+    });
+
+    // Event listeners
+    document.getElementById('sort-select')?.addEventListener('change', (e) => {
+      currentSort = e.target.value;
+      currentPage = 1;
+      sortAndRender();
+    });
+
+    document.getElementById('prev-btn')?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPage();
+        scrollToTop();
+      }
+    });
+
+    document.getElementById('next-btn')?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPage();
+        scrollToTop();
+      }
+    });
+  });
+
+  function filterArticles() {
+    if (!searchTerm) {
+      filteredArticles = [...allArticles];
+    } else {
+      filteredArticles = allArticles.filter(article => {
+        const title = article.getAttribute('data-article-title') || '';
+        return title.includes(searchTerm);
+      });
+    }
+  }
+
+  function filterAndRender() {
+    filterArticles();
+    sortArticles();
+    renderPage();
+  }
+
+  function sortArticles() {
+    filteredArticles.sort((a, b) => {
+      if (currentSort === 'recent') {
+        return new Date(b.dataset.published) - new Date(a.dataset.published);
+      } else if (currentSort === 'views') {
+        return parseInt(b.dataset.views) - parseInt(a.dataset.views);
+      } else if (currentSort === 'oldest') {
+        return new Date(a.dataset.published) - new Date(b.dataset.published);
+      }
+      return 0;
+    });
+  }
+
+  function sortAndRender() {
+    sortArticles();
+    renderPage();
+  }
+
+  function renderPage() {
+    const filteredCount = filteredArticles.length;
+    const filteredPages = Math.ceil(filteredCount / ITEMS_PER_PAGE);
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+
+    // Hide all articles first
+    allArticles.forEach(article => {
+      article.style.display = 'none';
+    });
+
+    // Show only filtered and paginated articles
+    filteredArticles.forEach((article, index) => {
+      if (index >= start && index < end) {
+        article.style.display = 'block';
+      }
+    });
+
+    // Update counter
+    const showingCount = document.getElementById('showing-count');
+    const totalCount = document.getElementById('total-count');
+    if (showingCount) {
+      const actualStart = filteredCount > 0 ? start + 1 : 0;
+      const actualEnd = Math.min(end, filteredCount);
+      showingCount.textContent = `${actualStart}-${actualEnd}`;
+    }
+    if (totalCount) {
+      totalCount.textContent = filteredCount;
+    }
+
+    // Update pagination buttons
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    if (prevBtn) {
+      prevBtn.disabled = currentPage === 1;
+    }
+
+    if (nextBtn) {
+      nextBtn.disabled = currentPage === filteredPages || filteredPages === 0;
+    }
+
+    // Render page numbers
+    renderPageNumbers(filteredPages);
+  }
+
+  function renderPageNumbers(pages = totalPages) {
+    const pageNumbersContainer = document.getElementById('page-numbers');
+    if (!pageNumbersContainer) return;
+
+    pageNumbersContainer.innerHTML = '';
+
+    // Show max 7 page numbers with ellipsis
+    const maxVisible = 7;
+    let pageArray = [];
+
+    if (pages <= maxVisible) {
+      pageArray = Array.from({ length: pages }, (_, i) => i + 1);
+    } else {
+      if (currentPage <= 4) {
+        pageArray = [1, 2, 3, 4, 5, '...', pages];
+      } else if (currentPage >= pages - 3) {
+        pageArray = [1, '...', pages - 4, pages - 3, pages - 2, pages - 1, pages];
+      } else {
+        pageArray = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', pages];
+      }
+    }
+
+    pageArray.forEach(page => {
+      if (page === '...') {
+        const ellipsis = document.createElement('span');
+        ellipsis.textContent = '...';
+        ellipsis.className = 'px-2 text-gray-500';
+        pageNumbersContainer.appendChild(ellipsis);
+      } else {
+        const button = document.createElement('button');
+        button.textContent = page;
+        button.className = `w-10 h-10 rounded-lg transition-colors ${
+          page === currentPage
+            ? 'bg-[#f04e00] text-white font-semibold'
+            : 'border border-gray-300 hover:bg-gray-100 text-gray-700'
+        }`;
+
+        if (page !== currentPage) {
+          button.addEventListener('click', () => {
+            currentPage = page;
+            renderPage();
+            scrollToTop();
+          });
+        }
+
+        pageNumbersContainer.appendChild(button);
+      }
+    });
+  }
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+<style>
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+  }
+
+  .group:hover .group-hover\:text-[#f04e00] {
+    color: #f04e00;
+  }
+
+  .group:hover .group-hover\:gap-3 {
+    gap: 0.75rem;
+  }
+
+  .group:hover .group-hover\:translate-x-1 {
+    transform: translateX(0.25rem);
+  }
+
+  /* Search box - Elegante y minimalista */
+  .search-box{
+    position:relative;
+    display:flex;
+    align-items:center;
+    width:100%;
+    max-width:280px;
+  }
+  .search-icon{
+    position:absolute;
+    left:1rem;
+    width:18px;
+    height:18px;
+    color:#6b7280;
+    stroke-width:2;
+    pointer-events:none;
+    transition:color .2s;
+  }
+  .search-input{
+    width:100%;
+    padding:.7rem 1rem .7rem 2.75rem;
+    border:1px solid #e5e7eb;
+    border-radius:.8rem;
+    font-size:.95rem;
+    color:#111827;
+    background:#fff;
+    transition:all .2s;
+    outline:none;
+  }
+  .search-input::placeholder{
+    color:#9ca3af;
+  }
+  .search-input:focus{
+    border-color:#f04e00;
+    box-shadow:0 0 0 3px rgba(240,78,0,.1);
+  }
+  .search-box:focus-within .search-icon{
+    color:#f04e00;
+  }
+
+  /* Hidden state for filtered cards */
+  .article-card.hidden{
+    display:none;
+  }
+</style>

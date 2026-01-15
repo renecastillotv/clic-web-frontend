@@ -1,0 +1,906 @@
+---
+// src/layouts/ArticlesSingleLayout.astro - Layout para artículo individual optimizado con SEO del backend
+import Layout from './Layout.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
+}
+
+// Función para limpiar HTML y convertir a texto plano
+function stripHtml(html) {
+  if (!html) return '';
+  const text = html.replace(/<[^>]*>/g, '');
+  const decoded = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+  return decoded.trim();
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+const articleData = safeObject(data?.article, {});
+const categoryData = safeObject(data?.category, {});
+const rawSeo = safeObject(data?.seo, {});
+
+// Datos seguros del artículo
+const safeArticle = {
+  id: safeString(articleData.id),
+  title: safeString(articleData.title, 'Artículo sin título'),
+  subtitle: safeString(articleData.subtitle),
+  excerpt: safeString(articleData.excerpt, 'Extracto no disponible'),
+  content: safeString(articleData.content, ''),
+  featuredImage: safeString(
+    articleData.featuredImage, 
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1200&h=600&fit=crop'
+  ),
+  publishedAt: safeString(articleData.publishedAt, new Date().toISOString()),
+  updatedAt: safeString(articleData.updatedAt),
+  views: safeNumber(articleData.views, 0),
+  readTime: safeString(articleData.readTime, '5 min'),
+  readTimeMinutes: safeNumber(articleData.readTimeMinutes, 5),
+  featured: Boolean(articleData.featured),
+  url: safeString(articleData.url, '#'),
+  slug: safeString(articleData.slug),
+  category: safeString(articleData.category || categoryData.name, 'General'),
+  categorySlug: safeString(categoryData.slug || 'general').split('/').pop(),
+  tags: safeArray(articleData.tags, []),
+  author: safeObject(articleData.author, {
+    name: 'Equipo CLIC',
+    avatar: 'https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/avatars/profile_photos/6e9575f8-d8ef-4671-aa7f-e7193a2d3f21_1751833067618.jpg',
+    position: language === 'es' ? 'Especialista Inmobiliario' :
+              language === 'en' ? 'Real Estate Specialist' :
+              'Spécialiste Immobilier',
+    bio: language === 'es' ? 'Experto en bienes raíces ayudando a clientes a encontrar su hogar perfecto.' :
+         language === 'en' ? 'Real estate expert helping clients find their perfect home.' :
+         'Expert en immobilier aidant les clients à trouver leur maison parfaite.',
+    phone: '+1 809 487 2542',
+    whatsapp: '18094872542',
+    email: 'info@clicinmobiliaria.com'
+  }),
+  language: language
+};
+
+// Artículos relacionados
+const safeRelatedArticles = safeArray(data?.relatedArticles, []).map((article, index) => ({
+  id: safeString(article.id, `related-${index}`),
+  title: safeString(article.title, 'Artículo relacionado'),
+  excerpt: safeString(article.excerpt, 'Extracto no disponible'),
+  featuredImage: safeString(
+    article.featuredImage, 
+    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'
+  ),
+  url: safeString(article.url, '#'),
+  publishedAt: safeString(article.publishedAt, new Date().toISOString()),
+  readTime: safeString(article.readTime, '5 min'),
+  views: safeNumber(article.views, 0),
+  category: safeString(article.category, 'General'),
+  author: safeObject(article.author, { name: 'CLIC', avatar: safeArticle.author.avatar })
+}));
+
+// Breadcrumbs seguros
+const safeBreadcrumbs = safeArray(safeGet(rawSeo, 'breadcrumbs'), [
+  {
+    name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+    url: language === 'es' ? '/' : `/${language}/`
+  },
+  {
+    name: language === 'en' ? 'Articles' : language === 'fr' ? 'Articles' : 'Artículos',
+    url: language === 'es' ? '/articulos' : `/${language}/articles`
+  },
+  {
+    name: safeArticle.category,
+    url: `${language === 'es' ? '/articulos' : `/${language}/articles`}/${safeArticle.categorySlug}`
+  },
+  {
+    name: safeArticle.title,
+    url: safeArticle.url
+  }
+]);
+
+// SEO Data
+const canonicalUrl = safeString(rawSeo.canonical_url, safeArticle.url);
+const safeOpenGraph = {
+  title: rawSeo.title || safeArticle.title,
+  description: rawSeo.description || safeArticle.excerpt,
+  url: `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${canonicalUrl}`,
+  type: 'article',
+  image: rawSeo.ogImage || safeArticle.featuredImage
+};
+
+const safeStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": safeArticle.title,
+  "description": safeArticle.excerpt,
+  "image": safeArticle.featuredImage,
+  "datePublished": safeArticle.publishedAt,
+  "author": {
+    "@type": "Person",
+    "name": safeArticle.author.name
+  }
+};
+
+// Layout Props
+const layoutProps = {
+  title: rawSeo.title || safeArticle.title,
+  description: rawSeo.description || safeArticle.excerpt,
+  ogImage: safeOpenGraph.image,
+  canonical: canonicalUrl,
+  keywords: safeString(rawSeo.keywords, `${safeArticle.title}, ${safeArticle.category}`),
+  globalConfig: data?.globalConfig || {},
+  language: language,
+  breadcrumbs: safeBreadcrumbs,
+  structuredData: safeStructuredData,
+  openGraph: safeOpenGraph
+};
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    shareArticle: 'Compartir este artículo',
+    aboutAuthor: 'Sobre el autor',
+    sendEmail: 'Enviar email',
+    contactWhatsApp: 'Contactar por WhatsApp',
+    callNow: 'Llamar ahora',
+    relatedArticlesTitle: 'Artículos relacionados',
+    relatedVideosTitle: '¿Prefieres video?',
+    relatedVideosDesc: 'Continúa aprendiendo con nuestros videos sobre el tema',
+    relatedPropertiesTitle: 'Propiedades destacadas',
+    relatedPropertiesDesc: 'Descubre propiedades que te pueden interesar',
+    minRead: 'min de lectura',
+    views: 'lecturas',
+    author: 'Por',
+    facebook: 'Facebook',
+    twitter: 'Twitter',
+    linkedin: 'LinkedIn',
+    share: 'Compartir',
+    publishedOn: 'Publicado el',
+    noRelatedArticles: 'No hay artículos relacionados disponibles',
+    noRelatedVideos: 'No hay videos disponibles',
+    noRelatedProperties: 'No hay propiedades disponibles',
+    watchNow: 'Ver ahora',
+    viewProperty: 'Ver propiedad',
+    bedrooms: 'hab',
+    bathrooms: 'baño'
+  },
+  en: {
+    shareArticle: 'Share this article',
+    aboutAuthor: 'About the author',
+    sendEmail: 'Send email',
+    contactWhatsApp: 'Contact via WhatsApp',
+    callNow: 'Call now',
+    relatedArticlesTitle: 'Related articles',
+    relatedVideosTitle: 'Prefer video?',
+    relatedVideosDesc: 'Continue learning with our videos on the topic',
+    relatedPropertiesTitle: 'Featured properties',
+    relatedPropertiesDesc: 'Discover properties that might interest you',
+    minRead: 'min read',
+    views: 'views',
+    author: 'By',
+    facebook: 'Facebook',
+    twitter: 'Twitter',
+    linkedin: 'LinkedIn',
+    share: 'Share',
+    publishedOn: 'Published on',
+    noRelatedArticles: 'No related articles available',
+    noRelatedVideos: 'No videos available',
+    noRelatedProperties: 'No properties available',
+    watchNow: 'Watch now',
+    viewProperty: 'View property',
+    bedrooms: 'bed',
+    bathrooms: 'bath'
+  },
+  fr: {
+    shareArticle: 'Partager cet article',
+    aboutAuthor: 'À propos de l\'auteur',
+    sendEmail: 'Envoyer un email',
+    contactWhatsApp: 'Contacter par WhatsApp',
+    callNow: 'Appeler maintenant',
+    relatedArticlesTitle: 'Articles connexes',
+    relatedVideosTitle: 'Préférez vidéo?',
+    relatedVideosDesc: 'Continuez à apprendre avec nos vidéos sur le sujet',
+    relatedPropertiesTitle: 'Propriétés en vedette',
+    relatedPropertiesDesc: 'Découvrez les propriétés qui pourraient vous intéresser',
+    minRead: 'min de lecture',
+    views: 'vues',
+    author: 'Par',
+    facebook: 'Facebook',
+    twitter: 'Twitter',
+    linkedin: 'LinkedIn',
+    share: 'Partager',
+    publishedOn: 'Publié le',
+    noRelatedArticles: 'Pas d\'articles connexes disponibles',
+    noRelatedVideos: 'Pas de vidéos disponibles',
+    noRelatedProperties: 'Pas de propriétés disponibles',
+    watchNow: 'Regarder',
+    viewProperty: 'Voir la propriété',
+    bedrooms: 'chambre',
+    bathrooms: 'salle de bain'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: { articlesBase: '/articulos', videosBase: '/videos' },
+  en: { articlesBase: '/en/articles', videosBase: '/en/videos' },
+  fr: { articlesBase: '/fr/articles', videosBase: '/fr/videos' }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+    }
+    
+    const months = {
+      es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+    };
+    
+    const monthNames = months[language] || months.es;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} de ${date.getFullYear()}`;
+  } catch (error) {
+    return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+  }
+}
+
+console.log('✅ ArticlesSingleLayout preparado:', {
+  language,
+  title: safeArticle.title,
+  hasRelatedArticles: safeRelatedArticles.length > 0,
+  hasVideos: safeArray(data?.crossContent?.videos).length > 0,
+  hasProperties: safeArray(data?.crossContent?.properties).length > 0
+});
+---
+
+<Layout {...layoutProps}>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+  <div class="min-h-screen bg-white">
+    
+    <!-- Hero Section with Breadcrumbs and Article Info -->
+    <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      
+      <div class="w-full px-4 relative z-10">
+        <div class="max-w-5xl mx-auto">
+          
+          <!-- Breadcrumbs -->
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {safeBreadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === safeBreadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+
+          <!-- Title and Excerpt -->
+          <div class="mb-4 text-center">
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+              {safeArticle.title}
+            </h1>
+            {(safeArticle.excerpt || safeArticle.subtitle) && (
+              <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed font-light">
+                {safeArticle.excerpt || safeArticle.subtitle}
+              </p>
+            )}
+          </div>
+
+          <!-- Article Meta and Tags -->
+          <div class="flex flex-col gap-3 items-center">
+            <!-- Meta Info -->
+            <div class="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-300">
+              <div class="flex items-center gap-3">
+                <img 
+                  src={safeArticle.author.avatar} 
+                  alt={safeArticle.author.name}
+                  class="w-10 h-10 rounded-full border border-gray-600"
+                />
+                <div class="text-center md:text-left">
+                  <p class="font-medium text-white">{safeArticle.author.name}</p>
+                  <p class="text-gray-400 text-xs">{safeArticle.author.position}</p>
+                </div>
+              </div>
+              
+              <span class="w-px h-6 bg-gray-600"></span>
+              
+              <span class="flex items-center gap-2">
+                <i class="far fa-calendar text-gray-400"></i>
+                {formatDate(safeArticle.publishedAt)}
+              </span>
+              
+              <span class="flex items-center gap-2">
+                <i class="far fa-clock text-gray-400"></i>
+                {safeArticle.readTime}
+              </span>
+              
+              <span class="flex items-center gap-2">
+                <i class="far fa-eye text-gray-400"></i>
+                {safeArticle.views.toLocaleString()} {text.views}
+              </span>
+            </div>
+
+            <!-- Tags as chips (if any) -->
+            {safeArticle.tags.length > 0 && (
+              <div class="flex flex-wrap gap-2 justify-center">
+                {safeArticle.tags.map((tag, index) => (
+                  <span 
+                    key={index}
+                    class="bg-gray-700/50 text-gray-300 px-3 py-1 rounded-full text-xs font-medium border border-gray-600/50 hover:bg-gray-600/50 transition-colors"
+                  >
+                    {safeString(tag.name || tag, 'Tag')}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Article Content with Magazine Layout -->
+    <section class="py-16 md:py-20 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="max-w-6xl mx-auto">
+          
+          <!-- Magazine-style layout -->
+          <article class="magazine-article">
+            
+            <!-- Featured Image and initial content -->
+            <div class="editorial-content">
+              <div class="relative">
+                
+                <!-- Floating image -->
+                <figure class="float-left mr-8 mb-6 w-96 group">
+                  <div class="aspect-[4/3] relative overflow-hidden rounded-xl shadow-lg">
+                    <img 
+                      src={safeArticle.featuredImage} 
+                      alt={safeArticle.title}
+                      class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                </figure>
+
+                <!-- Article content -->
+                <div class="article-content text-gray-700 leading-8 text-base">
+                  {safeArticle.content && (
+                    <Fragment set:html={safeArticle.content} />
+                  )}
+                </div>
+
+              </div>
+            </div>
+
+          </article>
+
+          <!-- Share buttons -->
+          <div class="mt-12 pt-8 border-t border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.shareArticle}</h3>
+            <div class="flex flex-wrap gap-3">
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${safeArticle.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                <i class="fab fa-facebook"></i>
+                {text.facebook}
+              </a>
+
+              <a
+                href={`https://twitter.com/intent/tweet?url=${safeArticle.url}&text=${safeArticle.title}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors text-sm"
+              >
+                <i class="fab fa-twitter"></i>
+                {text.twitter}
+              </a>
+
+              <a
+                href={`https://www.linkedin.com/sharing/share-offsite/?url=${safeArticle.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors text-sm"
+              >
+                <i class="fab fa-linkedin"></i>
+                {text.linkedin}
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Properties Section - Compact Grid -->
+    {data?.crossContent?.properties && safeArray(data.crossContent.properties).length > 0 && (
+      <section class="py-16 bg-gradient-to-b from-white to-gray-50">
+        <div class="container mx-auto px-4">
+          <div class="max-w-7xl mx-auto">
+            <div class="mb-10">
+              <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                {text.relatedPropertiesTitle}
+              </h2>
+              <p class="text-gray-600 text-sm">
+                {text.relatedPropertiesDesc}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {safeArray(data.crossContent.properties).slice(0, 8).map((property) => (
+                <a href={property.url} class="group cursor-pointer" key={property.id}>
+                  <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#f04e00]/30 h-full flex flex-col">
+
+                    <!-- Image Section -->
+                    <div class="relative aspect-[4/3] overflow-hidden bg-gray-200">
+                      <img
+                        src={property.image}
+                        alt={property.name}
+                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        loading="lazy"
+                      />
+
+                      <!-- Category Badge - Top Left -->
+                      {property.category && (
+                        <div class="absolute top-2 left-2 bg-white/95 backdrop-blur-sm text-gray-900 px-2.5 py-1 rounded-md text-xs font-semibold shadow-sm">
+                          {property.category}
+                        </div>
+                      )}
+
+                      <!-- Price Badge - Top Right -->
+                      {property.price && (
+                        <div class="absolute top-2 right-2 bg-[#f04e00] text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-md">
+                          {property.price}
+                        </div>
+                      )}
+                    </div>
+
+                    <!-- Content Section -->
+                    <div class="p-4 flex-1 flex flex-col">
+
+                      <!-- Location -->
+                      <div class="flex items-center gap-1.5 text-gray-500 text-xs mb-2">
+                        <i class="fas fa-map-marker-alt text-[#f04e00] text-xs"></i>
+                        <span class="line-clamp-1">{property.location}</span>
+                      </div>
+
+                      <!-- Title -->
+                      <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2 text-sm mb-3 leading-tight flex-1">
+                        {property.name}
+                      </h3>
+
+                      <!-- Specs Row - Compact -->
+                      <div class="flex items-center justify-start gap-4 pt-2 border-t border-gray-100">
+                        {property.bedrooms > 0 && (
+                          <div class="flex items-center gap-1 text-gray-600">
+                            <i class="fas fa-bed text-[#f04e00] text-sm"></i>
+                            <span class="text-xs font-medium">{property.bedrooms}</span>
+                          </div>
+                        )}
+                        {property.bathrooms > 0 && (
+                          <div class="flex items-center gap-1 text-gray-600">
+                            <i class="fas fa-bath text-[#f04e00] text-sm"></i>
+                            <span class="text-xs font-medium">{property.bathrooms}</span>
+                          </div>
+                        )}
+                        {property.area > 0 && (
+                          <div class="flex items-center gap-1 text-gray-600">
+                            <i class="fas fa-ruler-combined text-[#f04e00] text-sm"></i>
+                            <span class="text-xs font-medium">{property.area}m²</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                </a>
+              ))}
+            </div>
+
+            <!-- View All Link -->
+            {safeArray(data.crossContent.properties).length > 8 && (
+              <div class="text-center mt-8">
+                <a
+                  href={`${language === 'es' ? '/comprar' : language === 'en' ? '/en/buy' : '/fr/acheter'}`}
+                  class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-semibold transition-colors text-sm"
+                >
+                  <span>{language === 'es' ? 'Ver todas las propiedades' : language === 'en' ? 'View all properties' : 'Voir toutes les propriétés'}</span>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Related Articles -->
+    {safeRelatedArticles.length > 0 && (
+      <section class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+          <div class="max-w-6xl mx-auto">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">
+              {text.relatedArticlesTitle}
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {safeRelatedArticles.map((article) => (
+                <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group" key={article.id}>
+                  <a href={article.url} class="block">
+                    <div class="aspect-[16/10] relative overflow-hidden">
+                      <img
+                        src={article.featuredImage}
+                        alt={article.title}
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      <div class="absolute top-3 right-3 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium">
+                        <i class="far fa-clock mr-1"></i>
+                        {article.readTime}
+                      </div>
+                    </div>
+
+                    <div class="p-6">
+                      <h3 class="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
+                        {article.title}
+                      </h3>
+
+                      <p class="text-gray-600 mb-4 line-clamp-3 text-sm leading-relaxed">
+                        {article.excerpt}
+                      </p>
+
+                      <div class="flex items-center justify-between text-sm text-gray-500">
+                        <div class="flex items-center gap-2">
+                          <img
+                            src={article.author.avatar}
+                            alt={article.author.name}
+                            class="w-6 h-6 rounded-full"
+                          />
+                          <span class="truncate font-medium">{article.author.name}</span>
+                        </div>
+                        <span class="flex items-center gap-1">
+                          <i class="far fa-eye"></i>
+                          {article.views.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Videos Section -->
+    {data?.crossContent?.videos && safeArray(data.crossContent.videos).length > 0 && (
+      <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+          <div class="max-w-6xl mx-auto">
+            <div class="mb-12">
+              <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+                {text.relatedVideosTitle}
+              </h2>
+              <p class="text-gray-600">
+                {text.relatedVideosDesc}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {safeArray(data.crossContent.videos).slice(0, 4).map((video) => (
+                <a href={video.url} class="group block" key={video.id}>
+                  <div class="aspect-video relative overflow-hidden rounded-lg bg-gray-200 mb-4">
+                    <img
+                      src={video.thumbnail}
+                      alt={video.title}
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <div class="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
+                        <i class="fas fa-play text-[#f04e00] text-xl ml-1"></i>
+                      </div>
+                    </div>
+                    <div class="absolute bottom-2 right-2 bg-black/80 text-white px-2 py-1 rounded text-xs font-medium">
+                      {video.duration}
+                    </div>
+                  </div>
+                  <h3 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2 text-sm">
+                    {video.title}
+                  </h3>
+                  <p class="text-gray-500 text-xs mt-2">
+                    {video.author.name}
+                  </p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Author Bio - Enhanced -->
+    <section class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="max-w-6xl mx-auto">
+          <div class="p-8 bg-gradient-to-r from-gray-900/5 to-gray-900/10 rounded-xl border border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-6">{text.aboutAuthor}</h3>
+            <div class="flex items-start gap-6">
+              <div class="flex-shrink-0">
+                <img
+                  src={safeArticle.author.avatar}
+                  alt={safeArticle.author.name}
+                  class="w-20 h-20 rounded-full border-4 border-white shadow-lg object-cover"
+                />
+              </div>
+              <div class="flex-1">
+                <h4 class="text-xl font-bold text-gray-900 mb-1">{safeArticle.author.name}</h4>
+                <p class="text-[#f04e00] font-semibold mb-3 text-sm">{safeArticle.author.position}</p>
+                {safeArticle.author.bio && (
+                  <p class="text-gray-700 mb-4 leading-relaxed text-sm">{stripHtml(safeArticle.author.bio)}</p>
+                )}
+
+                <div class="flex flex-wrap gap-3 pt-2">
+                  <a
+                    href={`https://wa.me/${safeArticle.author.whatsapp}?text=${encodeURIComponent(`Hola, leí tu artículo "${safeArticle.title}" y me gustaría más información`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 text-xs font-medium shadow-sm hover:shadow-md"
+                  >
+                    <i class="fab fa-whatsapp"></i>
+                    {text.contactWhatsApp}
+                  </a>
+
+                  <a
+                    href={`mailto:${safeArticle.author.email}`}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-all duration-200 text-xs font-medium shadow-sm hover:shadow-md"
+                  >
+                    <i class="far fa-envelope"></i>
+                    {text.sendEmail}
+                  </a>
+
+                  <a
+                    href={`tel:${safeArticle.author.phone}`}
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all duration-200 text-xs font-medium shadow-sm hover:shadow-md border border-gray-700"
+                  >
+                    <i class="fas fa-phone"></i>
+                    {text.callNow}
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
+
+<style>
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .magazine-text {
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+  }
+
+  .article-content {
+    text-align: justify;
+    hyphens: auto;
+    line-height: 1.7;
+  }
+
+  .article-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    clear: both;
+  }
+
+  .article-content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #f04e00;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .article-content strong,
+  .article-content b {
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  .article-content a {
+    color: #f04e00;
+    text-decoration: underline;
+    text-decoration-color: #f04e00;
+  }
+
+  .article-content a:hover {
+    color: #d94400;
+    text-decoration-color: #d94400;
+  }
+
+  .article-content ul,
+  .article-content ol {
+    margin: 1.25rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .article-content li {
+    margin-bottom: 0.5rem;
+  }
+
+  .article-content blockquote {
+    border-left: 4px solid #f04e00;
+    padding-left: 1rem;
+    margin: 1.5rem 0;
+    font-style: italic;
+    color: #4b5563;
+  }
+
+  figure.float-left {
+    shape-outside: margin-box;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 1024px) {
+    figure.float-left {
+      width: 320px !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    figure.float-left {
+      float: none !important;
+      width: 100% !important;
+      margin-right: 0 !important;
+      margin-bottom: 2rem;
+    }
+    
+    .magazine-text p,
+    .article-content p {
+      text-align: left !important;
+      hyphens: none !important;
+    }
+  }
+
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+  }
+  
+  .group:hover .group-hover\:text-[#f04e00] {
+    color: #f04e00;
+  }
+  
+  .group:hover .group-hover\:gap-3 {
+    gap: 0.75rem;
+  }
+
+  .group:hover .group-hover\:translate-x-1 {
+    transform: translateX(0.25rem);
+  }
+</style>
+
+<!-- Article Schema for Rich Snippets -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": safeArticle.title,
+  "alternativeHeadline": safeArticle.subtitle || undefined,
+  "description": safeArticle.excerpt,
+  "image": safeArticle.featuredImage,
+  "datePublished": safeArticle.publishedAt,
+  "dateModified": safeArticle.updatedAt || safeArticle.publishedAt,
+  "author": {
+    "@type": "Person",
+    "name": safeArticle.author.name,
+    "url": `${Astro.url.origin}/${language === 'es' ? '' : language + '/'}sobre-nosotros`
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "CLIC Inmobiliaria",
+    "logo": {
+      "@type": "ImageObject",
+      "url": `${Astro.url.origin}/images/logo-clic.png`
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": `${Astro.url.origin}${Astro.url.pathname}`
+  },
+  "articleSection": safeArticle.category,
+  "keywords": safeArticle.tags.join(', '),
+  "wordCount": Math.ceil(stripHtml(safeArticle.content).split(/\s+/).filter(word => word.length > 0).length),
+  "inLanguage": language === 'es' ? 'es-DO' : language === 'en' ? 'en-US' : 'fr-FR',
+  "isAccessibleForFree": true,
+  "interactionStatistic": {
+    "@type": "InteractionCounter",
+    "interactionType": { "@type": "ReadAction" },
+    "userInteractionCount": safeArticle.views || 0
+  },
+  "timeRequired": `PT${safeArticle.readTimeMinutes}M`
+}, null, 0)} />

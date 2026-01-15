@@ -1,0 +1,812 @@
+---
+export interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  hreflangData?: Record<string, string>;
+  globalConfig?: any;
+  language?: string;
+    trackingString?: string;  // Agregar
+}
+
+const { 
+  title, 
+  description = 'Encuentra tu próxima propiedad en República Dominicana con CLIC Inmobiliaria', 
+  ogImage = '/og-default.jpg',
+  hreflangData = {},
+  globalConfig = {},
+  language = 'es',
+    trackingString = ''  // Agregar
+} = Astro.props;
+
+// FUNCIÓN HELPER: Agregar trackingString a URL de forma inteligente (sin duplicar)
+function addTrackingToUrl(url, tracking = '') {
+  if (!tracking || !url) return url;
+
+  // Si la URL ya tiene parámetros de tracking, no agregar de nuevo
+  if (url.includes('?ref=') || url.includes('&ref=') ||
+      url.includes('?utm_') || url.includes('&utm_') ||
+      url.includes('?fbclid') || url.includes('&fbclid') ||
+      url.includes('?gclid') || url.includes('&gclid')) {
+    return url;
+  }
+
+  // Si el tracking ya está presente de alguna forma (URL encoded), no agregar
+  const urlDecoded = decodeURIComponent(url);
+  if (urlDecoded.includes('ref=') || urlDecoded.includes('utm_')) {
+    return url;
+  }
+
+  // Agregar el tracking
+  return `${url}${tracking}`;
+}
+
+// CORRECCIÓN: Función para generar URLs considerando el idioma
+function getUrlByLanguage(path, lang) {
+  if (lang === 'es') return `/${path}`;
+  return `/${lang}/${path}`;
+}
+
+// CORRECCIÓN: Función para la URL de home según idioma
+function getHomeUrl(lang) {
+  if (lang === 'es') return '/';
+  return `/${lang}`;
+}
+
+// CORRECCIÓN: Función para URL de favoritos según idioma (ahora incluye trackingString)
+function getFavoritesUrl(lang, tracking = '') {
+  let url = '/favoritos'; // fallback
+  if (lang === 'es') url = '/favoritos';
+  else if (lang === 'en') url = '/en/favorites';
+  else if (lang === 'fr') url = '/fr/favoris';
+
+  return addTrackingToUrl(url, tracking);
+}
+
+// CORRECCIÓN: Ahora homeUrl considera el idioma (usa addTrackingToUrl)
+const homeUrl = addTrackingToUrl(getHomeUrl(language), trackingString);
+
+// Extraer la configuración del header desde globalConfig
+const headerSections = globalConfig?.features?.header?.sections || {};
+
+// Ordenar las secciones por su propiedad 'order' y filtrar las habilitadas
+const sortedSections = Object.entries(headerSections)
+  .filter(([key, section]) => section.enabled && key !== 'contact')
+  .sort((a, b) => a[1].order - b[1].order);
+
+// Labels para el menú - fallback completo y robusto
+const menuLabels = {
+  buy: { es: 'Comprar', en: 'Buy', fr: 'Acheter' },
+  rent: { es: 'Alquilar', en: 'Rent', fr: 'Louer' },
+  sell: { es: 'Vender', en: 'Sell', fr: 'Vendre' },
+  videos: { es: 'Videos', en: 'Videos', fr: 'Vidéos' },
+  advisors: { es: 'Asesores', en: 'Advisors', fr: 'Conseillers' },
+  articles: { es: 'Blog', en: 'Blog', fr: 'Articles' },
+  comprar: { es: 'Comprar', en: 'Buy', fr: 'Acheter' },
+  alquilar: { es: 'Alquilar', en: 'Rent', fr: 'Louer' },
+  vender: { es: 'Vender', en: 'Sell', fr: 'Vendre' },
+  // Agregar más variaciones si es necesario
+  achat: { es: 'Comprar', en: 'Buy', fr: 'Acheter' },
+  location: { es: 'Alquilar', en: 'Rent', fr: 'Louer' },
+  vente: { es: 'Vender', en: 'Sell', fr: 'Vendre' }
+};
+
+// Función para obtener label de forma robusta
+function getMenuLabel(section, key, language) {
+  // Prioridad 1: Labels directos del globalConfig
+  if (section.labels && typeof section.labels === 'object' && section.labels[language]) {
+    return section.labels[language];
+  }
+  
+  // Prioridad 2: Fallback local
+  if (menuLabels[key] && menuLabels[key][language]) {
+    return menuLabels[key][language];
+  }
+  
+  // Prioridad 3: Key como texto
+  return key;
+}
+
+// Obtener el texto y URL del botón de contacto (ahora usa addTrackingToUrl)
+const contactSection = headerSections.contact || {};
+const baseContactUrl = contactSection.urls?.[language] || '/contacto';
+const contactUrl = addTrackingToUrl(baseContactUrl, trackingString);
+const contactButtonText = language === 'es' ? 'Contáctanos' :
+                         language === 'en' ? 'Contact Us' :
+                         'Contactez-nous';
+---
+
+<!DOCTYPE html>
+<html lang={language}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- PWA Manifest (OPTIMIZED) -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Theme color for PWA (OPTIMIZED) -->
+    <meta name="theme-color" content="#f04e00" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1f2937" />
+
+    <!-- Apple Touch Icon for iOS -->
+    <link rel="apple-touch-icon" href="/logo.png" />
+
+    <!-- SEO Meta Tags -->
+    <title>{title} | CLIC Inmobiliaria</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Deshabilitar auto-traducción de Google -->
+    <meta name="google" content="notranslate">
+    <meta name="googletranslate" content="notranslate">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content="CLIC Inmobiliaria" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={ogImage} />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href={Astro.url.href} />
+    
+    <!-- Hreflang tags for multi-language -->
+    {Object.entries(hreflangData).map(([lang, url]) => (
+      <link rel="alternate" hreflang={lang} href={url} />
+    ))}
+    
+    <!-- Preconnect to external domains (OPTIMIZED) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link rel="dns-prefetch" href="https://pacewqgypevfgjmdsorz.supabase.co" />
+
+    <!-- Preload critical font (OPTIMIZED) -->
+    <link
+      rel="preload"
+      href="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <!-- Fonts with display=swap already -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Font Awesome 6 - Lazy loaded via intersection observer (see script below) -->
+    <link
+      rel="preload"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
+      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+      />
+    </noscript>
+
+    <!-- Schema.org Organization Data with Certifications -->
+    <script type="application/ld+json">
+      {JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "RealEstateAgent",
+        "name": globalConfig?.legal?.company_name || "CLIC Inmobiliaria",
+        "legalName": globalConfig?.legal?.company_full_name || "CLIC DOM SRL",
+        "url": Astro.url.origin,
+        "logo": `${Astro.url.origin}/logo.png`,
+        "description": description,
+        "foundingDate": globalConfig?.legal?.founded || "2022",
+        "telephone": globalConfig?.contact?.phone || "8094872542",
+        "email": globalConfig?.contact?.email || "info@clicinmobiliaria.com",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Calle Erik Leonard Ekman No. 34, Edificio The Box Working Space",
+          "addressLocality": "Santo Domingo",
+          "addressRegion": "Distrito Nacional",
+          "addressCountry": "DO"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "bestRating": "5",
+          "ratingCount": "500"
+        },
+        "hasCredential": globalConfig?.certifications?.map(cert => ({
+          "@type": "EducationalOccupationalCredential",
+          "name": cert.name,
+          "description": cert.description,
+          "credentialCategory": "Professional Certification",
+          "recognizedBy": {
+            "@type": "Organization",
+            "name": cert.name
+          }
+        })) || []
+      })}
+    </script>
+    
+    <!-- Pass language data to JavaScript -->
+    <script is:inline define:vars={{ hreflangData, currentLanguage: language, globalConfigData: globalConfig }}>
+      window.hreflangData = hreflangData;
+      window.currentLanguage = currentLanguage;
+      window.globalConfigData = globalConfigData;
+
+      // DEBUG: Ver qué datos de hreflang tenemos
+      console.log('🔍 DEBUG hreflangData:', hreflangData);
+      console.log('🔍 DEBUG currentLanguage:', currentLanguage);
+      console.log('🔍 DEBUG hreflangData type:', typeof hreflangData);
+      console.log('🔍 DEBUG hreflangData keys:', Object.keys(hreflangData || {}));
+
+      // FORZAR el idioma globalmente para TODOS los componentes
+      window.FORCED_LANGUAGE = currentLanguage;
+      console.log('🌍 FORCED_LANGUAGE set to:', window.FORCED_LANGUAGE);
+
+      // Interceptar cualquier intento de usar un idioma diferente
+      const originalFetch = window.fetch;
+      window.fetch = function(...args) {
+        console.log('🌍 Fetch intercepted:', args[0]);
+        return originalFetch.apply(this, args);
+      };
+    </script>
+
+    <!-- Critical CSS (OPTIMIZED - Inline for instant rendering) -->
+    <style is:inline>
+      /* Reset y base */
+      *,::before,::after{box-sizing:border-box;border:0 solid #e5e7eb}
+      html{font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+      body{margin:0;line-height:inherit}
+
+      /* Header crítico */
+      header{position:sticky;top:0;z-index:50;background-color:#fff;box-shadow:0 1px 3px 0 rgba(0,0,0,.1)}
+
+      /* Hero section */
+      .hero-section{position:relative;min-height:75vh;display:flex;align-items:center;justify-content:center}
+
+      /* Utilidades críticas */
+      .container{width:100%;margin-left:auto;margin-right:auto;padding-left:1rem;padding-right:1rem}
+      @media(min-width:640px){.container{max-width:640px}}
+      @media(min-width:768px){.container{max-width:768px}}
+      @media(min-width:1024px){.container{max-width:1024px}}
+      @media(min-width:1280px){.container{max-width:1280px}}
+
+      /* Buttons */
+      .btn{display:inline-flex;align-items:center;justify-content:center;padding:.5rem 1rem;font-weight:600;border-radius:.5rem;transition:all .2s}
+      .btn-primary{background-color:#f04e00;color:#fff}
+      .btn-primary:hover{background-color:#d94400}
+
+      /* Loading placeholder */
+      .loading{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+      @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    </style>
+  </head>
+  <body>
+    <!-- SimpleFavoritesManager Script (OPTIMIZED - External File) -->
+    <script>
+      import { SimpleFavoritesManager } from '../scripts/favorites-manager.js';
+
+      // Inicializar ANTES de DOMContentLoaded para que esté disponible
+      if (!window.simpleFavoritesManager) {
+        window.simpleFavoritesManager = new SimpleFavoritesManager();
+        console.log('✅ SimpleFavoritesManager initialized from external file');
+      }
+
+      // Disparar evento personalizado para notificar que está listo
+      window.dispatchEvent(new CustomEvent('favoritesManagerReady', {
+        detail: { manager: window.simpleFavoritesManager }
+      }));
+    </script>
+
+    <!-- SCRIPT GLOBAL PARA LEADS (OPTIMIZED - External File) -->
+    <script>
+      import { submitPropertyLead } from '../scripts/property-leads.js';
+
+      window.submitPropertyLead = submitPropertyLead;
+      console.log('✅ Property leads loaded from external file');
+    </script>
+
+    <!-- External Scripts - Optimized for Caching -->
+    <script src="/scripts/pwa-installer.js" defer></script>
+    <script src="/scripts/header-counter.js" defer></script>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+      <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between h-16">
+          <!-- Logo - CORREGIDO: Ahora usa homeUrl que considera el idioma -->
+          <a href={homeUrl} class="flex items-center">
+            <img src="/logo.png" alt="CLIC Inmobiliaria" class="h-10 w-auto" />
+          </a>
+          
+          <!-- Navigation -->
+          <nav class="hidden md:flex items-center gap-8" translate="no">
+            {sortedSections.map(([key, section]) => {
+              const label = getMenuLabel(section, key, language);
+
+              let url = section.urls?.[language];
+              if (!url) {
+                if (language === 'es') {
+                  url = `/${key}`;
+                } else {
+                  url = `/${language}/${key}`;
+                }
+              }
+
+              // Agregar trackingString si existe (usando función helper para evitar duplicación)
+              const finalUrl = addTrackingToUrl(url, trackingString);
+
+              // Detectar si esta es la sección activa
+              const currentPath = Astro.url.pathname;
+              // Normalizar path removiendo trailing slash para comparación
+              const normalizedPath = currentPath.endsWith('/') && currentPath !== '/'
+                ? currentPath.slice(0, -1)
+                : currentPath;
+
+              // Lógica mejorada para detectar sección activa
+              let isActive = false;
+
+              // Para homepage/comprar (puede venir de PropertyListLayout)
+              if (key === 'comprar' || key === 'buy' || key === 'acheter') {
+                isActive = normalizedPath === '/' ||
+                          normalizedPath === '' ||
+                          normalizedPath.match(/^\/[a-z]{2}$/) || // /en, /fr
+                          normalizedPath.match(/^\/[a-z]{2}\/$/) ||
+                          normalizedPath.includes('/comprar') ||
+                          normalizedPath.includes('/buy') ||
+                          normalizedPath.includes('/acheter');
+              }
+              // Para alquilar/rent
+              else if (key === 'alquilar' || key === 'rent' || key === 'louer') {
+                isActive = normalizedPath.includes('/alquilar') ||
+                          normalizedPath.includes('/rent') ||
+                          normalizedPath.includes('/louer');
+              }
+              // Para otras secciones (videos, articulos, asesores, etc)
+              else {
+                isActive = normalizedPath === url ||
+                          normalizedPath.startsWith(url + '/') ||
+                          normalizedPath.includes(`/${key}`);
+              }
+
+              // Clases dinámicas para sección activa - MÁS SOFISTICADO Y SUTIL
+              const linkClasses = isActive
+                ? "relative text-[#f04e00] font-medium transition-all duration-300 after:content-[''] after:absolute after:bottom-[-8px] after:left-[10%] after:right-[10%] after:h-[1px] after:bg-gradient-to-r after:from-transparent after:via-[#f04e00] after:to-transparent after:opacity-70"
+                : "text-gray-700 hover:text-[#f04e00] transition-all duration-300";
+
+              return (
+                <a href={finalUrl} class={linkClasses} data-key={key} data-original-label={label} translate="no">
+                  {label}
+                </a>
+              );
+            })}
+          </nav>
+          
+          <!-- Right Side Actions -->
+          <div class="flex items-center gap-4">
+            <!-- Language Selector -->
+            <div class="relative">
+              <button 
+                id="language-selector"
+                class="flex items-center gap-1 px-2 py-1 text-gray-700 hover:text-[#f04e00] transition-colors rounded-md border border-gray-300 hover:border-[#f04e00]"
+                title="Cambiar idioma"
+              >
+                <i class="fas fa-globe w-4 h-4"></i>
+                <span id="current-language" class="text-sm font-medium uppercase">{language}</span>
+                <i id="language-chevron" class="fas fa-chevron-down w-3 h-3 transition-transform duration-200"></i>
+              </button>
+              
+              <div 
+                id="language-dropdown"
+                class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-[100px] hidden"
+              >
+                <a href="#" class="language-option flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#f04e00] transition-colors" data-lang="es">
+                  🇩🇴 Español
+                </a>
+                <a href="#" class="language-option flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#f04e00] transition-colors border-t border-gray-100" data-lang="en">
+                  🇺🇸 English
+                </a>
+                <a href="#" class="language-option flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#f04e00] transition-colors border-t border-gray-100" data-lang="fr">
+                  🇫🇷 Français
+                </a>
+              </div>
+            </div>
+
+            <!-- Favorites Button with Counter - Badge superpuesto -->
+            <a
+              href={getFavoritesUrl(language, trackingString)}
+              class="p-2 text-gray-700 hover:text-[#f04e00] transition-colors relative inline-flex items-center justify-center"
+              title={language === 'es' ? 'Mis favoritos' : language === 'en' ? 'My favorites' : 'Mes favoris'}
+            >
+              <i class="fas fa-heart text-xl"></i>
+              <span
+                id="favorites-counter"
+                class="absolute bg-[#f04e00] text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-bold px-1 hidden shadow-lg border-2 border-white"
+                style="font-size: 9px; line-height: 1; bottom: 2px; right: -2px;"
+              >
+                0
+              </span>
+            </a>
+
+            <!-- Contact Button -->
+            <a 
+              href={contactUrl} 
+              class="hidden sm:inline-block px-3 py-1.5 border border-[#f04e00] text-[#f04e00] rounded-md hover:bg-[#f04e00] hover:text-white transition-colors text-sm"
+            >
+              {contactButtonText}
+            </a>
+            
+            <!-- Mobile menu button -->
+            <button id="mobile-menu-button" class="md:hidden p-2 text-gray-700 hover:text-[#f04e00] transition-colors">
+              <i id="mobile-menu-icon" class="fas fa-bars w-6 h-6 text-xl"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Menu -->
+      <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200 shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+          <nav class="flex flex-col space-y-3">
+            {sortedSections.map(([key, section]) => {
+              const label = getMenuLabel(section, key, language);
+              let url = section.urls?.[language];
+              if (!url) {
+                url = language === 'es' ? `/${key}` : `/${language}/${key}`;
+              }
+              const finalUrl = addTrackingToUrl(url, trackingString);
+
+              return (
+                <a
+                  href={finalUrl}
+                  class="px-4 py-3 text-gray-700 hover:bg-gray-50 hover:text-[#f04e00] rounded-lg transition-colors font-medium"
+                  translate="no"
+                >
+                  {label}
+                </a>
+              );
+            })}
+
+            <!-- Contact Button in Mobile Menu -->
+            <a
+              href={contactUrl}
+              class="px-4 py-3 bg-[#f04e00] text-white text-center rounded-lg hover:bg-[#d94400] transition-colors font-medium"
+            >
+              {contactButtonText}
+            </a>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <!-- Mobile Menu Script - External -->
+    <script src="/scripts/mobile-menu.js" defer></script>
+
+    <!-- Detective Script - Encuentra el culpable -->
+    <script>
+      console.log('🕵️ Google Translate Protection Active for language:', window.currentLanguage);
+      
+      // Protección específica para el menú principal en francés
+      if (window.currentLanguage === 'fr') {
+        document.addEventListener('DOMContentLoaded', function() {
+          const nav = document.querySelector('nav[translate="no"]');
+          if (nav) {
+            console.log('🛡️ Protecting French menu from Google Translate');
+            
+            // Agregar atributos adicionales de protección
+            nav.setAttribute('class', nav.getAttribute('class') + ' notranslate');
+            nav.lang = 'fr';
+            
+            // Proteger cada enlace individualmente
+            const links = nav.querySelectorAll('a');
+            links.forEach(link => {
+              link.setAttribute('translate', 'no');
+              link.classList.add('notranslate');
+              link.lang = 'fr';
+            });
+            
+            console.log('✅ French menu protection applied to', links.length, 'links');
+          }
+        });
+      }
+    </script>
+
+    <!-- Language Selector Script - External -->
+    <script src="/scripts/language-selector.js" defer></script>
+
+    <!-- Main Content -->
+    <main class="min-h-screen">
+      <slot />
+    </main>
+
+    <!-- Dynamic Footer -->
+    <footer class="bg-slate-900 text-white" translate="no">
+      <div class="container mx-auto px-4 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+          
+          <!-- Company Info con Firma (2 columnas) -->
+          <div class="lg:col-span-2">
+            <h3 class="text-2xl font-bold text-white mb-4">CLIC Inmobiliaria</h3>
+            <p class="text-gray-300 mb-6 leading-relaxed">
+              {language === 'es' && 'Tu socio de confianza en el mercado inmobiliario de República Dominicana.'}
+              {language === 'en' && 'Your trusted partner in the Dominican Republic real estate market.'}
+              {language === 'fr' && 'Votre partenaire de confiance sur le marché immobilier de la République Dominicaine.'}
+            </p>
+            
+            <!-- Firma de René -->
+            <div class="mb-6">
+              <img 
+                src="/rene-castillo-firma.png" 
+                alt="Firma de René Castillo, Fundador de CLIC Inmobiliaria"
+                class="h-12 md:h-16 w-auto opacity-90 hover:opacity-100 transition-opacity"
+              />
+            </div>
+            
+            <!-- Información de Contacto Completa con Font Awesome -->
+            <div class="space-y-3 text-gray-400">
+              <div class="flex items-start gap-3">
+                <i class="fas fa-map-marker-alt w-5 h-5 mt-0.5 flex-shrink-0"></i>
+                <div>
+                  <div class="font-medium text-white">
+                    {globalConfig?.translations?.footer?.mainOffice || 
+                     (language === 'es' ? 'Oficina Principal' : 
+                      language === 'en' ? 'Main Office' : 
+                      'Bureau Principal')}
+                  </div>
+                  <div>C. Erik Leonard Ekman 34, Santo Domingo, D.N.</div>
+                  <div class="text-sm mt-1">
+                    {globalConfig?.translations?.footer?.officeHours || 
+                     (language === 'es' ? 'Lun-Vie: 9:00-18:00 | Sáb: 9:00-15:00' : 
+                      language === 'en' ? 'Mon-Fri: 9:00-18:00 | Sat: 9:00-15:00' : 
+                      'Lun-Ven: 9:00-18:00 | Sam: 9:00-15:00')}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="flex items-center gap-3">
+                <i class="fas fa-phone w-5 h-5 flex-shrink-0"></i>
+                <div>
+                  <a href="tel:+18295148080" class="hover:text-[#f04e00] transition-colors font-medium">
+                    (829) 514-8080
+                  </a>
+                  <div class="text-sm">
+                    {language === 'es' && 'Llamadas y WhatsApp'}
+                    {language === 'en' && 'Calls and WhatsApp'}
+                    {language === 'fr' && 'Appels et WhatsApp'}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="flex items-center gap-3">
+                <i class="fas fa-envelope w-5 h-5 flex-shrink-0"></i>
+                <a href="mailto:contacto@clic.do" class="hover:text-[#f04e00] transition-colors">
+                  contacto@clic.do
+                </a>
+              </div>
+            </div>
+
+            <!-- Certificaciones - Solo si existen en la data -->
+            {globalConfig?.certifications?.length > 0 && (
+              <div class="mt-4 pt-3 border-t border-gray-700">
+                <div class="flex flex-wrap items-center gap-3 text-gray-400 text-sm">
+                  <div class="flex items-center gap-2">
+                    <i class="fas fa-certificate w-4 h-4 text-[#f04e00]"></i>
+                    <span class="font-medium">
+                      {language === 'es' ? 'Certificado por:' : 
+                       language === 'en' ? 'Certified by:' : 
+                       'Certifié par:'}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    {globalConfig.certifications.map((cert) => (
+                      <img 
+                        src={cert.logo} 
+                        alt={cert.description || cert.name}
+                        title={cert.description || cert.name}
+                        class="h-5 opacity-80 hover:opacity-100 transition-opacity"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <!-- Propiedades por Zona - Dinámico -->
+          <div>
+            <h4 class="text-lg font-semibold text-white mb-4">
+              {globalConfig?.translations?.footer?.propertiesByZone || 
+               (language === 'es' ? 'Propiedades por Zona' : 
+                language === 'en' ? 'Properties by Zone' : 
+                'Propriétés par Zone')}
+            </h4>
+            <ul class="space-y-2 text-gray-400">
+              {globalConfig?.footer_links?.properties_by_zone?.length > 0 ? 
+                globalConfig.footer_links.properties_by_zone.map((link) => (
+                  <li>
+                    <a href={link.url} class="hover:text-[#f04e00] transition-colors">
+                      {link.label}
+                    </a>
+                  </li>
+                )) :
+                [
+                  { href: `/comprar/apartamentos/distrito-nacional`, text: language === 'es' ? 'Apartamentos Distrito Nacional' : language === 'en' ? 'Distrito Nacional Apartments' : 'Appartements Distrito Nacional' },
+                  { href: `/comprar/villas/punta-cana`, text: language === 'es' ? 'Villas Punta Cana' : language === 'en' ? 'Punta Cana Villas' : 'Villas Punta Cana' },
+                  { href: `/comprar/casas/bella-vista`, text: language === 'es' ? 'Casas Bella Vista' : language === 'en' ? 'Bella Vista Houses' : 'Maisons Bella Vista' },
+                  { href: `/comprar/penthouses/piantini`, text: language === 'es' ? 'Penthouses Piantini' : language === 'en' ? 'Piantini Penthouses' : 'Penthouses Piantini' }
+                ].map((item) => (
+                  <li>
+                    <a href={item.href} class="hover:text-[#f04e00] transition-colors">
+                      {item.text}
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+          
+          <!-- Servicios Principales - Dinámico -->
+          <div>
+            <h4 class="text-lg font-semibold text-white mb-4">
+              {globalConfig?.translations?.footer?.ourServices || 
+               (language === 'es' ? 'Nuestros Servicios' : 
+                language === 'en' ? 'Our Services' : 
+                'Nos Services')}
+            </h4>
+            <ul class="space-y-2 text-gray-400">
+              {globalConfig?.footer_links?.services?.length > 0 ? 
+                globalConfig.footer_links.services.map((service) => (
+                  <li>
+                    <a href={service.url} class="hover:text-[#f04e00] transition-colors">
+                      {service.label}
+                    </a>
+                  </li>
+                )) :
+                [
+                  { href: language === 'es' ? '/comprar' : `/${language}/buy`, text: language === 'es' ? 'Comprar Propiedades' : language === 'en' ? 'Buy Properties' : 'Acheter Propriétés' },
+                  { href: language === 'es' ? '/vender' : `/${language}/sell`, text: language === 'es' ? 'Vender su Propiedad' : language === 'en' ? 'Sell Your Property' : 'Vendre Votre Propriété' },
+                  { href: language === 'es' ? '/alquilar' : `/${language}/rent`, text: language === 'es' ? 'Alquilar Inmuebles' : language === 'en' ? 'Rent Properties' : 'Louer Propriétés' },
+                  { href: language === 'es' ? '/asesores' : `/${language}/advisors`, text: language === 'es' ? 'Equipo de Asesores' : language === 'en' ? 'Advisory Team' : 'Équipe de Conseillers' }
+                ].map((item) => (
+                  <li>
+                    <a href={item.href} class="hover:text-[#f04e00] transition-colors">
+                      {item.text}
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+          
+          <!-- Recursos + Redes Sociales - Dinámico -->
+          <div>
+            <h4 class="text-lg font-semibold text-white mb-4">
+              {globalConfig?.translations?.footer?.resources || 
+               (language === 'es' ? 'Recursos' : 
+                language === 'en' ? 'Resources' : 
+                'Ressources')}
+            </h4>
+            <ul class="space-y-2 text-gray-400 mb-6">
+              {globalConfig?.footer_links?.resources?.length > 0 ? 
+                globalConfig.footer_links.resources.map((resource) => (
+                  <li>
+                    <a href={resource.url} class="hover:text-[#f04e00] transition-colors">
+                      {resource.label}
+                    </a>
+                  </li>
+                )) :
+                [
+                  { href: language === 'es' ? '/articulos' : `/${language}/articles`, text: language === 'es' ? 'Artículos Inmobiliarios' : language === 'en' ? 'Real Estate Articles' : 'Articles Immobiliers' },
+                  { href: language === 'es' ? '/videos' : `/${language}/videos`, text: language === 'es' ? 'Canal de Videos' : language === 'en' ? 'Video Channel' : 'Chaîne Vidéo' }
+                ].map((item) => (
+                  <li>
+                    <a href={item.href} class="hover:text-[#f04e00] transition-colors">
+                      {item.text}
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+            
+            <!-- Redes Sociales con Font Awesome -->
+            <div>
+              <h5 class="text-sm font-semibold text-white mb-3">
+                {globalConfig?.translations?.footer?.followUs || 
+                 (language === 'es' ? 'Síguenos' : 
+                  language === 'en' ? 'Follow Us' : 
+                  'Suivez-nous')}
+              </h5>
+              <div class="flex flex-col space-y-2">
+                <a href={globalConfig?.social?.company?.youtube || "https://www.youtube.com/@clicinmobiliaria"} target="_blank" rel="noopener" class="flex items-center gap-2 text-gray-400 hover:text-red-500 transition-colors text-sm">
+                  <i class="fab fa-youtube w-4 h-4"></i>
+                  <span>
+                    {language === 'es' && `YouTube - ${globalConfig?.seo?.youtube_subscribers || '200K+'} suscriptores`}
+                    {language === 'en' && `YouTube - ${globalConfig?.seo?.youtube_subscribers || '200K+'} subscribers`}
+                    {language === 'fr' && `YouTube - ${globalConfig?.seo?.youtube_subscribers || '200K+'} abonnés`}
+                  </span>
+                </a>
+                <a href={globalConfig?.social?.company?.instagram_url || "https://www.instagram.com/clic.do/"} target="_blank" rel="noopener" class="flex items-center gap-2 text-gray-400 hover:text-pink-500 transition-colors text-sm">
+                  <i class="fab fa-instagram w-4 h-4"></i>
+                  <span>Instagram - @clic.do</span>
+                </a>
+                <a href={globalConfig?.social?.founder?.instagram_url || "https://www.instagram.com/renecastillotv/"} target="_blank" rel="noopener" class="flex items-center gap-2 text-gray-400 hover:text-pink-500 transition-colors text-sm">
+                  <i class="fab fa-instagram w-4 h-4"></i>
+                  <span>Instagram - @renecastillotv</span>
+                </a>
+                <a href={globalConfig?.social?.company?.linkedin || "https://www.linkedin.com/company/clic-inmobiliaria/"} target="_blank" rel="noopener" class="flex items-center gap-2 text-gray-400 hover:text-blue-500 transition-colors text-sm">
+                  <i class="fab fa-linkedin w-4 h-4"></i>
+                  <span>
+                    {language === 'es' ? 'LinkedIn Corporativo' : 
+                     language === 'en' ? 'Corporate LinkedIn' : 
+                     'LinkedIn Corporatif'}
+                  </span>
+                </a>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+        
+        <!-- Trust Signals + Copyright - Dinámico -->
+        <div class="border-t border-gray-700 mt-12 pt-8">
+          <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex flex-wrap items-center gap-6 text-gray-400 text-sm">
+              <span class="flex items-center gap-2">
+                <i class="fas fa-shield-alt w-4 h-4 text-[#f04e00]"></i>
+                {language === 'es' ? `Empresa Constituida ${globalConfig?.legal?.founded || '2022'}` : 
+                 language === 'en' ? `Company Founded ${globalConfig?.legal?.founded || '2022'}` : 
+                 `Entreprise Fondée ${globalConfig?.legal?.founded || '2022'}`}
+              </span>
+              <span class="flex items-center gap-2">
+                <i class="fas fa-user-tie w-4 h-4 text-[#f04e00]"></i>
+                {language === 'es' ? `René: ${globalConfig?.team?.founder_experience || '6 años en Inmobiliaria'}` : 
+                 language === 'en' ? `René: ${globalConfig?.team?.founder_experience || '6 years in Real Estate'}` : 
+                 `René: ${globalConfig?.team?.founder_experience || '6 ans en Immobilier'}`}
+              </span>
+              <span class="flex items-center gap-2">
+                <i class="fas fa-users w-4 h-4 text-[#f04e00]"></i>
+                {language === 'es' ? `Equipo ${globalConfig?.team?.team_experience || '+10 años experiencia'}` : 
+                 language === 'en' ? `Team ${globalConfig?.team?.team_experience || '+10 years experience'}` : 
+                 `Équipe ${globalConfig?.team?.team_experience || '+10 ans d\'expérience'}`}
+              </span>
+              <span class="flex items-center gap-2">
+                <i class="fas fa-star w-4 h-4 text-[#f04e00]"></i>
+                {language === 'es' ? `${globalConfig?.seo?.company_rating || '4.9/5'} Calificación Cliente` : 
+                 language === 'en' ? `${globalConfig?.seo?.company_rating || '4.9/5'} Client Rating` : 
+                 `${globalConfig?.seo?.company_rating || '4.9/5'} Évaluation Client`}
+              </span>
+            </div>
+            <div class="text-gray-400 text-sm">
+              {globalConfig?.translations?.footer?.rights || 
+               (language === 'es' ? '© 2024 CLIC Inmobiliaria SRL. Todos los derechos reservados.' : 
+                language === 'en' ? '© 2024 CLIC Inmobiliaria SRL. All rights reserved.' : 
+                '© 2024 CLIC Inmobiliaria SRL. Tous droits réservés.')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+  @import '../styles/utilities.css';
+
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+</style>

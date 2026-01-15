@@ -1,0 +1,1099 @@
+---
+// src/layouts/FavoritesLayout.astro - Layout para página principal de favoritos
+import Layout from './Layout.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// Extraer datos adicionales si existen en el prop data
+const hreflangData = safeObject(data?.seo?.hreflang, {});
+const globalConfig = safeObject(data?.globalConfig, {});
+const ogImage = safeString(data?.seo?.ogImage, '/og-favorites.jpg');
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    title: 'Mis Favoritos - CLIC Inmobiliaria',
+    description: 'Administra tus propiedades favoritas. Guarda, organiza y comparte las propiedades que más te interesan.',
+    pageTitle: 'Mis Favoritos',
+    pageSubtitle: 'Administra y organiza las propiedades que más te interesan',
+    loading: 'Cargando tus favoritos...',
+    noFavorites: 'No tienes favoritos aún',
+    noFavoritesDescription: 'Explora nuestras propiedades y haz clic en ❤️ para guardar las que más te gusten',
+    exploreButton: 'Explorar propiedades',
+    userListTitle: 'Tu lista de favoritos',
+    deviceId: 'Device ID:',
+    email: 'Email:',
+    noEmail: 'No asignado',
+    assignEmail: 'Asignar email',
+    changeEmail: 'Cambiar email',
+    share: 'Compartir',
+    propertiesSaved: 'Propiedades guardadas',
+    sortBy: 'Ordenar:',
+    sortRecent: 'Más recientes',
+    sortPriceDesc: 'Precio: mayor a menor',
+    sortPriceAsc: 'Precio: menor a mayor',
+    sortTitle: 'Título A-Z',
+    emailModalTitle: 'Asignar Email a tus Favoritos',
+    emailModalDescription: 'Al asignar un email a tu lista, podrás acceder a tus propiedades favoritas desde cualquier dispositivo',
+    emailModalPlaceholder: 'Ingresa tu dirección de email',
+    emailModalSave: 'Guardar',
+    emailModalCancel: 'Cancelar',
+    statsTitle: 'Tu actividad',
+    statsProperties: 'Propiedades guardadas',
+    statsSince: 'Desde',
+    statsUpdated: 'Última actualización',
+    ctaTitle: '¿Buscas propiedades para invertir?',
+    ctaSubtitle: 'Guarda tus propiedades favoritas y compártelas con tu asesor o familiares',
+    ctaButton: 'Explorar más propiedades',
+    routes: {
+      properties: '/comprar'
+    }
+  },
+  en: {
+    title: 'My Favorites - CLIC Real Estate',
+    description: 'Manage your favorite properties. Save, organize and share the properties that interest you most.',
+    pageTitle: 'My Favorites',
+    pageSubtitle: 'Manage and organize the properties that interest you most',
+    loading: 'Loading your favorites...',
+    noFavorites: 'You don\'t have favorites yet',
+    noFavoritesDescription: 'Explore our properties and click ❤️ to save the ones you like most',
+    exploreButton: 'Explore properties',
+    userListTitle: 'Your favorites list',
+    deviceId: 'Device ID:',
+    email: 'Email:',
+    noEmail: 'Not assigned',
+    assignEmail: 'Assign email',
+    changeEmail: 'Change email',
+    share: 'Share',
+    propertiesSaved: 'Properties saved',
+    sortBy: 'Sort by:',
+    sortRecent: 'Most recent',
+    sortPriceDesc: 'Price: high to low',
+    sortPriceAsc: 'Price: low to high',
+    sortTitle: 'Title A-Z',
+    emailModalTitle: 'Assign Email to your Favorites',
+    emailModalDescription: 'By assigning an email to your list, you can access your favorite properties from any device',
+    emailModalPlaceholder: 'Enter your email address',
+    emailModalSave: 'Save',
+    emailModalCancel: 'Cancel',
+    statsTitle: 'Your activity',
+    statsProperties: 'Properties saved',
+    statsSince: 'Since',
+    statsUpdated: 'Last updated',
+    ctaTitle: 'Looking for properties to invest in?',
+    ctaSubtitle: 'Save your favorite properties and share them with your advisor or family',
+    ctaButton: 'Explore more properties',
+    routes: {
+      properties: '/en/buy'
+    }
+  },
+  fr: {
+    title: 'Mes Favoris - CLIC Immobilier',
+    description: 'Gérez vos propriétés favorites. Sauvegardez, organisez et partagez les propriétés qui vous intéressent le plus.',
+    pageTitle: 'Mes Favoris',
+    pageSubtitle: 'Gérez et organisez les propriétés qui vous intéressent le plus',
+    loading: 'Chargement de vos favoris...',
+    noFavorites: 'Vous n\'avez pas encore de favoris',
+    noFavoritesDescription: 'Explorez nos propriétés et cliquez sur ❤️ pour sauvegarder celles que vous préférez',
+    exploreButton: 'Explorer les propriétés',
+    userListTitle: 'Votre liste de favoris',
+    deviceId: 'ID de l\'appareil:',
+    email: 'Email:',
+    noEmail: 'Non assigné',
+    assignEmail: 'Assigner email',
+    changeEmail: 'Changer email',
+    share: 'Partager',
+    propertiesSaved: 'Propriétés sauvegardées',
+    sortBy: 'Trier par:',
+    sortRecent: 'Plus récents',
+    sortPriceDesc: 'Prix: élevé à bas',
+    sortPriceAsc: 'Prix: bas à élevé',
+    sortTitle: 'Titre A-Z',
+    emailModalTitle: 'Attribuer un Email à vos Favoris',
+    emailModalDescription: 'En attribuant un email à votre liste, vous pourrez accéder à vos propriétés favorites depuis n\'importe quel appareil',
+    emailModalPlaceholder: 'Entrez votre adresse email',
+    emailModalSave: 'Enregistrer',
+    emailModalCancel: 'Annuler',
+    statsTitle: 'Votre activité',
+    statsProperties: 'Propriétés sauvegardées',
+    statsSince: 'Depuis',
+    statsUpdated: 'Dernière mise à jour',
+    ctaTitle: 'À la recherche de propriétés pour investir?',
+    ctaSubtitle: 'Sauvegardez vos propriétés préférées et partagez-les avec votre conseiller ou votre famille',
+    ctaButton: 'Explorer plus de propriétés',
+    routes: {
+      properties: '/fr/acheter'
+    }
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// ===================================================================
+// PROCESAMIENTO SEO
+// ===================================================================
+
+// Preparar datos para SEO
+const seo = {
+  title: safeString(data?.seo?.title, text.title),
+  description: safeString(data?.seo?.description, text.description),
+  ogImage: ogImage,
+  hreflangData: hreflangData
+};
+
+console.log('✅ FavoritesLayout preparado:', {
+  language,
+  originalUrl: data?.originalUrl
+});
+---
+
+<Layout 
+  title={seo.title}
+  description={seo.description}
+  ogImage={seo.ogImage}
+  hreflangData={seo.hreflangData}
+  globalConfig={globalConfig}
+  language={language}
+>
+  <!-- Hero Section with User Info -->
+  <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 text-white relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10 z-0">
+      <div class="absolute top-0 left-0 w-96 h-96 bg-[#f04e00] rounded-full filter blur-3xl"></div>
+      <div class="absolute bottom-0 right-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl"></div>
+    </div>
+
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center gap-2 bg-[#f04e00]/20 px-4 py-2 rounded-full mb-4">
+            <i class="fas fa-heart text-[#f04e00]"></i>
+            <span class="text-sm font-semibold">{text.pageTitle}</span>
+          </div>
+          <h1 class="text-3xl md:text-4xl font-bold mb-3">
+            {text.userListTitle}
+          </h1>
+          <p class="text-lg text-white/70">
+            {text.pageSubtitle}
+          </p>
+        </div>
+
+        <!-- User Info Card - Integrated in Hero -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Device ID -->
+            <div class="flex items-start gap-4">
+              <div class="p-3 bg-[#f04e00]/20 rounded-xl">
+                <i class="fas fa-mobile-alt text-[#f04e00] text-xl"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-white/60 text-sm mb-1">{text.deviceId}</p>
+                <p id="deviceId" class="text-white font-mono text-sm break-all">-</p>
+              </div>
+            </div>
+
+            <!-- Email -->
+            <div class="flex items-start gap-4">
+              <div class="p-3 bg-blue-500/20 rounded-xl">
+                <i class="fas fa-envelope text-blue-400 text-xl"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-white/60 text-sm mb-1">{text.email}</p>
+                <p id="userEmail" class="text-white/80 text-sm mb-2">
+                  {text.noEmail}
+                </p>
+                <button
+                  id="emailButton"
+                  onclick="showEmailModal()"
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/30 text-white rounded-lg text-sm font-medium transition-all hover:scale-105"
+                >
+                  <i class="fas fa-edit text-xs"></i>
+                  {text.assignEmail}
+                </button>
+              </div>
+            </div>
+
+            <!-- Properties Count & Share -->
+            <div class="flex items-start gap-4">
+              <div class="p-3 bg-[#f04e00]/20 rounded-xl">
+                <i class="fas fa-heart text-[#f04e00] text-xl"></i>
+              </div>
+              <div class="flex-1">
+                <p class="text-white/60 text-sm mb-1">{text.propertiesSaved}</p>
+                <p id="favoritesCount" class="text-white text-2xl font-bold mb-2">0</p>
+                <button
+                  id="shareButton"
+                  onclick="shareList()"
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-[#f04e00] hover:bg-[#e03d00] text-white rounded-lg text-sm font-semibold transition-all hover:scale-105 shadow-lg"
+                >
+                  <i class="fas fa-share-alt text-sm"></i>
+                  {text.share}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <div class="bg-gray-50 min-h-screen">
+    <section class="py-12">
+      <div class="container mx-auto px-4">
+        <div class="max-w-6xl mx-auto">
+          
+          <!-- Loading State -->
+          <div id="loadingState" class="text-center py-16">
+            <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-[#f04e00]"></div>
+            <p class="mt-6 text-gray-600 text-lg">{text.loading}</p>
+          </div>
+
+          <!-- No Favorites State -->
+          <div id="noFavoritesState" class="text-center py-16 hidden">
+            <div class="inline-block p-6 bg-white rounded-full shadow-lg mb-8">
+              <div class="text-8xl">❤️</div>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">{text.noFavorites}</h2>
+            <p class="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+              {text.noFavoritesDescription}
+            </p>
+            <div class="space-y-4">
+              <a 
+                href={text.routes.properties}
+                class="inline-flex items-center gap-2 px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#e03d00] transition-all font-semibold shadow-lg hover:shadow-xl"
+              >
+                {text.exploreButton}
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Favorites Content -->
+          <div id="favoritesContent" class="hidden">
+
+            <!-- Favorites Count and Sort -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <div class="mb-3 md:mb-0">
+                <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <i class="fas fa-heart text-[#f04e00]"></i>
+                  <span>{text.propertiesSaved}</span>
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                  {text.pageSubtitle}
+                </p>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <label for="sort-favorites" class="text-sm text-gray-700">{text.sortBy}</label>
+                <select 
+                  id="sort-favorites"
+                  class="text-sm border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#f04e00] focus:border-[#f04e00]"
+                >
+                  <option value="recent">{text.sortRecent}</option>
+                  <option value="price-desc">{text.sortPriceDesc}</option>
+                  <option value="price-asc">{text.sortPriceAsc}</option>
+                  <option value="title">{text.sortTitle}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Properties Grid -->
+            <div id="propertiesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <!-- Properties will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff6b2b]">
+      <div class="container mx-auto px-4 text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+          {text.ctaTitle}
+        </h2>
+        <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+          {text.ctaSubtitle}
+        </p>
+        <div class="flex justify-center">
+          <a 
+            href={text.routes.properties}
+            class="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-medium shadow-lg"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            {text.ctaButton}
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Email Modal -->
+  <div id="emailModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50" onclick="if(event.target === this) closeEmailModal()">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 border border-gray-100">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="p-3 bg-[#f04e00]/10 rounded-xl">
+          <i class="fas fa-envelope text-[#f04e00] text-xl"></i>
+        </div>
+        <h3 id="emailModalTitle" class="text-2xl font-bold text-gray-900">
+          {text.emailModalTitle}
+        </h3>
+      </div>
+      <p class="text-gray-600 mb-6">
+        {text.emailModalDescription}
+      </p>
+      <form onsubmit="saveEmail(event)" class="space-y-4">
+        <div>
+          <label for="newEmail" class="block text-sm font-medium text-gray-700 mb-2">
+            {text.email}
+          </label>
+          <input
+            type="email"
+            id="newEmail"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-[#f04e00] transition-all"
+            placeholder={text.emailModalPlaceholder}
+            required
+          />
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            type="button"
+            onclick="closeEmailModal()"
+            class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
+          >
+            {text.emailModalCancel}
+          </button>
+          <button
+            type="submit"
+            class="px-5 py-2.5 bg-[#f04e00] text-white rounded-lg hover:bg-[#e03d00] transition-all font-semibold shadow-lg hover:shadow-xl"
+          >
+            <i class="fas fa-save mr-2"></i>
+            {text.emailModalSave}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Estado global para la página
+    const pageState = {
+      isLoading: true,
+      hasError: false,
+      properties: [],
+      reactions: {},
+      startDate: null,
+      lastUpdate: null
+    };
+
+    // ===== INICIALIZACIÓN DE LA PÁGINA =====
+    async function initializePage() {
+      showLoadingState();
+
+      try {
+        // Esperar a que SimpleFavoritesManager esté disponible
+        if (!window.simpleFavoritesManager) {
+          console.log('⏳ Esperando SimpleFavoritesManager...');
+          await new Promise((resolve) => {
+            if (window.simpleFavoritesManager) {
+              resolve();
+            } else {
+              window.addEventListener('favoritesManagerReady', resolve, { once: true });
+              // Timeout de seguridad de 5 segundos
+              setTimeout(resolve, 5000);
+            }
+          });
+        }
+
+        // Verificar nuevamente después de esperar
+        if (!window.simpleFavoritesManager) {
+          throw new Error('SimpleFavoritesManager no está inicializado después de esperar');
+        }
+
+        console.log('✅ SimpleFavoritesManager disponible en FavoritesLayout');
+        
+        // Intentar cargar los favoritos si no están ya cargados
+        if (!window.simpleFavoritesManager.isLoaded) {
+          await window.simpleFavoritesManager.loadFavorites();
+        }
+        
+        // Obtener los favoritos con detalles
+        const favoritesDetails = await window.simpleFavoritesManager.getFavoritesWithDetails();
+        pageState.properties = favoritesDetails || [];
+        
+        // Actualizar la fecha de inicio (fecha más antigua entre las propiedades)
+        if (pageState.properties.length > 0) {
+          const dates = pageState.properties
+            .map(p => p.added_at ? new Date(p.added_at) : null)
+            .filter(Boolean);
+            
+          if (dates.length > 0) {
+            pageState.startDate = new Date(Math.min(...dates));
+          }
+        }
+        
+        // Actualizar la última actualización
+        pageState.lastUpdate = new Date();
+        
+        // Cargar reacciones
+        await loadReactions();
+
+        // Actualizar la UI
+        updateUserInfo(window.simpleFavoritesManager.getDeviceInfo());
+
+        // Mostrar el estado apropiado
+        if (pageState.properties.length === 0) {
+          showNoFavoritesState();
+        } else {
+          showFavoritesState();
+          renderProperties();
+        }
+        
+      } catch (error) {
+        console.error('❌ Error inicializando página de favoritos:', error);
+        pageState.hasError = true;
+        showNoFavoritesState();
+      }
+    }
+
+    // ===== FUNCIONES PARA CAMBIO DE ESTADO =====
+    function showLoadingState() {
+      const loadingEl = document.getElementById('loadingState');
+      const noFavoritesEl = document.getElementById('noFavoritesState');
+      const contentEl = document.getElementById('favoritesContent');
+      
+      if (loadingEl) loadingEl.classList.remove('hidden');
+      if (noFavoritesEl) noFavoritesEl.classList.add('hidden');
+      if (contentEl) contentEl.classList.add('hidden');
+    }
+
+    function showNoFavoritesState() {
+      const loadingEl = document.getElementById('loadingState');
+      const noFavoritesEl = document.getElementById('noFavoritesState');
+      const contentEl = document.getElementById('favoritesContent');
+      
+      if (loadingEl) loadingEl.classList.add('hidden');
+      if (noFavoritesEl) noFavoritesEl.classList.remove('hidden');
+      if (contentEl) contentEl.classList.add('hidden');
+    }
+
+    function showFavoritesState() {
+      const loadingEl = document.getElementById('loadingState');
+      const noFavoritesEl = document.getElementById('noFavoritesState');
+      const contentEl = document.getElementById('favoritesContent');
+      
+      if (loadingEl) loadingEl.classList.add('hidden');
+      if (noFavoritesEl) noFavoritesEl.classList.add('hidden');
+      if (contentEl) contentEl.classList.remove('hidden');
+    }
+
+    // ===== ACTUALIZACIÓN DE INFORMACIÓN DE USUARIO =====
+    function updateUserInfo(info) {
+      try {
+        // Actualizar ID de dispositivo
+        const deviceIdEl = document.getElementById('deviceId');
+        if (deviceIdEl) deviceIdEl.textContent = info.deviceId || '-';
+        
+        // Actualizar email
+        const userEmailEl = document.getElementById('userEmail');
+        const emailButtonEl = document.getElementById('emailButton');
+        
+        if (userEmailEl && info.email) {
+          userEmailEl.textContent = info.email;
+          userEmailEl.classList.remove('text-gray-500');
+          userEmailEl.classList.add('text-blue-600');
+        }
+        
+        if (emailButtonEl && info.email) {
+          // Cambiar botón a "Cambiar email"
+          const currentLanguage = document.documentElement.lang || 'es';
+          if (currentLanguage === 'en') {
+            emailButtonEl.textContent = 'Change email';
+          } else if (currentLanguage === 'fr') {
+            emailButtonEl.textContent = 'Changer email';
+          } else {
+            emailButtonEl.textContent = 'Cambiar email';
+          }
+        }
+        
+        // Actualizar contadores
+        const count = info.count || 0;
+        const favCountEl = document.getElementById('favoritesCount');
+        if (favCountEl) favCountEl.textContent = count.toString();
+      } catch (error) {
+        console.error('❌ Error en updateUserInfo:', error);
+      }
+    }
+
+    // ===== CARGAR REACCIONES =====
+    async function loadReactions() {
+      try {
+        const deviceInfo = window.simpleFavoritesManager.getDeviceInfo();
+        const response = await fetch(`https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/favorites/${deviceInfo.deviceId}/reactions`, {
+          headers: {
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          pageState.reactions = data.reactions || {};
+          console.log('✅ Reacciones cargadas:', pageState.reactions);
+        }
+      } catch (error) {
+        console.error('❌ Error loading reactions:', error);
+        pageState.reactions = {};
+      }
+    }
+
+    // ===== RENDERIZADO DE PROPIEDADES =====
+    function renderProperties() {
+      const propertiesGrid = document.getElementById('propertiesGrid');
+      if (!propertiesGrid) return;
+      
+      // Obtener propiedades ordenadas
+      const sortedProperties = sortProperties(pageState.properties);
+      
+      // Limpiar grid y renderizar propiedades
+      propertiesGrid.innerHTML = '';
+      
+      if (sortedProperties.length === 0) {
+        showNoFavoritesState();
+        return;
+      }
+      
+      propertiesGrid.innerHTML = sortedProperties.map((property) => {
+        const id = property.id;
+        const title = formatPropertyTitle(property);
+        const location = formatPropertyLocation(property);
+        const price = formatPropertyPrice(property);
+        const image = getPropertyImage(property);
+        const url = getPropertyUrl(property);
+        const type = getPropertyType(property);
+        const bedrooms = getPropertyBedrooms(property);
+        const bathrooms = getPropertyBathrooms(property);
+        const area = getPropertyArea(property);
+        const parking = getPropertyParking(property);
+        const code = getPropertyCode(property);
+        const status = getPropertyStatus(property);
+        const isProjectFlag = isProject(property);
+        
+        // Determinar texto del botón según idioma
+        const viewButtonText = document.documentElement.lang === 'en' ? 'View property' : 
+                              document.documentElement.lang === 'fr' ? 'Voir propriété' : 
+                              'Ver propiedad';
+        
+        return `
+        <a href="${url}" class="group cursor-pointer" data-property-id="${id}">
+          <article class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
+            <!-- Imagen -->
+            <div class="relative aspect-[4/3] overflow-hidden bg-gray-200">
+              <img
+                src="${image}"
+                alt="${title}"
+                class="w-full h-full object-cover transition-all duration-300"
+                loading="lazy"
+                onerror="this.src='https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen';"
+              />
+
+              ${type && type !== 'Propiedad' ? `
+              <span class="absolute top-3 left-3 bg-white/80 text-gray-700 px-2 py-1 rounded text-xs font-medium shadow-sm">
+                ${type}
+              </span>` : ''}
+
+              <!-- Botón de eliminar -->
+              <button
+                onclick="event.preventDefault(); event.stopPropagation(); removeProperty('${id}')"
+                class="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white transition-colors shadow-md z-20"
+                title="Eliminar de favoritos"
+              >
+                <svg class="w-4 h-4 text-red-500 hover:text-red-600 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Contenido -->
+            <div class="p-4">
+              <!-- Precio y código -->
+              <div class="flex justify-between items-center mb-2">
+                ${code ? `
+                <div class="text-xs text-gray-400 font-mono">
+                  ref.: ${code}
+                </div>` : '<div></div>'}
+                <div class="text-base font-bold text-[#f04e00] ml-auto">
+                  ${price}
+                </div>
+              </div>
+
+              <!-- Ubicación -->
+              <div class="flex items-center gap-1 mb-2">
+                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <p class="text-sm text-gray-600 truncate">${location}</p>
+              </div>
+
+              <!-- Título -->
+              <div class="h-12 flex items-center mb-3">
+                <h3 class="font-medium text-gray-800 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-snug">
+                  ${title}
+                </h3>
+              </div>
+
+              <!-- Características - SOLO ICONOS Y NÚMEROS -->
+              <div class="flex items-center justify-center gap-4 text-gray-900">
+                ${bedrooms > 0 ? `
+                <span class="flex items-center gap-1">
+                  <i class="fas fa-bed text-[#f04e00] text-sm"></i>
+                  <span class="font-semibold text-sm">${bedrooms}</span>
+                </span>` : ''}
+
+                ${bathrooms > 0 ? `
+                <span class="flex items-center gap-1">
+                  <i class="fas fa-bath text-[#f04e00] text-sm"></i>
+                  <span class="font-semibold text-sm">${bathrooms}</span>
+                </span>` : ''}
+
+                ${area > 0 ? `
+                <span class="flex items-center gap-1">
+                  <i class="fas fa-th-large text-[#f04e00] text-sm"></i>
+                  <span class="font-semibold text-sm">${area} m²</span>
+                </span>` : ''}
+
+                ${parking > 0 ? `
+                <span class="flex items-center gap-1">
+                  <i class="fas fa-car text-[#f04e00] text-sm"></i>
+                  <span class="font-semibold text-sm">${parking}</span>
+                </span>` : ''}
+              </div>
+
+              ${(() => {
+                const reactions = pageState.reactions[id] || { likes: [], dislikes: [], comments: [] };
+                const totalReactions = reactions.likes.length + reactions.dislikes.length + reactions.comments.length;
+
+                if (totalReactions === 0) return '';
+
+                return `
+                  <!-- Reacciones recibidas -->
+                  <div class="mt-4 pt-4 border-t border-gray-100">
+                    <p class="text-xs text-gray-500 mb-2">Reacciones de visitantes:</p>
+                    <div class="flex items-center gap-3 text-sm">
+                      ${reactions.likes.length > 0 ? `
+                        <span class="flex items-center gap-1 text-green-600">
+                          <i class="fas fa-thumbs-up text-xs"></i>
+                          <span class="font-semibold">${reactions.likes.length}</span>
+                        </span>
+                      ` : ''}
+                      ${reactions.dislikes.length > 0 ? `
+                        <span class="flex items-center gap-1 text-red-600">
+                          <i class="fas fa-thumbs-down text-xs"></i>
+                          <span class="font-semibold">${reactions.dislikes.length}</span>
+                        </span>
+                      ` : ''}
+                      ${reactions.comments.length > 0 ? `
+                        <span class="flex items-center gap-1 text-[#f04e00]">
+                          <i class="fas fa-comment text-xs"></i>
+                          <span class="font-semibold">${reactions.comments.length}</span>
+                        </span>
+                      ` : ''}
+                    </div>
+                    ${reactions.comments.length > 0 ? `
+                      <div class="mt-2 space-y-1">
+                        ${reactions.comments.slice(0, 2).map(comment => `
+                          <div class="bg-gray-50 rounded p-2 text-xs">
+                            <p class="font-semibold text-gray-700">${comment.visitor_alias}:</p>
+                            <p class="text-gray-600">${comment.comment_text}</p>
+                          </div>
+                        `).join('')}
+                        ${reactions.comments.length > 2 ? `
+                          <p class="text-xs text-gray-500">+${reactions.comments.length - 2} comentarios más</p>
+                        ` : ''}
+                      </div>
+                    ` : ''}
+                  </div>
+                `;
+              })()}
+            </div>
+          </article>
+        </a>
+      `;
+      }).join('');
+    }
+
+    // ===== HELPER FUNCTIONS PARA RENDERIZADO =====
+    
+    function extractPriceValue(priceString) {
+      const numbers = priceString.replace(/[^\d]/g, '');
+      return parseFloat(numbers) || 0;
+    }
+
+    function getPropertyImage(property) {
+      return property.imagen || 
+             (property.imagenes && property.imagenes.length > 0 ? property.imagenes[0] : null) ||
+             'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen';
+    }
+
+    function formatPropertyTitle(property) {
+      return property.titulo || property.name || property.private_name || 'Propiedad sin nombre';
+    }
+
+    function formatPropertyLocation(property) {
+      return property.sector || 'Ubicación no especificada';
+    }
+
+    function formatPropertyPrice(property) {
+      if (property.precio && property.precio !== 'Precio a consultar') {
+        return property.precio;
+      }
+      
+      if (property.precios) {
+        if (property.precios.venta) {
+          return `${property.precios.venta.formateado} (Venta)`;
+        }
+        if (property.precios.venta_amueblado) {
+          return `${property.precios.venta_amueblado.formateado} (Venta Amueblado)`;
+        }
+        if (property.precios.alquiler) {
+          return `${property.precios.alquiler.formateado}/mes (Alquiler)`;
+        }
+        if (property.precios.alquiler_amueblado) {
+          return `${property.precios.alquiler_amueblado.formateado}/mes (Alquiler Amueblado)`;
+        }
+        if (property.precios.alquiler_temporal) {
+          return `${property.precios.alquiler_temporal.formateado}/mes (Temporal)`;
+        }
+      }
+      
+      return 'Precio a consultar';
+    }
+
+    function getPropertyCode(property) {
+      return property.code || property.internal_code || null;
+    }
+
+    function getPropertyType(property) {
+      return property.tipo || 'Propiedad';
+    }
+
+    function getPropertyBedrooms(property) {
+      return property.habitaciones || property.bedrooms || 0;
+    }
+
+    function getPropertyBathrooms(property) {
+      return property.banos || property.bathrooms || 0;
+    }
+
+    function getPropertyArea(property) {
+      return property.metros || property.metros_construidos || property.built_area || 0;
+    }
+
+    function getPropertyParking(property) {
+      return property.estacionamientos || property.parking_spots || 0;
+    }
+
+    function getPropertyUrl(property) {
+      return property.url || property.slug || `/propiedad/${property.id}`;
+    }
+
+    function getPropertyStatus(property) {
+      return property.estado || property.property_status || null;
+    }
+
+    function isProject(property) {
+      return property.is_project === true;
+    }
+
+    // ===== ORDENAR PROPIEDADES =====
+    function sortProperties(properties) {
+      const sortType = document.getElementById('sort-favorites')?.value || 'recent';
+      
+      switch (sortType) {
+        case 'price-desc':
+          return properties.sort((a, b) => {
+            const priceA = extractPriceValue(formatPropertyPrice(a));
+            const priceB = extractPriceValue(formatPropertyPrice(b));
+            return priceB - priceA;
+          });
+        case 'price-asc':
+          return properties.sort((a, b) => {
+            const priceA = extractPriceValue(formatPropertyPrice(a));
+            const priceB = extractPriceValue(formatPropertyPrice(b));
+            return priceA - priceB;
+          });
+        case 'title':
+          return properties.sort((a, b) => {
+            const titleA = formatPropertyTitle(a);
+            const titleB = formatPropertyTitle(b);
+            return titleA.localeCompare(titleB);
+          });
+        case 'recent':
+        default:
+          return properties;
+      }
+    }
+
+    // ===== FUNCIONES DE INTERACCIÓN =====
+    async function removeProperty(propertyId) {
+      if (!confirm('¿Remover esta propiedad de tus favoritos?')) return;
+      
+      try {
+        await window.simpleFavoritesManager.removeFavorite(propertyId);
+        pageState.properties = pageState.properties.filter(p => p.id !== propertyId);
+        
+        if (pageState.properties.length > 0) {
+          renderProperties();
+          updateUserInfo(window.simpleFavoritesManager.getDeviceInfo());
+        } else {
+          showNoFavoritesState();
+        }
+        
+      } catch (error) {
+        console.error('❌ Error removiendo propiedad:', error);
+        alert('Error al remover la propiedad. Inténtalo de nuevo.');
+      }
+    }
+
+    async function saveEmail(event) {
+      event.preventDefault();
+      const email = document.getElementById('newEmail').value;
+      
+      try {
+        await window.simpleFavoritesManager.updateEmail(email);
+        updateUserInfo(window.simpleFavoritesManager.getDeviceInfo());
+        closeEmailModal();
+        alert('Email actualizado correctamente');
+      } catch (error) {
+        console.error('❌ Error guardando email:', error);
+        alert('Error al guardar el email. Inténtalo de nuevo.');
+      }
+    }
+
+    function shareList() {
+      const info = window.simpleFavoritesManager.getDeviceInfo();
+
+      // Determinar URL según idioma
+      const currentLanguage = document.documentElement.lang || 'es';
+      let shareUrl;
+      if (currentLanguage === 'en') {
+        shareUrl = `${window.location.origin}/en/favorites/share?id=${info.deviceId}`;
+      } else if (currentLanguage === 'fr') {
+        shareUrl = `${window.location.origin}/fr/favoris/partager?id=${info.deviceId}`;
+      } else {
+        shareUrl = `${window.location.origin}/favoritos/compartir?id=${info.deviceId}`;
+      }
+
+      // Textos según idioma
+      const texts = {
+        es: {
+          title: 'Mis propiedades favoritas',
+          text: 'Mira las propiedades que me interesan',
+          copied: '¡Enlace copiado!',
+          copiedDesc: 'El enlace ha sido copiado al portapapeles. Compártelo con quien quieras.'
+        },
+        en: {
+          title: 'My favorite properties',
+          text: 'Check out the properties I\'m interested in',
+          copied: 'Link copied!',
+          copiedDesc: 'The link has been copied to the clipboard. Share it with anyone.'
+        },
+        fr: {
+          title: 'Mes propriétés favorites',
+          text: 'Découvrez les propriétés qui m\'intéressent',
+          copied: 'Lien copié!',
+          copiedDesc: 'Le lien a été copié dans le presse-papiers. Partagez-le avec qui vous voulez.'
+        }
+      };
+
+      const t = texts[currentLanguage] || texts.es;
+
+      const shareData = {
+        title: t.title,
+        text: t.text,
+        url: shareUrl
+      };
+
+      if (navigator.share) {
+        navigator.share(shareData).catch((err) => {
+          console.log('Share cancelled or failed:', err);
+        });
+      } else {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          // Mostrar notificación moderna
+          showNotification(t.copied, t.copiedDesc, 'success');
+        }).catch((err) => {
+          console.error('Failed to copy:', err);
+          showNotification('Error', 'No se pudo copiar el enlace', 'error');
+        });
+      }
+    }
+
+    function showNotification(title, message, type = 'success') {
+      const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+      const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+      const notification = document.createElement('div');
+      notification.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-4 rounded-lg shadow-2xl z-50 flex items-start gap-3 max-w-sm animate-slide-in`;
+      notification.innerHTML = `
+        <i class="fas ${icon} text-xl mt-0.5"></i>
+        <div class="flex-1">
+          <p class="font-bold">${title}</p>
+          <p class="text-sm opacity-90">${message}</p>
+        </div>
+        <button onclick="this.parentElement.remove()" class="hover:opacity-80">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+
+      document.body.appendChild(notification);
+
+      setTimeout(() => {
+        notification.remove();
+      }, 4000);
+    }
+
+    function showEmailModal() {
+      const emailModal = document.getElementById('emailModal');
+      if (!emailModal) return;
+      
+      emailModal.classList.remove('hidden');
+      emailModal.classList.add('flex');
+      
+      const info = window.simpleFavoritesManager.getDeviceInfo();
+      const newEmailEl = document.getElementById('newEmail');
+      const emailModalTitleEl = document.getElementById('emailModalTitle');
+      
+      if (info.email && newEmailEl) {
+        newEmailEl.value = info.email;
+        
+        // Ajustar título según el idioma
+        if (emailModalTitleEl) {
+          const currentLanguage = document.documentElement.lang || 'es';
+          if (currentLanguage === 'en') {
+            emailModalTitleEl.textContent = 'Change Email';
+          } else if (currentLanguage === 'fr') {
+            emailModalTitleEl.textContent = 'Changer Email';
+          } else {
+            emailModalTitleEl.textContent = 'Cambiar Email';
+          }
+        }
+      }
+    }
+
+    function closeEmailModal() {
+      const emailModal = document.getElementById('emailModal');
+      const newEmailEl = document.getElementById('newEmail');
+      
+      if (emailModal) {
+        emailModal.classList.add('hidden');
+        emailModal.classList.remove('flex');
+      }
+      
+      if (newEmailEl) {
+        newEmailEl.value = '';
+      }
+    }
+
+    // ===== INICIALIZACIÓN =====
+    document.addEventListener('DOMContentLoaded', function() {
+      initializePage();
+      
+      // Event listener para ordenamiento
+      const sortEl = document.getElementById('sort-favorites');
+      if (sortEl) {
+        sortEl.addEventListener('change', renderProperties);
+      }
+    });
+
+    // Funciones globales
+    window.removeProperty = removeProperty;
+    window.shareList = shareList;
+    window.showEmailModal = showEmailModal;
+    window.closeEmailModal = closeEmailModal;
+    window.saveEmail = saveEmail;
+  </script>
+
+</Layout>
+
+<style>
+  /* Estilos para cards y hover */
+  .hover\:scale-105:hover {
+    transform: scale(1.05);
+  }
+
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+  }
+
+  .group:hover .group-hover\:text-\[\#f04e00\] {
+    color: #f04e00;
+  }
+
+  /* Animación para notificaciones */
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+
+  /* Limitar texto a una o dos líneas */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

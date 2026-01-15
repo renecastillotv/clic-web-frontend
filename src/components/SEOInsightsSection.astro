@@ -1,0 +1,357 @@
+---
+// SEOInsightsSection.astro - SOLO VISIÓN DE MERCADO usando organizedSeoData
+interface Props {
+  seoContent: any;
+  searchInfo: any;
+  language?: 'es' | 'en' | 'fr';
+  country?: any;
+  organizedSeoData?: any;
+  aggregatedStats?: any; // No se usa - reservado para header
+  enhancedContext?: any;
+}
+
+const { 
+  seoContent, 
+  searchInfo, 
+  language = 'es', 
+  country,
+  organizedSeoData,
+  aggregatedStats, // Ignorado intencionalmente
+  enhancedContext
+} = Astro.props;
+
+// Traducciones
+const translations = {
+  es: {
+    marketData: "Datos del mercado",
+    updatedInfo: "Información actualizada",
+    yield: "Rendimiento",
+    financing: "Financiamiento",
+    upTo: "Hasta",
+    process: "Proceso",
+    days: "días",
+    tourism: "Turismo",
+    annualVisitors: "anuales",
+    gdp: "PIB",
+    security: "Seguridad",
+    safeZones: "Zonas seguras",
+    localInfo: "Información local",
+    appreciation: "Apreciación anual",
+    infrastructure: "Infraestructura"
+  },
+  en: {
+    marketData: "Market Data",
+    updatedInfo: "Updated information",
+    yield: "Yield",
+    financing: "Financing",
+    upTo: "Up to",
+    process: "Process",
+    days: "days",
+    tourism: "Tourism",
+    annualVisitors: "annual",
+    gdp: "GDP",
+    security: "Security",
+    safeZones: "Safe areas",
+    localInfo: "Local information",
+    appreciation: "Annual appreciation",
+    infrastructure: "Infrastructure"
+  },
+  fr: {
+    marketData: "Données du marché",
+    updatedInfo: "Information mise à jour",
+    yield: "Rendement",
+    financing: "Financement",
+    upTo: "Jusqu'à",
+    process: "Processus",
+    days: "jours",
+    tourism: "Tourisme",
+    annualVisitors: "annuels",
+    gdp: "PIB",
+    security: "Sécurité",
+    safeZones: "Zones sûres",
+    localInfo: "Information locale",
+    appreciation: "Appréciation annuelle",
+    infrastructure: "Infrastructure"
+  }
+};
+
+const t = translations[language] || translations.es;
+
+// Early return si no hay datos DE MERCADO
+if (!organizedSeoData && !seoContent) {
+  return null;
+}
+
+// FUNCIÓN: Extraer insights SOLO de organizedSeoData (visión del mercado)
+function extractMarketInsights() {
+  const insights = [];
+
+  if (organizedSeoData) {
+    // PRIORIDAD 1: Indicadores económicos del país
+    if (organizedSeoData.country?.market_insights) {
+      const countryInsights = organizedSeoData.country.market_insights;
+      
+      // Turismo
+      if (countryInsights.tourism_boost?.includes('millones') || countryInsights.tourism_boost?.includes('million')) {
+        const match = countryInsights.tourism_boost.match(/(\d+\.?\d*)/);
+        if (match) {
+          insights.push({
+            icon: 'fas fa-plane',
+            label: t.tourism,
+            value: `${match[1]}M+ ${t.annualVisitors}`,
+            color: 'text-sky-600',
+            priority: 1
+          });
+        }
+      }
+
+      // PIB/Crecimiento
+      if (countryInsights.economic_growth?.includes('%')) {
+        const match = countryInsights.economic_growth.match(/(\d+\.?\d*)%/);
+        if (match) {
+          insights.push({
+            icon: 'fas fa-chart-line',
+            label: t.gdp,
+            value: `+${match[1]}%`,
+            color: 'text-emerald-600',
+            priority: 2
+          });
+        }
+      }
+    }
+
+    // PRIORIDAD 2: Datos de inversión
+    const investmentData = organizedSeoData.sector?.investment_data || 
+                          organizedSeoData.city?.investment_data || 
+                          organizedSeoData.operation?.investment_data ||
+                          organizedSeoData.country?.investment_data;
+    
+    if (investmentData) {
+      // Rendimientos
+      if (investmentData.rental_yields) {
+        const match = investmentData.rental_yields.match(/(\d+-?\d+)%/);
+        if (match) {
+          insights.push({
+            icon: 'fas fa-percentage',
+            label: t.yield,
+            value: `${match[1]}%`,
+            color: 'text-green-600',
+            priority: 3
+          });
+        }
+      }
+
+      // Apreciación
+      if (investmentData.appreciation_rates) {
+        const match = investmentData.appreciation_rates.match(/(\d+-?\d+)%/);
+        if (match) {
+          insights.push({
+            icon: 'fas fa-trending-up',
+            label: t.appreciation,
+            value: `${match[1]}%`,
+            color: 'text-red-600',
+            priority: 4
+          });
+        }
+      }
+    }
+
+    // PRIORIDAD 3: Tips operacionales
+    const operationTips = organizedSeoData.operation?.tips || {};
+    
+    if (operationTips.financing?.includes('80%')) {
+      insights.push({
+        icon: 'fas fa-university',
+        label: t.financing,
+        value: `${t.upTo} 80%`,
+        color: 'text-blue-600',
+        priority: 5
+      });
+    }
+
+    if (operationTips.buying_process) {
+      const match = operationTips.buying_process.match(/(\d+-?\d+)\s*(días|days|jours)/i);
+      if (match) {
+        insights.push({
+          icon: 'fas fa-clock',
+          label: t.process,
+          value: `${match[1]} ${t.days}`,
+          color: 'text-orange-600',
+          priority: 6
+        });
+      }
+    }
+
+    // PRIORIDAD 4: Características del mercado
+    if (organizedSeoData.sector?.characteristics?.safety) {
+      insights.push({
+        icon: 'fas fa-shield-alt',
+        label: t.security,
+        value: t.safeZones,
+        color: 'text-teal-600',
+        priority: 7
+      });
+    }
+
+    if (organizedSeoData.city?.characteristics?.infrastructure) {
+      insights.push({
+        icon: 'fas fa-wifi',
+        label: t.infrastructure,
+        value: 'Servicios modernos',
+        color: 'text-purple-600',
+        priority: 8
+      });
+    }
+  }
+
+  // FALLBACK: Datos legacy
+  if (insights.length === 0 && seoContent?.neighborhood_info?.safety) {
+    insights.push({
+      icon: 'fas fa-shield-alt',
+      label: t.security,
+      value: t.safeZones,
+      color: 'text-teal-600',
+      priority: 10
+    });
+  }
+
+  return insights.sort((a, b) => a.priority - b.priority).slice(0, 8);
+}
+
+// FUNCIÓN: Texto informativo de mercado
+function getMarketInfoText() {
+  let infoTexts = [];
+
+  // Tips por pilar
+  if (organizedSeoData?.sector?.tips) {
+    Object.values(organizedSeoData.sector.tips).forEach(tip => {
+      if (typeof tip === 'string' && tip.length > 50 && tip.length < 200) {
+        infoTexts.push({ text: tip, priority: 1 });
+      }
+    });
+  }
+
+  if (organizedSeoData?.city?.tips) {
+    Object.values(organizedSeoData.city.tips).forEach(tip => {
+      if (typeof tip === 'string' && tip.length > 50 && tip.length < 200) {
+        infoTexts.push({ text: tip, priority: 2 });
+      }
+    });
+  }
+
+  if (organizedSeoData?.operation?.tips) {
+    Object.values(organizedSeoData.operation.tips).forEach(tip => {
+      if (typeof tip === 'string' && tip.length > 50 && tip.length < 200) {
+        infoTexts.push({ text: tip, priority: 3 });
+      }
+    });
+  }
+
+  // Fallback por ubicación
+  if (infoTexts.length === 0 && searchInfo?.location?.includes('Santo Domingo')) {
+    const defaultText = language === 'es' 
+      ? 'Servicios públicos estables. Internet fibra óptica, electricidad mejorada.'
+      : language === 'en'
+      ? 'Stable public services. Fiber optic internet, improved electricity.'
+      : 'Services publics stables. Internet fibre optique, électricité améliorée.';
+    
+    infoTexts.push({ text: defaultText, priority: 10 });
+  }
+
+  if (infoTexts.length === 0) return null;
+  
+  const selectedInfo = infoTexts.sort((a, b) => a.priority - b.priority)[0];
+  let text = selectedInfo.text;
+  
+  if (text.length > 200) {
+    text = text.substring(0, 200) + '...';
+  }
+  
+  return text;
+}
+
+// Procesar datos
+const displayInsights = extractMarketInsights();
+const marketInfoText = getMarketInfoText();
+
+// Título contextual - siempre "Datos del mercado"
+function getContextualTitle() {
+  const baseTitle = t.marketData;
+  
+  if (searchInfo?.sector && searchInfo?.location) {
+    return `${baseTitle} - ${searchInfo.sector}, ${searchInfo.location}`;
+  }
+  if (searchInfo?.location) {
+    return `${baseTitle} - ${searchInfo.location}`;
+  }
+  if (searchInfo?.propertyType) {
+    return `${baseTitle} - ${searchInfo.propertyType}`;
+  }
+  return baseTitle;
+}
+
+const contextualTitle = getContextualTitle();
+
+console.log('🔍 SEOInsightsSection - Market Focus:', {
+  hasOrganizedSeoData: !!organizedSeoData,
+  marketInsights: displayInsights.length,
+  hasInfoText: !!marketInfoText
+});
+---
+
+{displayInsights.length > 0 && (
+  <section class="bg-white py-6 border-t border-gray-100">
+    <div class="container mx-auto px-4">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-gray-900">{contextualTitle}</h2>
+        <span class="text-sm text-gray-500 flex items-center gap-1">
+          <i class="fas fa-clock text-xs"></i>
+          {t.updatedInfo}
+        </span>
+      </div>
+
+      <!-- Grid de insights -->
+      <div class={`grid gap-4 mb-6 ${
+        displayInsights.length <= 3 ? 'grid-cols-1 sm:grid-cols-3' :
+        displayInsights.length === 4 ? 'grid-cols-2 md:grid-cols-4' :
+        displayInsights.length <= 6 ? 'grid-cols-2 md:grid-cols-3' :
+        'grid-cols-2 md:grid-cols-4'
+      }`}>
+        {displayInsights.map((insight, index) => (
+          <div class="text-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors hover:shadow-sm group">
+            <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm mb-3 group-hover:shadow-md transition-shadow">
+              <i class={`${insight.icon} ${insight.color} text-lg`}></i>
+            </div>
+            <div class="text-lg font-bold text-gray-900 mb-1">{insight.value}</div>
+            <div class="text-sm text-gray-600">{insight.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Información local con color naranja rojizo -->
+      {marketInfoText && (
+        <div class="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-200 p-4">
+          <div class="flex items-start gap-3">
+            <div class="flex-shrink-0">
+              <i class="fas fa-info-circle text-orange-600 text-lg mt-0.5"></i>
+            </div>
+            <div class="flex-1">
+              <span class="font-medium text-orange-900 text-sm block mb-1">
+                {searchInfo?.location ? 
+                  `${t.localInfo} ${searchInfo.location}:` : 
+                  `${t.localInfo}:`
+                }
+              </span>
+              <p class="text-orange-800 text-sm leading-relaxed">
+                {marketInfoText}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  </section>
+)}

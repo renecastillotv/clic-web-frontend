@@ -1,0 +1,588 @@
+---
+// src/layouts/VideosMainLayout.astro - Layout principal de videos con diseño impactante
+import Layout from './Layout.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+let videosData = safeObject(data);
+
+// Procesar videos destacados
+const rawFeaturedVideos = safeArray(videosData.featuredVideos);
+const safeFeaturedVideos = rawFeaturedVideos.map((video, index) => ({
+  id: safeString(video.id, `featured-${index}`),
+  title: safeString(video.title, 'Video sin título'),
+  description: safeString(video.description, 'Descripción no disponible'),
+  thumbnail: safeString(video.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
+  videoSlug: safeString(video.videoSlug || video.slug, '#'),
+  duration: safeString(video.duration, '0:00'),
+  publishedAt: safeString(video.publishedAt, new Date().toISOString()),
+  views: safeNumber(video.views, 0),
+  featured: Boolean(video.featured),
+  url: safeString(video.url, '#'),
+  slug: safeString(video.slug),
+  author: safeObject(video.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    slug: 'equipo-clic',
+    position: 'Especialista Inmobiliario'
+  }),
+  category: video.category ? safeObject(video.category, null) : null
+}));
+
+// Procesar videos recientes
+const rawRecentVideos = safeArray(videosData.recentVideos);
+const safeRecentVideos = rawRecentVideos.map((video, index) => ({
+  id: safeString(video.id, `recent-${index}`),
+  title: safeString(video.title, 'Video sin título'),
+  description: safeString(video.description, 'Descripción no disponible'),
+  thumbnail: safeString(video.thumbnail, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=600&fit=crop'),
+  videoSlug: safeString(video.videoSlug || video.slug, '#'),
+  duration: safeString(video.duration, '0:00'),
+  publishedAt: safeString(video.publishedAt, new Date().toISOString()),
+  views: safeNumber(video.views, 0),
+  featured: Boolean(video.featured),
+  url: safeString(video.url, '#'),
+  slug: safeString(video.slug),
+  author: safeObject(video.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    slug: 'equipo-clic',
+    position: 'Especialista Inmobiliario'
+  }),
+  category: video.category ? safeObject(video.category, null) : null
+}));
+
+// Video destacado principal (el primero de featured o el más visto)
+const heroVideo = safeFeaturedVideos[0] || safeRecentVideos.reduce((prev, current) =>
+  (current.views > prev.views) ? current : prev,
+  safeRecentVideos[0] || null
+);
+
+// Videos para el grid (excluir el hero y eliminar duplicados)
+const allVideos = [...safeFeaturedVideos.slice(1), ...safeRecentVideos];
+const seenVideoIds = new Set();
+if (heroVideo?.id) {
+  seenVideoIds.add(heroVideo.id);
+}
+const gridVideos = allVideos.filter(video => {
+  if (seenVideoIds.has(video.id)) {
+    return false; // Skip duplicados
+  }
+  seenVideoIds.add(video.id);
+  return true;
+}).slice(0, 11); // Máximo 11 videos en el grid
+
+// Procesar categorías con iconos Font Awesome
+const rawCategories = safeArray(videosData.categories);
+const safeCategories = rawCategories.map((cat, index) => {
+  const iconMap = {
+    'lanzamientos': 'fa-rocket',
+    'consejos': 'fa-lightbulb',
+    'diseno-y-decoracion': 'fa-palette',
+    'la-casa-de-los-famosos': 'fa-star',
+    'entrevistas': 'fa-microphone',
+    'recorridos': 'fa-video'
+  };
+
+  return {
+    id: safeString(cat.id, `category-${index}`),
+    name: safeString(cat.name, 'Categoría sin nombre'),
+    slug: safeString(cat.slug, `categoria-${index}`),
+    url: safeString(cat.url, `#categoria-${index}`),
+    videoCount: safeNumber(cat.videoCount, 0),
+    featured: Boolean(cat.featured),
+    icon: iconMap[cat.slug] || 'fa-play-circle'
+  };
+});
+
+// Procesar estadísticas
+const rawStats = safeObject(videosData.stats);
+const safeStats = {
+  totalVideos: rawStats.totalVideos || [...safeFeaturedVideos, ...safeRecentVideos].length,
+  totalCategories: rawStats.totalCategories || safeCategories.length,
+  totalViews: rawStats.totalViews || [...safeFeaturedVideos, ...safeRecentVideos].reduce((sum, video) => sum + video.views, 0)
+};
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    title: 'Centro de Videos CLIC Inmobiliaria',
+    subtitle: 'Descubre propiedades, conoce las casas de los famosos, aprende tips de decoración e inversión con el canal inmobiliario #1 de República Dominicana',
+    watchNow: 'Ver ahora',
+    moreVideos: 'Más videos',
+    exploreCategories: 'Explorar categorías',
+    duration: 'duración',
+    views: 'visualizaciones',
+    author: 'Por',
+    publishedOn: 'Publicado el',
+    videos: 'videos',
+    ctaTitle: '¿No encuentras lo que buscas?',
+    ctaSubtitle: 'Suscríbete a nuestro canal de YouTube para no perderte ningún video nuevo',
+    ctaButton1: 'Suscribirse al canal',
+    ctaButton2: 'Solicitar video personalizado',
+    statsLabels: {
+      videos: 'Videos',
+      categories: 'Categorías',
+      views: 'Visualizaciones'
+    },
+    featuredVideo: 'Video Destacado',
+    latestVideos: 'Últimos Videos'
+  },
+  en: {
+    title: 'CLIC Real Estate Video Center',
+    subtitle: 'Discover properties, explore celebrity homes, learn decoration and investment tips with the #1 real estate channel in Dominican Republic',
+    watchNow: 'Watch now',
+    moreVideos: 'More videos',
+    exploreCategories: 'Explore categories',
+    duration: 'duration',
+    views: 'views',
+    author: 'By',
+    publishedOn: 'Published on',
+    videos: 'videos',
+    ctaTitle: 'Can\'t find what you\'re looking for?',
+    ctaSubtitle: 'Subscribe to our YouTube channel to never miss a new video',
+    ctaButton1: 'Subscribe to channel',
+    ctaButton2: 'Request custom video',
+    statsLabels: {
+      videos: 'Videos',
+      categories: 'Categories',
+      views: 'Views'
+    },
+    featuredVideo: 'Featured Video',
+    latestVideos: 'Latest Videos'
+  },
+  fr: {
+    title: 'Centre Vidéo CLIC Immobilier',
+    subtitle: 'Découvrez des propriétés, explorez les maisons de célébrités, apprenez des conseils de décoration et d\'investissement avec la chaîne immobilière #1',
+    watchNow: 'Regarder maintenant',
+    moreVideos: 'Plus de vidéos',
+    exploreCategories: 'Explorer les catégories',
+    duration: 'durée',
+    views: 'vues',
+    author: 'Par',
+    publishedOn: 'Publié le',
+    videos: 'vidéos',
+    ctaTitle: 'Vous ne trouvez pas ce que vous cherchez?',
+    ctaSubtitle: 'Abonnez-vous à notre chaîne YouTube pour ne manquer aucune nouvelle vidéo',
+    ctaButton1: 'S\'abonner',
+    ctaButton2: 'Demander vidéo personnalisée',
+    statsLabels: {
+      videos: 'Vidéos',
+      categories: 'Catégories',
+      views: 'Vues'
+    },
+    featuredVideo: 'Vidéo en Vedette',
+    latestVideos: 'Dernières Vidéos'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// ===================================================================
+// PROCESAR SEO
+// ===================================================================
+
+const rawSeo = safeObject(videosData.seo);
+const safeSeo = {
+  title: safeString(rawSeo.title) || text.title,
+  description: safeString(rawSeo.description) || text.subtitle,
+  h1: safeString(rawSeo.h1) || text.title,
+  h2: safeString(rawSeo.h2) || text.subtitle,
+  canonical_url: safeString(rawSeo.canonical_url, language === 'es' ? '/videos' : `/${language}/videos`),
+  ogImage: safeString(rawSeo.ogImage, '/og-videos.jpg'),
+  hreflang: safeObject(rawSeo.hreflang, {}),  // Agregar hreflang del backend
+  breadcrumbs: safeArray(rawSeo.breadcrumbs, [
+    {
+      name: language === 'en' ? 'Home' : language === 'fr' ? 'Accueil' : 'Inicio',
+      url: language === 'es' ? '/' : `/${language}/`
+    },
+    {
+      name: language === 'en' ? 'Videos' : language === 'fr' ? 'Vidéos' : 'Videos',
+      url: language === 'es' ? '/videos' : `/${language}/videos`
+    }
+  ])
+};
+
+// Layout Props
+const layoutProps = {
+  title: safeSeo.title,
+  description: safeSeo.description,
+  ogImage: safeSeo.ogImage,
+  canonical: safeSeo.canonical_url,
+  hreflangData: safeSeo.hreflang || {},
+  globalConfig: data?.globalConfig || {},
+  language: language,
+  trackingString: data?.trackingString || '',
+  breadcrumbs: safeSeo.breadcrumbs
+};
+
+// Función para truncar descripción
+function stripHtml(html) {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+}
+
+console.log('✅ VideosMainLayout preparado:', {
+  language,
+  heroVideo: heroVideo?.title,
+  gridVideosCount: gridVideos.length,
+  categoriesCount: safeCategories.length
+});
+---
+
+<Layout {...layoutProps}>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+  <div class="min-h-screen bg-white">
+
+    <!-- Hero Section con breadcrumbs coherentes -->
+    <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+
+      <div class="w-full px-4 relative z-10">
+        <div class="max-w-6xl mx-auto">
+
+          <!-- Breadcrumbs coherentes con el resto del sitio -->
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {safeSeo.breadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === safeSeo.breadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+
+          <!-- Title -->
+          <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+              {safeSeo.h1 || text.title}
+            </h1>
+            <p class="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              {safeSeo.h2 || text.subtitle}
+            </p>
+          </div>
+
+          <!-- Stats -->
+          <div class="flex flex-wrap justify-center items-center gap-8 md:gap-12 mb-8">
+            <div class="text-center">
+              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{safeStats.totalVideos}+</div>
+              <div class="text-sm text-gray-400">{text.statsLabels.videos}</div>
+            </div>
+            <div class="h-8 w-px bg-gray-700"></div>
+            <div class="text-center">
+              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{Math.floor(safeStats.totalViews / 1000)}K+</div>
+              <div class="text-sm text-gray-400">{text.statsLabels.views}</div>
+            </div>
+            <div class="h-8 w-px bg-gray-700"></div>
+            <div class="text-center">
+              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{safeStats.totalCategories}</div>
+              <div class="text-sm text-gray-400">{text.statsLabels.categories}</div>
+            </div>
+          </div>
+
+          <!-- Categorías -->
+          {safeCategories.length > 0 && (
+            <div>
+              <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4 text-center">{text.exploreCategories}</h3>
+              <div class="flex flex-wrap justify-center gap-3">
+                {safeCategories.map((category) => (
+                  <a
+                    href={category.url}
+                    class="group flex items-center gap-2 bg-white/5 hover:bg-[#f04e00] backdrop-blur-sm border border-white/10 hover:border-[#f04e00] rounded-lg px-4 py-2.5 transition-all duration-300"
+                    key={category.id}
+                  >
+                    <i class={`fas ${category.icon} text-[#f04e00] group-hover:text-white transition-colors`}></i>
+                    <div>
+                      <span class="text-white text-sm font-medium">{category.name}</span>
+                      <span class="text-xs text-gray-400 group-hover:text-white/80 ml-2">
+                        {category.videoCount}
+                      </span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+    <!-- Hero Video Section - Diseño impactante y cinematográfico -->
+    {heroVideo && (
+      <section class="py-16 bg-gradient-to-b from-gray-50 to-white">
+        <div class="container mx-auto px-4">
+          <div class="max-w-7xl mx-auto">
+
+            <div class="flex items-center gap-3 mb-8">
+              <div class="w-12 h-1 bg-[#f04e00]"></div>
+              <h2 class="text-3xl md:text-4xl font-bold text-gray-900">
+                {text.featuredVideo}
+              </h2>
+            </div>
+
+            <div class="relative group">
+              <!-- Video Container con aspect ratio cinematográfico -->
+              <a href={heroVideo.url} class="block relative overflow-hidden rounded-2xl shadow-2xl">
+                <div class="aspect-video relative">
+                  <img
+                    src={heroVideo.thumbnail}
+                    alt={heroVideo.title}
+                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+
+                  <!-- Gradient overlay -->
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+
+                  <!-- Play button overlay -->
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-24 h-24 bg-[#f04e00] rounded-full flex items-center justify-center transform transition-all duration-300 group-hover:scale-110 group-hover:bg-white shadow-2xl">
+                      <i class="fas fa-play text-3xl text-white group-hover:text-[#f04e00] ml-2"></i>
+                    </div>
+                  </div>
+
+                  <!-- Duration badge -->
+                  <div class="absolute top-4 right-4 bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg font-bold">
+                    <i class="far fa-clock mr-2"></i>
+                    {heroVideo.duration}
+                  </div>
+
+                  <!-- Content overlay en la parte inferior -->
+                  <div class="absolute bottom-0 left-0 right-0 p-8">
+                    <div class="flex items-center gap-3 mb-4">
+                      <img
+                        src={heroVideo.author.avatar}
+                        alt={heroVideo.author.name}
+                        class="w-12 h-12 rounded-full border-2 border-white"
+                      />
+                      <div>
+                        <p class="text-white font-semibold">{heroVideo.author.name}</p>
+                        <p class="text-white/80 text-sm">{heroVideo.author.position}</p>
+                      </div>
+                      <div class="ml-auto flex items-center gap-2 text-white/90 text-sm">
+                        <i class="far fa-eye"></i>
+                        <span class="font-medium">{heroVideo.views.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    <h3 class="text-2xl md:text-3xl font-bold text-white mb-3 line-clamp-2 leading-tight">
+                      {heroVideo.title}
+                    </h3>
+
+                    <p class="text-white/90 text-base line-clamp-2 max-w-3xl">
+                      {stripHtml(heroVideo.description).substring(0, 200)}...
+                    </p>
+                  </div>
+                </div>
+              </a>
+
+              <!-- CTA Button fuera del video -->
+              <div class="mt-6 flex justify-center">
+                <a
+                  href={heroVideo.url}
+                  class="inline-flex items-center gap-3 bg-[#f04e00] text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-[#d94400] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <i class="fas fa-play"></i>
+                  {text.watchNow}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Grid de Videos -->
+    {gridVideos.length > 0 && (
+      <section class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+          <div class="max-w-7xl mx-auto">
+
+            <div class="flex items-center gap-3 mb-10">
+              <div class="w-12 h-1 bg-[#f04e00]"></div>
+              <h2 class="text-3xl md:text-4xl font-bold text-gray-900">
+                {text.latestVideos}
+              </h2>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {gridVideos.map(video => (
+                <article class="bg-white rounded-lg shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden group" key={video.id}>
+                  <a href={video.url} class="block">
+                    <!-- Thumbnail -->
+                    <div class="aspect-video relative overflow-hidden">
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        loading="lazy"
+                      />
+
+                      <!-- Play overlay -->
+                      <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div class="w-16 h-16 bg-white/95 rounded-full flex items-center justify-center">
+                          <i class="fas fa-play text-xl text-[#f04e00] ml-1"></i>
+                        </div>
+                      </div>
+
+                      <!-- Categoría en la parte superior izquierda -->
+                      {video.category && (
+                        <div class="absolute top-2 left-2">
+                          <span class="bg-[#f04e00] text-white px-2.5 py-1 rounded text-xs font-bold shadow-lg">
+                            {video.category.name}
+                          </span>
+                        </div>
+                      )}
+
+                      <!-- Duration en la parte inferior derecha -->
+                      <div class="absolute bottom-2 right-2">
+                        <span class="bg-black/80 text-white px-2.5 py-1 rounded text-xs font-bold">
+                          {video.duration}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-4">
+                      <h3 class="font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
+                        {video.title}
+                      </h3>
+
+                      <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                          <img
+                            src={video.author.avatar}
+                            alt={video.author.name}
+                            class="w-6 h-6 rounded-full flex-shrink-0"
+                          />
+                          <span class="truncate">{video.author.name}</span>
+                        </div>
+                      </div>
+
+                      <!-- Views prominente -->
+                      <div class="flex items-center gap-1.5 text-gray-600">
+                        <i class="far fa-eye text-[#f04e00]"></i>
+                        <span class="font-semibold text-sm">
+                          {video.views > 1000 ? `${Math.floor(video.views/1000)}K` : video.views} {video.views === 1 ? 'vista' : 'vistas'}
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-br from-[#f04e00] to-[#d94400]">
+      <div class="container mx-auto px-4 text-center">
+        <div class="max-w-3xl mx-auto">
+          <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+            {text.ctaTitle}
+          </h2>
+          <p class="text-xl text-white/90 mb-8">
+            {text.ctaSubtitle}
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="https://youtube.com/@clicinmobiliaria"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#f04e00] rounded-xl hover:bg-gray-100 transition-all duration-300 font-bold shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+              {text.ctaButton1}
+            </a>
+            <a
+              href={language === 'es' ? '/contacto' : `/${language}/contact`}
+              class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/20 text-white border-2 border-white rounded-xl hover:bg-white/30 transition-all duration-300 font-bold"
+            >
+              <i class="fas fa-video"></i>
+              {text.ctaButton2}
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</Layout>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+  }
+
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+  }
+
+  .group:hover .group-hover\:scale-110 {
+    transform: scale(1.10);
+  }
+
+  .group:hover .group-hover\:text-[#f04e00] {
+    color: #f04e00;
+  }
+</style>

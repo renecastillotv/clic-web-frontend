@@ -1,0 +1,206 @@
+---
+// src/components/property/sidebar/TestimonialsWidget.astro
+export interface Props {
+  data: any;
+  language?: string;
+}
+
+const { data, language = 'es' } = Astro.props;
+
+// Multilingual texts
+const texts = {
+  es: {
+    title: "Testimonios",
+    verifiedTestimonials: "Testimonios verificados",
+    verifiedClient: "Cliente verificado",
+    seeAll: "Ver todos",
+    clientClic: "Cliente CLIC",
+    excellentExperience: "Excelente experiencia con CLIC Inmobiliaria"
+  },
+  en: {
+    title: "Testimonials",
+    verifiedTestimonials: "Verified testimonials",
+    verifiedClient: "Verified client",
+    seeAll: "See all",
+    clientClic: "CLIC Client",
+    excellentExperience: "Excellent experience with CLIC Real Estate"
+  },
+  fr: {
+    title: "Témoignages",
+    verifiedTestimonials: "Témoignages vérifiés",
+    verifiedClient: "Client vérifié",
+    seeAll: "Voir tous",
+    clientClic: "Client CLIC",
+    excellentExperience: "Excellente expérience avec CLIC Immobilier"
+  }
+};
+
+const t = texts[language] || texts.es;
+
+// Build testimonials URL based on language
+const allTestimonialsUrl = language === 'en' ? '/en/testimonials' : 
+                          language === 'fr' ? '/fr/temoignages' : 
+                          '/testimonios';
+
+// Función para limpiar texto de testimonios
+function cleanTestimonialText(text) {
+  if (!text) return '';
+  
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')  // Remover **texto**
+    .replace(/<b>(.*?)<\/b>/gi, '$1') // Remover <b>texto</b>
+    .replace(/<strong>(.*?)<\/strong>/gi, '$1') // Remover <strong>texto</strong>
+    .replace(/<i>(.*?)<\/i>/gi, '$1') // Remover <i>texto</i>
+    .replace(/<em>(.*?)<\/em>/gi, '$1') // Remover <em>texto</em>
+    .replace(/<br\s*\/?>/gi, ' ') // Remover <br>
+    .replace(/<p>(.*?)<\/p>/gi, '$1 ') // Remover <p>texto</p>
+    .replace(/<[^>]*>/g, '') // Remover cualquier otra etiqueta HTML
+    .replace(/&nbsp;/g, ' ') // Remover &nbsp;
+    .replace(/&amp;/g, '&') // Decodificar &amp;
+    .replace(/&lt;/g, '<') // Decodificar &lt;
+    .replace(/&gt;/g, '>') // Decodificar &gt;
+    .replace(/&quot;/g, '"') // Decodificar &quot;
+    .replace(/&#39;/g, "'") // Decodificar &#39;
+    .replace(/\s+/g, ' ') // Múltiples espacios a uno
+    .trim();
+}
+
+const rawTestimonials = [
+  ...(data.content?.testimonials || []),
+  ...(data.relatedContent?.testimonials || [])
+];
+
+// Limpiar todos los textos de testimonios
+const testimonials = rawTestimonials.map(testimonial => ({
+  ...testimonial,
+  excerpt: cleanTestimonialText(testimonial.excerpt),
+  full_testimonial: cleanTestimonialText(testimonial.full_testimonial),
+  title: cleanTestimonialText(testimonial.title),
+  client_name: cleanTestimonialText(testimonial.client_name),
+  client_profession: cleanTestimonialText(testimonial.client_profession),
+  client_location: cleanTestimonialText(testimonial.client_location),
+  transaction_location: cleanTestimonialText(testimonial.transaction_location)
+}));
+
+console.log('🎯 TestimonialsWidget Debug:', {
+  language,
+  testimonialsCount: testimonials.length,
+  allTestimonialsUrl,
+  firstTestimonialUrl: testimonials[0]?.url,
+  testimonialsUrls: testimonials.slice(0, 3).map(t => t.url)
+});
+---
+
+<!-- Testimonials Widget -->
+{testimonials.length > 0 && (
+  <div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+    <div class="flex items-center gap-2 mb-6">
+      <i class="fas fa-quote-left text-[#f04e00] text-lg"></i>
+      <h3 class="text-lg font-semibold text-gray-900">{t.title}</h3>
+    </div>
+
+    <div class="space-y-6">
+      {testimonials.slice(0, 3).map((testimonial) => {
+        // Determinar el texto del testimonio limpio
+        const testimonialText = testimonial.excerpt || 
+                              testimonial.full_testimonial || 
+                              testimonial.title || 
+                              t.excellentExperience;
+        
+        // Truncar si es muy largo
+        const displayText = testimonialText.length > 120 ? 
+                           `${testimonialText.substring(0, 120)}...` : 
+                           testimonialText;
+        
+        return (
+          <div class="border-l-4 border-[#f04e00] pl-4">
+            <a 
+              href={testimonial.url || '#'}
+              class="block group hover:bg-gray-50 rounded-lg p-3 -m-3 transition-all duration-300"
+            >
+              <blockquote class="text-gray-700 italic mb-3 leading-relaxed group-hover:text-gray-900 transition-colors text-sm">
+                "{displayText}"
+              </blockquote>
+              
+              <div class="flex items-center gap-3">
+                <!-- Avatar with initials or image -->
+                <div class="relative">
+                  {testimonial.client_avatar ? (
+                    <img 
+                      src={testimonial.client_avatar} 
+                      alt={testimonial.client_name || t.clientClic}
+                      class="w-10 h-10 rounded-full object-cover"
+                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                    />
+                  ) : null}
+                  
+                  <!-- Fallback Circle with Initials -->
+                  <div 
+                    class="w-10 h-10 rounded-full bg-gradient-to-br from-[#f04e00] to-[#e03400] flex items-center justify-center text-white font-bold text-sm"
+                    style={testimonial.client_avatar ? 'display: none;' : 'display: flex;'}
+                  >
+                    {testimonial.client_name ? 
+                      testimonial.client_name.split(' ').map(word => word.charAt(0)).join('').substring(0, 2).toUpperCase() : 
+                      'CL'
+                    }
+                  </div>
+                </div>
+
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <p class="font-semibold text-gray-900 text-sm group-hover:text-[#f04e00] transition-colors truncate">
+                      {testimonial.client_name || t.clientClic}
+                    </p>
+                    {testimonial.client_verified && (
+                      <i class="fas fa-check-circle text-blue-500 text-xs" title={t.verifiedClient}></i>
+                    )}
+                  </div>
+                  
+                  <div class="flex items-center gap-2 text-xs text-gray-500">
+                    {testimonial.client_profession && (
+                      <span class="truncate">{testimonial.client_profession}</span>
+                    )}
+                    {testimonial.client_profession && (testimonial.client_location || testimonial.transaction_location) && (
+                      <span>•</span>
+                    )}
+                    {(testimonial.client_location || testimonial.transaction_location) && (
+                      <span class="truncate">{testimonial.client_location || testimonial.transaction_location}</span>
+                    )}
+                  </div>
+                </div>
+
+                <!-- Rating Stars -->
+                <div class="flex text-yellow-400 flex-shrink-0">
+                  {[...Array(5)].map((_, i) => (
+                    <i class={`fas fa-star text-xs ${i < (testimonial.rating || 5) ? 'text-yellow-400' : 'text-gray-300'}`}></i>
+                  ))}
+                </div>
+
+                <!-- Click indicator -->
+                <i class="fas fa-chevron-right text-gray-400 group-hover:text-[#f04e00] transition-colors text-xs flex-shrink-0"></i>
+              </div>
+            </a>
+          </div>
+        );
+      })}
+    </div>
+
+    <!-- Footer de testimonios -->
+    <div class="mt-6 pt-4 border-t border-gray-100">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+          <i class="fas fa-shield-check text-[#f04e00] text-sm"></i>
+          <span>{t.verifiedTestimonials}</span>
+        </div>
+        
+        <a 
+          href={allTestimonialsUrl}
+          class="text-sm text-[#f04e00] hover:text-[#d94400] font-medium transition-colors flex items-center gap-1"
+        >
+          <span>{t.seeAll}</span>
+          <i class="fas fa-arrow-right text-xs"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+)}

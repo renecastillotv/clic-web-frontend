@@ -1,0 +1,199 @@
+---
+// components/propertylist/PropertyListCTA.astro
+export interface Props {
+  searchInfo: {
+    location?: string;
+    propertyType?: string;
+    operation?: string;
+    sector?: string;
+  };
+  language?: 'es' | 'en' | 'fr';
+}
+
+const { 
+  searchInfo, 
+  language = 'es' 
+} = Astro.props;
+
+// Traducciones trilingües
+const translations = {
+  es: {
+    needPersonalizedHelp: '¿Necesitas Ayuda Personalizada?',
+    ourExpertsWillHelp: 'Nuestros asesores expertos te guiarán para encontrar la propiedad perfecta que se ajuste a tu presupuesto y necesidades',
+    ourExpertsWillHelpSpecific: 'Nuestros asesores expertos te ayudarán a encontrar',
+    perfectIn: 'perfecto en',
+    talkToAdvisor: 'Hablar con Asesor',
+    scheduleAppointment: 'Programar Cita',
+    imInterestedIn: 'Hola, estoy interesado en',
+    properties: 'propiedades',
+    in: 'en',
+    thisArea: 'esta zona',
+    the: 'el',
+    perfect: 'perfecto'
+  },
+  en: {
+    needPersonalizedHelp: 'Need Personalized Help?',
+    ourExpertsWillHelp: 'Our expert advisors will guide you to find the perfect property that fits your budget and needs',
+    ourExpertsWillHelpSpecific: 'Our expert advisors will help you find',
+    perfectIn: 'perfect in',
+    talkToAdvisor: 'Talk to Advisor',
+    scheduleAppointment: 'Schedule Appointment',
+    imInterestedIn: 'Hi, I\'m interested in',
+    properties: 'properties',
+    in: 'in',
+    thisArea: 'this area',
+    the: 'the',
+    perfect: 'perfect'
+  },
+  fr: {
+    needPersonalizedHelp: 'Besoin d\'Aide Personnalisée?',
+    ourExpertsWillHelp: 'Nos conseillers experts vous guideront pour trouver la propriété parfaite qui correspond à votre budget et vos besoins',
+    ourExpertsWillHelpSpecific: 'Nos conseillers experts vous aideront à trouver',
+    perfectIn: 'parfait à',
+    talkToAdvisor: 'Parler à un Conseiller',
+    scheduleAppointment: 'Prendre Rendez-vous',
+    imInterestedIn: 'Bonjour, je suis intéressé par',
+    properties: 'propriétés',
+    in: 'à',
+    thisArea: 'cette zone',
+    the: 'le',
+    perfect: 'parfait'
+  }
+};
+
+const t = translations[language] || translations.es;
+
+// Función para obtener el artículo correcto según el idioma y el tipo de propiedad
+function getArticle(propertyType: string | undefined, lang: string): string {
+  if (!propertyType) return '';
+  
+  const lower = propertyType.toLowerCase();
+  
+  if (lang === 'es') {
+    // Femeninos
+    if (lower.includes('casa') || lower.includes('villa') || lower.includes('propiedad')) {
+      return 'la';
+    }
+    // Masculinos
+    return 'el';
+  } else if (lang === 'en') {
+    return 'the';
+  } else if (lang === 'fr') {
+    // Femeninos en francés
+    if (lower.includes('maison') || lower.includes('villa') || lower.includes('propriété')) {
+      return 'la';
+    }
+    // Masculinos
+    return 'le';
+  }
+  
+  return '';
+}
+
+// Función para traducir tipos de propiedad comunes
+function translatePropertyType(type: string | undefined, lang: string): string {
+  if (!type) return t.properties;
+  
+  const translations: Record<string, Record<string, string>> = {
+    'apartamento': { es: 'apartamento', en: 'apartment', fr: 'appartement' },
+    'apartamentos': { es: 'apartamentos', en: 'apartments', fr: 'appartements' },
+    'casa': { es: 'casa', en: 'house', fr: 'maison' },
+    'casas': { es: 'casas', en: 'houses', fr: 'maisons' },
+    'villa': { es: 'villa', en: 'villa', fr: 'villa' },
+    'villas': { es: 'villas', en: 'villas', fr: 'villas' },
+    'penthouse': { es: 'penthouse', en: 'penthouse', fr: 'penthouse' },
+    'penthouses': { es: 'penthouses', en: 'penthouses', fr: 'penthouses' },
+    'terreno': { es: 'terreno', en: 'land', fr: 'terrain' },
+    'terrenos': { es: 'terrenos', en: 'lands', fr: 'terrains' },
+    'local': { es: 'local', en: 'commercial space', fr: 'local commercial' },
+    'locales': { es: 'locales', en: 'commercial spaces', fr: 'locaux commerciaux' },
+    'propiedad': { es: 'propiedad', en: 'property', fr: 'propriété' },
+    'propiedades': { es: 'propiedades', en: 'properties', fr: 'propriétés' }
+  };
+  
+  const lower = type.toLowerCase();
+  
+  // Buscar traducción exacta
+  for (const [key, trans] of Object.entries(translations)) {
+    if (lower.includes(key)) {
+      return trans[lang] || type;
+    }
+  }
+  
+  // Si no se encuentra traducción, devolver el original
+  return type;
+}
+
+// Construir el mensaje específico si hay información de búsqueda
+const buildSpecificMessage = () => {
+  const translatedPropertyType = translatePropertyType(searchInfo.propertyType, language);
+  const article = getArticle(searchInfo.propertyType, language);
+  const location = searchInfo.location || searchInfo.sector;
+  
+  if (searchInfo.propertyType && location) {
+    if (language === 'es') {
+      return `${t.ourExpertsWillHelpSpecific} ${article} ${translatedPropertyType} ${t.perfect} ${t.in} ${location}`;
+    } else if (language === 'en') {
+      return `${t.ourExpertsWillHelpSpecific} ${t.the} ${t.perfect} ${translatedPropertyType} ${t.in} ${location}`;
+    } else if (language === 'fr') {
+      return `${t.ourExpertsWillHelpSpecific} ${article} ${translatedPropertyType} ${t.perfect} ${t.in} ${location}`;
+    }
+  }
+  
+  return t.ourExpertsWillHelp;
+};
+
+// Construir el mensaje de WhatsApp
+const buildWhatsAppMessage = () => {
+  const propertyType = translatePropertyType(searchInfo.propertyType, language) || t.properties;
+  const location = searchInfo.location || searchInfo.sector || t.thisArea;
+  
+  return `${t.imInterestedIn} ${propertyType} ${t.in} ${location}`;
+};
+
+const dynamicMessage = buildSpecificMessage();
+const whatsappMessage = buildWhatsAppMessage();
+
+// Número de WhatsApp según el idioma/país (puedes personalizar estos números)
+const whatsappNumbers = {
+  es: '18295148080', // República Dominicana
+  en: '18295148080', // Mismo número pero podrías cambiarlo
+  fr: '18295148080'  // Mismo número pero podrías cambiarlo
+};
+
+const whatsappNumber = whatsappNumbers[language] || whatsappNumbers.es;
+---
+
+<!-- CTA Section Dinámico Multiidioma -->
+<section class="bg-gradient-to-r from-[#f04e00] to-[#e03d00] text-white py-12">
+  <div class="container mx-auto px-4 text-center">
+    <h4 class="text-2xl md:text-3xl font-bold mb-4">
+      {t.needPersonalizedHelp}
+    </h4>
+    <p class="text-lg md:text-xl mb-8 opacity-90 max-w-2xl mx-auto">
+      {dynamicMessage}
+    </p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a 
+        href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center justify-center px-8 py-3 bg-white text-[#f04e00] font-semibold rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105"
+      >
+        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.688"/>
+        </svg>
+        {t.talkToAdvisor}
+      </a>
+      <a 
+        href="/contacto"
+        class="inline-flex items-center justify-center px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-[#f04e00] transition-all duration-300 transform hover:scale-105"
+      >
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6l4 4v10a2 2 0 01-2 2H6a2 2 0 01-2-2V11l4-4z"></path>
+        </svg>
+        {t.scheduleAppointment}
+      </a>
+    </div>
+  </div>
+</section>

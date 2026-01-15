@@ -1,0 +1,444 @@
+---
+// src/layouts/CuratedListingsSingleLayout.astro - Layout para listados curados filtrados
+import Layout from './Layout.astro';
+import PropertyList from '../components/PropertyList.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
+import VideoGallery from '../components/VideoGallery.astro';
+
+const data = Astro.props.data || {};
+const language = Astro.props.language || data.language || 'es';
+
+// Extraer datos
+const listing = data.listing || {};
+const properties = data.properties || [];
+const availableCuratedListings = data.availableCuratedListings || [];
+const relatedArticles = data.relatedArticles || [];
+const relatedVideos = data.relatedVideos || [];
+const relatedSeoContent = data.relatedSeoContent || [];
+const relatedFaqs = data.relatedFaqs || [];
+const pagination = data.pagination || {};
+const tags = data.tags || {};
+const seo = data.seo || {};
+
+// SEO
+const finalTitle = seo.title || listing.title || 'Listados Curados';
+const finalDescription = seo.description || listing.description || '';
+const canonicalUrl = seo.canonical_url || Astro.url.pathname;
+const breadcrumbs = seo.breadcrumbs || [];
+
+const TEXTS = {
+  es: {
+    properties: 'propiedades',
+    showing: 'Mostrando',
+    of: 'de',
+    page: 'Página',
+    previous: 'Anterior',
+    next: 'Siguiente',
+    exploreListing: 'Explorar Listado',
+    allCuratedListings: 'Todos los Listados Curados',
+    selectListing: 'Selecciona un listado',
+    noProperties: 'No se encontraron propiedades',
+    tryAdjusting: 'Intenta ajustar tus criterios de búsqueda'
+  },
+  en: {
+    properties: 'properties',
+    showing: 'Showing',
+    of: 'of',
+    page: 'Page',
+    previous: 'Previous',
+    next: 'Next',
+    exploreListing: 'Explore Listing',
+    allCuratedListings: 'All Curated Listings',
+    selectListing: 'Select a listing',
+    noProperties: 'No properties found',
+    tryAdjusting: 'Try adjusting your search criteria'
+  },
+  fr: {
+    properties: 'propriétés',
+    showing: 'Affichage',
+    of: 'de',
+    page: 'Page',
+    previous: 'Précédent',
+    next: 'Suivant',
+    exploreListing: 'Explorer la Liste',
+    allCuratedListings: 'Toutes les Listes Organisées',
+    selectListing: 'Sélectionnez une liste',
+    noProperties: 'Aucune propriété trouvée',
+    tryAdjusting: 'Essayez d\'ajuster vos critères de recherche'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// Encontrar el listado activo
+const activeListing = availableCuratedListings.find(l => l.isActive);
+
+// Preparar props para Layout (igual que ArticlesMainLayout)
+const layoutProps = {
+  title: finalTitle,
+  description: finalDescription,
+  ogImage: seo.ogImage || '/og-curated-listings.jpg',
+  canonical: canonicalUrl,
+  keywords: seo.keywords || '',
+  hreflangData: seo.hreflang || {},
+  globalConfig: data?.globalConfig || {},
+  language: language,
+  trackingString: data?.trackingString || '',
+  hotItems: data?.hotItems || {},
+  country: data?.country || {},
+  breadcrumbs: breadcrumbs,
+  structuredData: seo.structured_data,
+  openGraph: seo.open_graph,
+  twitterCard: seo.twitter_card
+};
+---
+
+<Layout {...layoutProps}>
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+    <!-- Efectos de fondo decorativos -->
+    <div class="absolute inset-0">
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+    </div>
+
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-5xl mx-auto">
+
+        <!-- Breadcrumbs -->
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {breadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === breadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
+
+        <!-- Título principal -->
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 text-center">
+          {seo.h1 || listing.title}
+        </h1>
+
+        <!-- Subtítulo -->
+        {(seo.h2 || listing.subtitle) && (
+          <p class="text-xl md:text-2xl text-gray-300 mb-6 text-center">
+            {seo.h2 || listing.subtitle}
+          </p>
+        )}
+
+        <!-- Descripción SEO -->
+        {listing.description && (
+          <div class="prose prose-lg max-w-none mb-8 text-gray-200 text-center">
+            <p>{listing.description}</p>
+          </div>
+        )}
+
+        <!-- Stats opcionales (solo si hay datos reales de ROI, ocupación, etc) -->
+        {listing.stats && (listing.stats.avgRoi !== 'N/A' || listing.stats.occupancyRate !== 'N/A' || listing.stats.avgNightly !== 'N/A') && (
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            {listing.stats.avgRoi && listing.stats.avgRoi !== 'N/A' && (
+              <div class="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 text-center hover:bg-white/10 transition-colors">
+                <div class="text-3xl font-bold text-[#f04e00] mb-1">{listing.stats.avgRoi}</div>
+                <div class="text-sm text-gray-300">ROI {language === 'es' ? 'promedio' : language === 'en' ? 'average' : 'moyen'}</div>
+              </div>
+            )}
+            {listing.stats.occupancyRate && listing.stats.occupancyRate !== 'N/A' && (
+              <div class="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 text-center hover:bg-white/10 transition-colors">
+                <div class="text-3xl font-bold text-[#f04e00] mb-1">{listing.stats.occupancyRate}</div>
+                <div class="text-sm text-gray-300">{language === 'es' ? 'Ocupación' : language === 'en' ? 'Occupancy' : 'Occupation'}</div>
+              </div>
+            )}
+            {listing.stats.avgNightly && listing.stats.avgNightly !== 'N/A' && (
+              <div class="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10 text-center hover:bg-white/10 transition-colors">
+                <div class="text-3xl font-bold text-[#f04e00] mb-1">{listing.stats.avgNightly}</div>
+                <div class="text-sm text-gray-300">{language === 'es' ? 'Precio/noche' : language === 'en' ? 'Price/night' : 'Prix/nuit'}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <!-- Navegación de listados curados -->
+        {availableCuratedListings.length > 0 && (
+          <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 p-6">
+            <h2 class="text-lg font-semibold text-white mb-4">{text.allCuratedListings}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {availableCuratedListings.map((curatedListing) => (
+                <a
+                  href={curatedListing.url}
+                  class={`block p-3 rounded-lg border transition-all group ${
+                    curatedListing.isActive
+                      ? 'border-[#f04e00] bg-[#f04e00]/10 shadow-sm'
+                      : 'border-white/20 hover:border-[#f04e00]/50 hover:bg-white/5'
+                  }`}
+                >
+                  <div class={`font-medium mb-1 ${curatedListing.isActive ? 'text-[#f04e00]' : 'text-white group-hover:text-[#f04e00]'} transition-colors`}>
+                    {curatedListing.name}
+                  </div>
+                  {curatedListing.description && (
+                    <div class="text-xs text-gray-400 line-clamp-2">
+                      {curatedListing.description}
+                    </div>
+                  )}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Layout con Sidebar: Propiedades + SEO Content + Artículos -->
+  <div class="container mx-auto px-4 py-8" id="properties">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
+
+        <!-- COLUMNA PRINCIPAL: Propiedades (70%) -->
+        <div class="lg:col-span-1">
+          {properties.length > 0 ? (
+            <PropertyList
+              listings={properties}
+              meta={{
+                title: finalTitle,
+                description: finalDescription
+              }}
+              totalCount={pagination.total || properties.length}
+              currentPage={pagination.page || 1}
+              totalPages={pagination.totalPages || 1}
+              hasNextPage={pagination.hasNext || false}
+              hasPreviousPage={pagination.hasPrev || false}
+              language={language}
+              maxColumns={3}
+            />
+          ) : (
+            <div class="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">
+              <div class="text-6xl mb-4">🔍</div>
+              <h3 class="text-2xl font-bold text-gray-900 mb-2">{text.noProperties}</h3>
+              <p class="text-gray-600">{text.tryAdjusting}</p>
+            </div>
+          )}
+        </div>
+
+        <!-- SIDEBAR: SEO Content + Artículos Destacados (30%) -->
+        <aside class="lg:col-span-1 space-y-6">
+
+          <!-- SEO Content en Sidebar (TODOS) -->
+          {relatedSeoContent && relatedSeoContent.length > 0 && relatedSeoContent.map((seoContent, seoIdx) => (
+            <div key={`sidebar-seo-${seoIdx}`} class="bg-white rounded-lg shadow-md border border-gray-200">
+              <details class="group" open={seoIdx === 0}>
+                <summary class="cursor-pointer p-4 hover:bg-gray-50 transition-colors flex items-center justify-between border-b border-gray-200">
+                  <div class="flex items-center gap-3">
+                    <i class="fas fa-info-circle text-[#f04e00] text-xl"></i>
+                    <h2 class="text-lg font-bold text-gray-900">
+                      {seoIdx === 0
+                        ? (language === 'es' ? 'Guía y Consejos' : language === 'en' ? 'Guide & Tips' : 'Guide et Conseils')
+                        : (seoContent.h1 || seoContent.title)
+                      }
+                    </h2>
+                  </div>
+                  <i class="fas fa-chevron-down text-gray-400 group-open:rotate-180 transition-transform duration-300"></i>
+                </summary>
+
+                <div class="p-5 space-y-4">
+                  <!-- Título del SEO Content (solo si no es el primero, ya que el primero usa el título genérico) -->
+                  {seoIdx > 0 && seoContent.h2 && (
+                    <p class="text-sm text-gray-600 font-medium">
+                      {seoContent.h2}
+                    </p>
+                  )}
+
+                  {seoIdx === 0 && (
+                    <>
+                      <h3 class="text-xl font-bold text-gray-900">
+                        {seoContent.h1 || seoContent.title}
+                      </h3>
+                      {seoContent.h2 && (
+                        <p class="text-sm text-gray-600 font-medium">
+                          {seoContent.h2}
+                        </p>
+                      )}
+                    </>
+                  )}
+
+                  <!-- Contenido principal -->
+                  {seoContent.content && (
+                    <div class="bg-gradient-to-r from-orange-50 to-white border-l-4 border-[#f04e00] p-4 rounded-r">
+                      <p class="text-gray-700 text-sm leading-relaxed">
+                        {seoContent.content}
+                      </p>
+                    </div>
+                  )}
+
+                  <!-- Secciones compactas -->
+                  {seoContent.sections && seoContent.sections.length > 0 && (
+                    <div class="space-y-3 mt-4">
+                      {seoContent.sections.map((section, index) => (
+                        <div
+                          key={`sidebar-section-${seoIdx}-${index}`}
+                          class="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors"
+                        >
+                          <div class="flex items-start gap-2">
+                            <div class="flex-shrink-0 w-6 h-6 bg-[#f04e00] rounded flex items-center justify-center text-white font-bold text-xs">
+                              {section.order || index + 1}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                              <h4 class="text-sm font-bold text-gray-900 mb-1">
+                                {section.title}
+                              </h4>
+                              <p class="text-xs text-gray-600 leading-relaxed">
+                                {section.content}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </details>
+            </div>
+          ))}
+
+          <!-- Artículos Destacados en Sidebar -->
+          {relatedArticles && relatedArticles.length > 0 && (
+            <div class="bg-white rounded-lg shadow-md border border-gray-200">
+              <div class="p-4 border-b border-gray-200 flex items-center gap-3">
+                <i class="fas fa-newspaper text-[#f04e00] text-xl"></i>
+                <h2 class="text-lg font-bold text-gray-900">
+                  {language === 'es' ? 'Artículos Relacionados' : language === 'en' ? 'Related Articles' : 'Articles Liés'}
+                </h2>
+              </div>
+              <div class="p-4 space-y-4">
+                {relatedArticles.slice(0, 4).map((article, index) => (
+                  <a
+                    key={`sidebar-article-${index}`}
+                    href={article.url}
+                    class="block group hover:bg-gray-50 -mx-4 px-4 py-3 transition-colors"
+                  >
+                    <div class="flex gap-3">
+                      {article.featuredImage && (
+                        <div class="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-200">
+                          <img
+                            src={article.featuredImage}
+                            alt={article.title}
+                            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                        </div>
+                      )}
+                      <div class="flex-1 min-w-0">
+                        <h3 class="text-sm font-bold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2 mb-1">
+                          {article.title}
+                        </h3>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                          <i class="fas fa-clock"></i>
+                          <span>{article.readTime}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <!-- Videos en Sidebar -->
+          {relatedVideos && relatedVideos.length > 0 && (
+            <div class="bg-white rounded-lg shadow-md border border-gray-200">
+              <div class="p-4 border-b border-gray-200 flex items-center gap-3">
+                <i class="fas fa-video text-[#f04e00] text-xl"></i>
+                <h2 class="text-lg font-bold text-gray-900">
+                  {language === 'es' ? 'Videos Relacionados' : language === 'en' ? 'Related Videos' : 'Vidéos Liées'}
+                </h2>
+              </div>
+              <div class="p-4 space-y-3">
+                {relatedVideos.slice(0, 4).map((video, index) => (
+                  <a
+                    key={`sidebar-video-${index}`}
+                    href={video.url}
+                    class="block group hover:bg-gray-50 -mx-4 px-4 py-2 transition-colors"
+                  >
+                    <div class="flex gap-3">
+                      {video.thumbnail && (
+                        <div class="flex-shrink-0 w-24 h-16 rounded overflow-hidden bg-gray-200 relative">
+                          <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            class="w-full h-full object-cover"
+                          />
+                          <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <i class="fas fa-play text-white text-lg"></i>
+                          </div>
+                        </div>
+                      )}
+                      <div class="flex-1 min-w-0">
+                        <h3 class="text-sm font-bold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-2">
+                          {video.title}
+                        </h3>
+                        {video.duration && (
+                          <div class="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                            <i class="fas fa-clock"></i>
+                            <span>{video.duration}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <!-- FAQs en Sidebar -->
+          {relatedFaqs && relatedFaqs.length > 0 && (
+            <div class="bg-white rounded-lg shadow-md border border-gray-200">
+              <div class="p-4 border-b border-gray-200 flex items-center gap-3">
+                <i class="fas fa-question-circle text-[#f04e00] text-xl"></i>
+                <h2 class="text-lg font-bold text-gray-900">
+                  {language === 'es' ? 'Preguntas Frecuentes' : language === 'en' ? 'FAQs' : 'Questions Fréquentes'}
+                </h2>
+              </div>
+              <div class="p-4 space-y-3">
+                {relatedFaqs.slice(0, 5).map((faq, index) => (
+                  <details
+                    key={`sidebar-faq-${index}`}
+                    class="group"
+                  >
+                    <summary class="cursor-pointer hover:bg-gray-50 -mx-4 px-4 py-3 rounded transition-colors flex items-center justify-between">
+                      <div class="flex items-start gap-2 flex-1">
+                        {faq.featured && (
+                          <i class="fas fa-star text-[#f04e00] text-xs mt-0.5"></i>
+                        )}
+                        <h3 class="text-sm font-semibold text-gray-900 flex-1 pr-2">
+                          {faq.question}
+                        </h3>
+                      </div>
+                      <i class="fas fa-chevron-down text-gray-400 text-xs group-open:rotate-180 transition-transform duration-300 flex-shrink-0"></i>
+                    </summary>
+                    <div class="px-4 pb-3 pt-1">
+                      <p class="text-xs text-gray-600 leading-relaxed border-l-2 border-[#f04e00] pl-3">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </aside>
+      </div>
+    </div>
+  </div>
+
+</Layout>

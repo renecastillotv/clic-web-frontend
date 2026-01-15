@@ -1,0 +1,840 @@
+---
+// src/layouts/ArticlesMainLayout.astro - Layout para página principal de artículos optimizado para SEO y lectura
+import Layout from './Layout.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+let articlesData = safeObject(data);
+
+// Procesar artículos destacados
+const rawFeaturedArticles = safeArray(articlesData.featuredArticles);
+const safeFeaturedArticles = rawFeaturedArticles.map((article, index) => ({
+  id: safeString(article.id, `featured-${index}`),
+  title: safeString(article.title, 'Artículo sin título'),
+  excerpt: safeString(article.excerpt, 'Extracto no disponible'),
+  subtitle: safeString(article.subtitle),
+  content: safeString(article.content, ''),
+  featuredImage: safeString(article.featuredImage || article.featured_image, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'),
+  publishedAt: safeString(article.publishedAt || article.published_at, new Date().toISOString()),
+  views: safeNumber(article.views, 0),
+  readTime: safeString(article.readTime || article.read_time, '5 min'),
+  featured: Boolean(article.featured),
+  url: safeString(article.url, '#'),
+  slug: safeString(article.slug),
+  category: safeString(article.category, 'General'),
+  categorySlug: safeString(article.categorySlug || article.category_slug, 'general'),
+  tags: safeArray(article.tags, []),
+  author: safeObject(article.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    title: 'Especialista Inmobiliario'
+  })
+}));
+
+// Procesar artículos recientes
+const rawRecentArticles = safeArray(articlesData.recentArticles);
+const safeRecentArticles = rawRecentArticles.map((article, index) => ({
+  id: safeString(article.id, `recent-${index}`),
+  title: safeString(article.title, 'Artículo sin título'),
+  excerpt: safeString(article.excerpt, 'Extracto no disponible'),
+  subtitle: safeString(article.subtitle),
+  content: safeString(article.content, ''),
+  featuredImage: safeString(article.featuredImage || article.featured_image, 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&h=450&fit=crop'),
+  publishedAt: safeString(article.publishedAt || article.published_at, new Date().toISOString()),
+  views: safeNumber(article.views, 0),
+  readTime: safeString(article.readTime || article.read_time, '5 min'),
+  featured: Boolean(article.featured),
+  url: safeString(article.url, '#'),
+  slug: safeString(article.slug),
+  author: safeObject(article.author, {
+    name: 'Equipo CLIC',
+    avatar: '/images/team/clic-experts.jpg',
+    title: 'Especialista Inmobiliario'
+  })
+}));
+
+// Encontrar el artículo más popular (mayor views)
+const allArticles = [...safeFeaturedArticles, ...safeRecentArticles];
+const mostPopularArticle = allArticles.reduce((prev, current) => 
+  (current.views > prev.views) ? current : prev, 
+  allArticles[0] || null
+);
+
+// Artículos para el grid (excluir el más popular)
+const gridArticles = allArticles.filter(article => 
+  article.id !== mostPopularArticle?.id
+);
+
+// Procesar categorías con iconos Font Awesome
+const rawCategories = safeArray(articlesData.categories);
+const safeCategories = rawCategories.map((cat, index) => {
+  // Mapeo de categorías a iconos Font Awesome
+  const iconMap = {
+    'analisis-de-mercado': 'fa-chart-line',
+    'comparativas': 'fa-balance-scale',
+    'guias-de-compra': 'fa-book',
+    'inversion': 'fa-coins',
+    'ubicacion': 'fa-map-marker-alt',
+    'tips': 'fa-lightbulb'
+  };
+  
+  return {
+    id: safeString(cat.id, `category-${index}`),
+    name: safeString(cat.name || cat.title || cat.display_name, 'Categoría sin nombre'),
+    slug: safeString(cat.slug, `categoria-${index}`),
+    url: safeString(cat.url, '#'),
+    articleCount: safeNumber(cat.articleCount || cat.count, 0),
+    description: safeString(cat.description, 'Explora artículos sobre este tema'),
+    featured: Boolean(cat.featured),
+    icon: iconMap[cat.slug] || 'fa-newspaper',
+    recentArticles: safeArray(cat.recentArticles, [])
+  };
+});
+
+// Procesar estadísticas - Priorizar datos del backend
+// Función helper para formatear números grandes
+const formatNumber = (num) => {
+  if (!num || num === 0) return '0';
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M+`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K+`;
+  return num.toString();
+};
+
+// Procesar estadísticas - Usar SOLO datos del backend
+const rawStats = safeObject(articlesData.stats);
+const safeStats = {
+  totalArticles: rawStats.totalArticles || allArticles.length || 0,
+  totalReads: formatNumber(rawStats.totalViews || 0),
+  avgRating: rawStats.avgRating || 4.8,
+  publishedThisMonth: rawStats.publishedThisMonth || 0,
+  totalCategories: rawStats.totalCategories || safeCategories.length || 0,
+  totalViews: rawStats.totalViews || 0,
+  averageReadTime: rawStats.averageReadTime || 0,
+  featuredCount: rawStats.featuredCount || 0,
+  categoriesWithContent: rawStats.categoriesWithContent || 0
+};
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    title: 'Blog Inmobiliario CLIC',
+    subtitle: 'Guías, consejos y análisis expertos para tomar las mejores decisiones inmobiliarias en República Dominicana',
+    readMore: 'Leer más',
+    readFull: 'Leer artículo completo',
+    showMore: 'Leer contenido completo',
+    showLess: 'Mostrar menos',
+    moreArticles: 'Más artículos inmobiliarios',
+    allCategories: 'Explorar por categorías',
+    readingTime: 'min de lectura',
+    views: 'lecturas',
+    author: 'Por',
+    publishedOn: 'Publicado el',
+    articles: 'artículos',
+    statsLabels: {
+      articles: 'Artículos publicados',
+      reads: 'Lecturas totales',
+      rating: 'Calificación promedio',
+      thisMonth: 'Nuevos este mes'
+    }
+  },
+  en: {
+    title: 'CLIC Real Estate Blog',
+    subtitle: 'Expert guides, tips and analysis to make the best real estate decisions in Dominican Republic',
+    readMore: 'Read more',
+    readFull: 'Read full article',
+    showMore: 'Read full content',
+    showLess: 'Show less',
+    moreArticles: 'More real estate articles',
+    allCategories: 'Browse by categories',
+    readingTime: 'min read',
+    views: 'views',
+    author: 'By',
+    publishedOn: 'Published on',
+    articles: 'articles',
+    statsLabels: {
+      articles: 'Published articles',
+      reads: 'Total reads',
+      rating: 'Average rating',
+      thisMonth: 'New this month'
+    }
+  },
+  fr: {
+    title: 'Blog Immobilier CLIC',
+    subtitle: 'Guides d\'experts, conseils et analyses pour prendre les meilleures décisions immobilières en République dominicaine',
+    readMore: 'Lire plus',
+    readFull: 'Lire l\'article complet',
+    showMore: 'Lire le contenu complet',
+    showLess: 'Afficher moins',
+    moreArticles: 'Plus d\'articles immobiliers',
+    allCategories: 'Parcourir par catégories',
+    readingTime: 'min de lecture',
+    views: 'vues',
+    author: 'Par',
+    publishedOn: 'Publié le',
+    articles: 'articles',
+    statsLabels: {
+      articles: 'Articles publiés',
+      reads: 'Lectures totales',
+      rating: 'Note moyenne',
+      thisMonth: 'Nouveaux ce mois'
+    }
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    contact: '/contacto',
+    properties: '/comprar',
+    articlesBase: '/articulos'
+  },
+  en: {
+    contact: '/en/contact',
+    properties: '/en/buy',
+    articlesBase: '/en/articles'
+  },
+  fr: {
+    contact: '/fr/contact',
+    properties: '/fr/acheter',
+    articlesBase: '/fr/articles'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+// Función para formatear fecha
+function formatDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+    }
+    
+    const months = {
+      es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+      en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+      fr: ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+    };
+    
+    const monthNames = months[language] || months.es;
+    return `${date.getDate()} de ${monthNames[date.getMonth()]} de ${date.getFullYear()}`;
+  } catch (error) {
+    return language === 'en' ? 'Recent' : language === 'fr' ? 'Récent' : 'Reciente';
+  }
+}
+
+// Función para extraer párrafos del contenido HTML
+function extractParagraphs(htmlContent, maxParagraphs = 3) {
+  if (!htmlContent) return [];
+  
+  // Dividir por etiquetas </p> y limpiar
+  const paragraphs = htmlContent.split('</p>')
+    .slice(0, maxParagraphs)
+    .map(p => p.replace(/<p[^>]*>/g, '').trim())
+    .filter(p => p.length > 0);
+    
+  return paragraphs;
+}
+
+// Procesar SEO - Usar URLs tal como vienen del backend sin duplicar
+const rawSeo = safeObject(articlesData.seo);
+const safeSeo = {
+  title: safeString(rawSeo.title) || text.title,
+  description: safeString(rawSeo.description) || text.subtitle,
+  h1: safeString(rawSeo.h1) || text.title,
+  h2: safeString(rawSeo.h2) || text.subtitle,
+  canonical_url: safeString(rawSeo.canonical_url, ''),
+  ogImage: safeString(rawSeo.ogImage || rawSeo.open_graph?.image, '/og-articles.jpg'),
+  keywords: safeString(rawSeo.keywords),
+  hreflang: safeObject(rawSeo.hreflang),
+  breadcrumbs: safeArray(rawSeo.breadcrumbs, []),
+  structured_data: safeObject(rawSeo.structured_data),
+  open_graph: safeObject(rawSeo.open_graph),
+  twitter_card: safeObject(rawSeo.twitter_card)
+};
+
+// ===================================================================
+// PREPARAR PROPS PARA LAYOUT CON DATOS SEO COMPLETOS
+// ===================================================================
+
+const layoutProps = {
+  title: safeSeo.title || text.title,
+  description: safeSeo.description || text.subtitle,
+  ogImage: safeSeo.ogImage || '/og-articles.jpg',
+  canonical: safeSeo.canonical_url,
+  keywords: safeSeo.keywords,
+  hreflangData: safeSeo.hreflang || {},
+  globalConfig: data?.globalConfig || articlesData?.globalConfig || {},
+  language: language,
+  trackingString: articlesData?.trackingString || '',
+  hotItems: articlesData?.hotItems || {},
+  country: articlesData?.country || {},
+  breadcrumbs: safeSeo.breadcrumbs,
+  structuredData: safeSeo.structured_data,
+  openGraph: safeSeo.open_graph,
+  twitterCard: safeSeo.twitter_card
+};
+
+console.log('✅ ArticlesMainLayout preparado:', {
+  language,
+  totalArticles: safeStats.totalArticles,
+  mostPopularArticle: mostPopularArticle?.title,
+  gridArticlesCount: gridArticles.length,
+  categoriesCount: safeCategories.length,
+  totalViews: safeStats.totalViews
+});
+---
+
+<Layout {...layoutProps}>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+  <!-- Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": safeSeo.title || text.title,
+    "description": safeSeo.description || text.subtitle,
+    "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${safeSeo.canonical_url}`,
+    "publisher": {
+      "@type": "Organization",
+      "name": "CLIC Inmobiliaria",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://pacewqgypevfgjmdsorz.supabase.co/storage/v1/object/public/public-assets/clic%20logo%20on.png"
+      }
+    },
+    "blogPost": allArticles.map(article => ({
+      "@type": "BlogPosting",
+      "headline": article.title,
+      "description": article.excerpt,
+      "author": {
+        "@type": "Person",
+        "name": article.author.name
+      },
+      "datePublished": article.publishedAt,
+      "url": `${data?.domainInfo?.realDomain || 'https://clicinmobiliaria.com'}${article.url}`
+    }))
+  })} />
+
+  <div class="min-h-screen bg-gray-50">
+    
+    <!-- Hero Section - Diseño oscuro premium compacto -->
+    <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+      <!-- Efectos de fondo decorativos -->
+      <div class="absolute inset-0">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+        <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+        <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      </div>
+      
+      <div class="container mx-auto px-4 relative z-10">
+        <!-- Breadcrumbs -->
+        {safeSeo.breadcrumbs && safeSeo.breadcrumbs.length > 0 && (
+          <nav class="text-sm mb-6 text-center" aria-label="Breadcrumb">
+            {safeSeo.breadcrumbs.map((breadcrumb, index) => (
+              <span key={index}>
+                {index > 0 && <span class="mx-2 text-gray-400">•</span>}
+                {index === safeSeo.breadcrumbs.length - 1 ? (
+                  <span class="text-[#f04e00] font-medium">{breadcrumb.name}</span>
+                ) : (
+                  <a href={breadcrumb.url} class="text-gray-300 hover:text-white transition-colors">
+                    {breadcrumb.name}
+                  </a>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
+
+        <div class="text-center">
+          <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+            {safeSeo.h1 || safeSeo.title || text.title}
+          </h1>
+          <p class="text-base md:text-lg text-gray-300 max-w-2xl mx-auto mb-8 leading-relaxed">
+            {safeSeo.h2 || safeSeo.description || text.subtitle}
+          </p>
+          
+          <!-- Estadísticas en línea más compactas -->
+          <div class="flex flex-wrap justify-center items-center gap-6 md:gap-12 mb-10">
+            <div class="flex items-center gap-3">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{safeStats.totalArticles}</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.articles}</div>
+            </div>
+            <div class="h-8 w-px bg-gray-700 hidden md:block"></div>
+            <div class="flex items-center gap-3">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{safeStats.totalReads}</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.reads}</div>
+            </div>
+            <div class="h-8 w-px bg-gray-700 hidden md:block"></div>
+            <div class="flex items-center gap-3">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{safeStats.avgRating}</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.rating}</div>
+            </div>
+            <div class="h-8 w-px bg-gray-700 hidden md:block"></div>
+            <div class="flex items-center gap-3">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{safeStats.publishedThisMonth}</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.thisMonth}</div>
+            </div>
+          </div>
+
+          <!-- Categorías más compactas en diseño horizontal -->
+          {safeCategories.length > 0 && (
+            <div class="max-w-5xl mx-auto">
+              <div class="flex flex-wrap justify-center gap-2">
+                {safeCategories.map((category, index) => (
+                  <a 
+                    href={category.url}
+                    class="group relative flex items-center gap-2 bg-white/5 hover:bg-[#f04e00]/20 backdrop-blur-sm border border-white/10 hover:border-[#f04e00]/50 rounded-lg px-4 py-2.5 transition-all duration-300 hover:transform hover:scale-105"
+                    key={category.id}
+                  >
+                    <i class={`fas ${category.icon} text-base text-[#f04e00] group-hover:scale-110 transition-transform duration-300`}></i>
+                    <div class="flex flex-col items-start">
+                      <span class="text-white text-sm font-medium leading-tight">{category.name}</span>
+                      <span class="text-xs text-gray-400">
+                        {category.articleCount} {text.articles}
+                      </span>
+                    </div>
+                    <!-- Efecto hover con brillo -->
+                    <div class="absolute inset-0 rounded-lg bg-gradient-to-t from-[#f04e00]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Main Content -->
+    <main class="py-12 bg-white">
+      <div class="container mx-auto px-4">
+
+        <!-- Featured Article with Magazine-Style Editorial Layout -->
+        {mostPopularArticle && (
+          <article class="mb-16 max-w-6xl mx-auto">
+            <!-- Article header - Full Width -->
+            <header class="mb-8">
+              <!-- Author info -->
+              <div class="flex items-center gap-4 mb-6">
+                <img 
+                  src={mostPopularArticle.author.avatar} 
+                  alt={mostPopularArticle.author.name}
+                  class="w-12 h-12 rounded-full"
+                />
+                <div>
+                  <div class="text-sm text-gray-600">
+                    <span class="font-medium text-gray-900">{text.author} {mostPopularArticle.author.name}</span>
+                    <span class="mx-2">•</span>
+                    <span>{formatDate(mostPopularArticle.publishedAt)}</span>
+                    <span class="mx-2">•</span>
+                    <span>
+                      <i class="far fa-eye mr-1"></i>
+                      {mostPopularArticle.views.toLocaleString()} {text.views}
+                    </span>
+                    <span class="mx-2">•</span>
+                    <span>
+                      <i class="far fa-clock mr-1"></i>
+                      {mostPopularArticle.readTime}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Title and excerpt - Full Width -->
+              <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                {mostPopularArticle.title}
+              </h2>
+              
+              <p class="text-xl text-gray-700 mb-6 leading-relaxed font-medium">
+                {mostPopularArticle.excerpt}
+              </p>
+            </header>
+
+            <!-- Magazine-style content with floating image -->
+            <div class="editorial-content">
+              <div id="article-preview">
+                <!-- Content with floating image -->
+                <div class="relative">
+                  <!-- Floating image with elegant overlay -->
+                  <figure class="float-left mr-8 mb-6 w-96 group">
+                    <div class="aspect-[4/3] relative overflow-hidden rounded-xl shadow-lg">
+                      <img 
+                        src={mostPopularArticle.featuredImage} 
+                        alt={mostPopularArticle.title}
+                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <!-- Elegant overlay button -->
+                      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div class="absolute bottom-4 left-4 right-4">
+                          <a 
+                            href={mostPopularArticle.url}
+                            class="block w-full bg-white/95 backdrop-blur-sm text-gray-900 text-center py-2.5 px-3 rounded-lg font-medium hover:bg-white transition-all duration-300 text-sm"
+                          >
+                            {text.readFull}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </figure>
+
+                  <!-- Justified text that wraps around the image -->
+                  <div class="text-gray-700 leading-7 text-base magazine-text">
+                    {mostPopularArticle.content && (() => {
+                      const allParagraphs = extractParagraphs(mostPopularArticle.content, 8);
+                      const previewParagraphs = allParagraphs.slice(0, 4);
+                      return previewParagraphs.map((paragraph, index) => (
+                        <p class="mb-5 text-justify hyphens-auto" key={index} set:html={paragraph} />
+                      ));
+                    })()}
+                  </div>
+                  
+                  <!-- Clear float for button -->
+                  <div class="clear-both mt-6">
+                    <button 
+                      onclick="toggleArticleContent()"
+                      id="article-toggle-btn"
+                      class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium text-sm transition-all duration-200 group border-b border-transparent hover:border-[#f04e00]"
+                    >
+                      <span id="article-toggle-text">{text.showMore}</span>
+                      <i id="article-toggle-icon" class="fas fa-chevron-down transition-all duration-200 group-hover:translate-x-1"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Expanded content - Full width -->
+              <div id="article-expanded" class="hidden">
+                <!-- Full content with floating image -->
+                <div class="relative">
+                  <!-- Same floating image -->
+                  <figure class="float-left mr-8 mb-6 w-96 group">
+                    <div class="aspect-[4/3] relative overflow-hidden rounded-xl shadow-lg">
+                      <img 
+                        src={mostPopularArticle.featuredImage} 
+                        alt={mostPopularArticle.title}
+                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div class="absolute bottom-4 left-4 right-4">
+                          <a 
+                            href={mostPopularArticle.url}
+                            class="block w-full bg-white/95 backdrop-blur-sm text-gray-900 text-center py-2.5 px-3 rounded-lg font-medium hover:bg-white transition-all duration-300 text-sm"
+                          >
+                            {text.readFull}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </figure>
+
+                  <!-- Full justified content -->
+                  <div class="text-gray-700 leading-7 text-base magazine-text">
+                    {mostPopularArticle.content && (
+                      <div class="magazine-full-content">
+                        {mostPopularArticle.content.split('</p>').map((paragraph, index) => {
+                          if (paragraph.trim()) {
+                            // Clean up the paragraph and add closing tag if needed
+                            let cleanParagraph = paragraph.replace(/<p[^>]*>/g, '').trim();
+                            if (cleanParagraph) {
+                              // Check if it's a header
+                              if (cleanParagraph.startsWith('<h') || cleanParagraph.includes('<h')) {
+                                return <div key={index} set:html={cleanParagraph} class="text-xl font-bold text-gray-900 mb-4 mt-8 clear-both" />;
+                              }
+                              return <p class="mb-5 text-justify hyphens-auto" key={index} set:html={cleanParagraph} />;
+                            }
+                          }
+                          return null;
+                        }).filter(Boolean)}
+                      </div>
+                    )}
+                  </div>
+
+                  <!-- Collapse button -->
+                  <div class="clear-both mt-8">
+                    <button 
+                      onclick="toggleArticleContent()"
+                      class="inline-flex items-center gap-2 text-[#f04e00] hover:text-[#d94400] font-medium text-sm transition-all duration-200 group border-b border-transparent hover:border-[#f04e00]"
+                    >
+                      <span>{text.showLess}</span>
+                      <i class="fas fa-chevron-up transition-all duration-200 group-hover:translate-x-1"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        )}
+
+        <!-- Articles Grid -->
+        {gridArticles.length > 0 && (
+          <section>
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-8">{text.moreArticles}</h2>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {gridArticles.map((article, index) => (
+                <article class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden" key={article.id}>
+                  <a href={article.url} class="group block">
+                    <!-- Image -->
+                    <div class="aspect-[16/10] relative overflow-hidden">
+                      <img 
+                        src={article.featuredImage} 
+                        alt={article.title}
+                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div class="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                        <i class="far fa-clock mr-1"></i>
+                        {article.readTime}
+                      </div>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="p-4">
+                      <h3 class="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight">
+                        {article.title}
+                      </h3>
+                      
+                      {article.subtitle && (
+                        <h4 class="text-xs text-gray-600 mb-2 font-medium line-clamp-1">
+                          {article.subtitle}
+                        </h4>
+                      )}
+                      
+                      <p class="text-gray-600 mb-3 line-clamp-2 text-xs leading-relaxed">
+                        {article.excerpt}
+                      </p>
+                      
+                      <!-- Meta -->
+                      <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+                        <div class="flex items-center gap-1">
+                          <img 
+                            src={article.author.avatar} 
+                            alt={article.author.name}
+                            class="w-4 h-4 rounded-full"
+                          />
+                          <span class="truncate">{article.author.name}</span>
+                        </div>
+                        <span class="flex items-center gap-1">
+                          <i class="far fa-eye"></i>
+                          {article.views.toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      <!-- Read more link -->
+                      <div class="inline-flex items-center gap-1 text-[#f04e00] font-medium text-xs group-hover:gap-2 transition-all">
+                        <span>{text.readMore}</span>
+                        <i class="fas fa-arrow-right"></i>
+                      </div>
+                    </div>
+                  </a>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    function toggleArticleContent() {
+      const preview = document.getElementById('article-preview');
+      const expanded = document.getElementById('article-expanded');
+      const btnText = document.getElementById('article-toggle-text');
+      const btnIcon = document.getElementById('article-toggle-icon');
+      
+      if (!preview || !expanded || !btnText || !btnIcon) {
+        console.error('Toggle elements not found');
+        return;
+      }
+      
+      if (expanded.classList.contains('hidden')) {
+        // Show expanded content
+        preview.classList.add('hidden');
+        expanded.classList.remove('hidden');
+        btnIcon.className = 'fas fa-chevron-up transition-all duration-200 group-hover:translate-x-1';
+        
+        // Update text based on current language
+        const currentText = btnText.textContent.toLowerCase();
+        if (currentText.includes('read') || currentText.includes('show') || currentText.includes('content')) {
+          btnText.textContent = 'Show less';
+        } else if (currentText.includes('lire') || currentText.includes('afficher') || currentText.includes('contenu')) {
+          btnText.textContent = 'Afficher moins';
+        } else {
+          btnText.textContent = 'Mostrar menos';
+        }
+        
+        // Scroll to expanded content smoothly
+        expanded.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+      } else {
+        // Show preview content
+        preview.classList.remove('hidden');
+        expanded.classList.add('hidden');
+        btnIcon.className = 'fas fa-chevron-down transition-all duration-200 group-hover:translate-x-1';
+        
+        // Restore original text
+        const currentText = btnText.textContent.toLowerCase();
+        if (currentText.includes('show less') || currentText.includes('less')) {
+          btnText.textContent = 'Read full content';
+        } else if (currentText.includes('afficher moins') || currentText.includes('moins')) {
+          btnText.textContent = 'Lire le contenu complet';
+        } else {
+          btnText.textContent = 'Leer contenido completo';
+        }
+        
+        // Scroll back to preview
+        preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Article toggle initialized');
+      
+      // Add click event listener as backup
+      const toggleBtn = document.getElementById('article-toggle-btn');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          toggleArticleContent();
+        });
+      }
+    });
+  </script>
+</Layout>
+
+<style>
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .hover\:scale-105:hover {
+    transform: scale(1.05);
+  }
+  
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.05);
+  }
+  
+  .group:hover .group-hover\:text-[#f04e00] {
+    color: #f04e00;
+  }
+  
+  .group:hover .group-hover\:gap-2 {
+    gap: 0.5rem;
+  }
+
+  /* Magazine-style text formatting */
+  .magazine-text {
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+  }
+
+  /* Float behavior for magazine layout */
+  .magazine-text p:first-child,
+  .magazine-text p:nth-child(2) {
+    text-indent: 0;
+  }
+
+  .magazine-text p:not(:first-child):not(:nth-child(2)) {
+    text-indent: 1.5em;
+  }
+
+  /* Better floating image behavior */
+  figure.float-left {
+    shape-outside: margin-box;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Ensure proper clearing for headers */
+  .magazine-text h3 {
+    clear: both;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Better responsive behavior */
+  @media (max-width: 1024px) {
+    figure.float-left {
+      width: 320px !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    figure.float-left {
+      float: none !important;
+      width: 100% !important;
+      margin-right: 0 !important;
+      margin-bottom: 2rem;
+    }
+    
+    .magazine-text p {
+      text-indent: 0 !important;
+    }
+  }
+
+  /* Smooth transitions for toggle */
+  #article-preview, #article-expanded {
+    transition: opacity 0.3s ease-in-out;
+  }
+</style>

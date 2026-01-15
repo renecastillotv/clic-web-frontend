@@ -1,0 +1,422 @@
+---
+// PopularLocations.astro - ESTILO VALLA PUBLICITARIA CON HOVER MEJORADO Y MULTIIDIOMA
+export interface Props {
+  hotItems?: {
+    cities?: Array<any>;
+    sectors?: Array<any>;
+    properties?: Array<any>;
+  };
+  title?: string;
+  subtitle?: string;
+  showType?: 'cities' | 'sectors' | 'mixed';
+  dataSource?: 'real_data' | 'expert_zones' | 'edge_function';
+  showBadges?: boolean;
+  layout?: string;
+  language?: 'es' | 'en' | 'fr';
+}
+
+const { 
+  hotItems = {},
+  title,
+  subtitle,
+  showType = 'mixed',
+  dataSource = 'edge_function',
+  showBadges = false,
+  layout = 'grid',
+  language = 'es'
+} = Astro.props;
+
+// Traducciones para textos estáticos
+const translations = {
+  es: {
+    properties: 'propiedades',
+    from: 'Desde',
+    viewAllLocations: 'Ver todas las ubicaciones',
+    previousLocations: 'Ver ubicaciones anteriores',
+    moreLocations: 'Ver más ubicaciones',
+    propertiesIn: 'Propiedades en',
+    // Títulos por dataSource
+    titles: {
+      real_data: "Ubicaciones con Mayor Demanda",
+      edge_function: "Destinos de inversión destacados",
+      expert_zones: "Ubicaciones donde René y su Equipo son Expertos"
+    },
+    // Subtítulos por dataSource
+    subtitles: {
+      real_data: "Basado en nuestro inventario actual y actividad de búsqueda",
+      edge_function: "Oportunidades inmobiliarias en las zonas más prometedoras del país",
+      expert_zones: "Con 6 años de experiencia, conocemos cada zona y sabemos dónde están las mejores oportunidades"
+    }
+  },
+  en: {
+    properties: 'properties',
+    from: 'From',
+    viewAllLocations: 'View all locations',
+    previousLocations: 'View previous locations',
+    moreLocations: 'View more locations',
+    propertiesIn: 'Properties in',
+    titles: {
+      real_data: "Most In-Demand Locations",
+      edge_function: "Featured Investment Destinations",
+      expert_zones: "Locations where René and his Team are Experts"
+    },
+    subtitles: {
+      real_data: "Based on our current inventory and search activity",
+      edge_function: "Real estate opportunities in the country's most promising areas",
+      expert_zones: "With 6 years of experience, we know every area and where the best opportunities are"
+    }
+  },
+  fr: {
+    properties: 'propriétés',
+    from: 'À partir de',
+    viewAllLocations: 'Voir tous les emplacements',
+    previousLocations: 'Voir les emplacements précédents',
+    moreLocations: 'Voir plus d\'emplacements',
+    propertiesIn: 'Propriétés à ',
+    titles: {
+      real_data: "Emplacements les Plus Demandés",
+      edge_function: "Destinations d'Investissement en Vedette",
+      expert_zones: "Emplacements où René et son Équipe sont Experts"
+    },
+    subtitles: {
+      real_data: "Basé sur notre inventaire actuel et l'activité de recherche",
+      edge_function: "Opportunités immobilières dans les zones les plus prometteuses du pays",
+      expert_zones: "Avec 6 ans d'expérience, nous connaissons chaque zone et savons où se trouvent les meilleures opportunités"
+    }
+  }
+};
+
+// Obtener las traducciones para el idioma actual
+const t = translations[language] || translations.es;
+
+// Función para validar y obtener imagen correcta
+function getValidImage(imageUrl: string, fallbackType: string = 'city', index: number = 0): string {
+  const isValidUrl = imageUrl && (
+    imageUrl.startsWith('http') || 
+    imageUrl.startsWith('https') || 
+    imageUrl.startsWith('//') ||
+    imageUrl.startsWith('/') ||
+    imageUrl.includes('unsplash.com') ||
+    imageUrl.includes('cloudinary.com') ||
+    imageUrl.includes('amazonaws.com')
+  );
+  
+  if (isValidUrl) {
+    if (imageUrl.startsWith('//')) {
+      return `https:${imageUrl}`;
+    }
+    if (imageUrl.startsWith('/') && !imageUrl.startsWith('//')) {
+      return `${Astro.site?.origin || 'https://example.com'}${imageUrl}`;
+    }
+    return imageUrl;
+  }
+  
+  const fallbacks = {
+    city: [
+      'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1f?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1454391304352-2bf4678b1a7a?w=400&h=300&fit=crop&auto=format'
+    ],
+    sector: [
+      'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1605146769289-440113cc3d00?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&h=300&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=400&h=300&fit=crop&auto=format'
+    ]
+  };
+  
+  const typeImages = fallbacks[fallbackType] || fallbacks.city;
+  return typeImages[index % typeImages.length];
+}
+
+// Función para extraer datos del content JSON
+function parseContentData(content: any) {
+  if (!content) return null;
+  
+  try {
+    const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+    return {
+      availableProperties: parsed.available_properties || 0,
+      priceFrom: parsed.price_from || null,
+      priceRange: parsed.price_range || null,
+      description: parsed.description || ''
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+// Función para crear nombres cortos estilo valla publicitaria
+function createBillboardName(originalName: string): string {
+  // Mapeo específico para nombres conocidos
+  const nameMap = {
+    'Santiago - Segunda Ciudad del País': 'SANTIAGO',
+    'Juan Dolio - Paraíso Costero de Inversión': 'JUAN DOLIO',
+    'Santo Domingo Norte - Crecimiento Acelerado': 'STO DGO NORTE',
+    'Santo Domingo Este - Zona Residencial Premium': 'STO DGO ESTE',
+    'Samaná - Joya Natural Emergente': 'SAMANÁ',
+    'Distrito Nacional - Centro de Inversión': 'DISTRITO NACIONAL',
+    'Punta Cana - Destino Turístico #1': 'PUNTA CANA',
+    'La Jacobo - Oportunidad Emergente': 'LA JACOBO',
+    'San Isidro - Desarrollo Acelerado': 'SAN ISIDRO',
+    'Bella Vista - Tradición y Modernidad': 'BELLA VISTA',
+    'Alma Rosa - Residencial Familiar': 'ALMA ROSA',
+    'Av. Ecológica - Naturaleza y Ciudad': 'AV. ECOLÓGICA',
+    'Piantini - Exclusividad y Lujo': 'PIANTINI',
+    'Naco - Sector Comercial Premium': 'NACO'
+  };
+  
+  // Si existe un mapeo específico, usarlo
+  if (nameMap[originalName]) {
+    return nameMap[originalName];
+  }
+  
+  // Si no, extraer la parte principal del nombre
+  return originalName
+    .replace(/\s*-\s*.*$/, '') // Quitar todo después del primer " - "
+    .toUpperCase()
+    .replace(/SANTO DOMINGO/g, 'STO DGO')
+    .replace(/PUERTO PLATA/g, 'PTO PLATA');
+}
+
+// Procesar datos directamente desde hotItems
+let popularLocations = [];
+
+const cities = (hotItems.cities || []).map((city, index) => {
+  const contentData = parseContentData(city.content);
+  
+  return {
+    name: createBillboardName(city.title || city.titulo),
+    originalName: city.title || city.titulo,
+    url: city.url?.startsWith('/') ? city.url : `/${city.url}` || '#',
+    image: getValidImage(city.image_url || city.imagen || city.image, 'city', index),
+    availableProperties: contentData?.availableProperties || city.property_count || 0,
+    priceFrom: contentData?.priceFrom || city.avg_price || city.precio || 'Consultar',
+    priority: city.priority || 0,
+    type: 'city'
+  };
+}).filter(city => city.availableProperties > 0);
+
+const sectors = (hotItems.sectors || []).map((sector, index) => {
+  const contentData = parseContentData(sector.content);
+  
+  return {
+    name: createBillboardName(sector.title || sector.titulo),
+    originalName: sector.title || sector.titulo,
+    url: sector.url?.startsWith('/') ? sector.url : `/${sector.url}` || '#',
+    image: getValidImage(sector.image_url || sector.imagen || sector.image, 'sector', index),
+    availableProperties: contentData?.availableProperties || sector.property_count || 0,
+    priceFrom: contentData?.priceFrom || sector.avg_price || sector.precio || 'Consultar',
+    priority: sector.priority || 0,
+    type: 'sector'
+  };
+}).filter(sector => sector.availableProperties > 0);
+
+// Seleccionar qué mostrar según showType
+switch (showType) {
+  case 'cities':
+    popularLocations = cities.sort((a, b) => b.priority - a.priority).slice(0, 8);
+    break;
+  case 'sectors':
+    popularLocations = sectors.sort((a, b) => b.priority - a.priority).slice(0, 8);
+    break;
+  default: // 'mixed'
+    popularLocations = [...cities, ...sectors].sort((a, b) => b.priority - a.priority).slice(0, 8);
+}
+
+// Si no hay datos, no renderizar
+if (!popularLocations || popularLocations.length === 0) {
+  return null;
+}
+
+// Títulos dinámicos con soporte multiidioma
+const finalTitle = title || t.titles[dataSource] || t.titles.edge_function;
+const finalSubtitle = subtitle || t.subtitles[dataSource] || t.subtitles.edge_function;
+
+// URL del botón según el idioma
+const locationsUrl = language === 'en' ? '/en/locations' : 
+                     language === 'fr' ? '/fr/emplacements' : 
+                     '/ubicaciones';
+
+console.log('🎯 PopularLocations - Multiidioma:', {
+  language,
+  totalLocations: popularLocations.length,
+  showType
+});
+---
+
+<section class="py-16 bg-gray-50">
+  <div class="container mx-auto px-4">
+    
+    <!-- Encabezado -->
+    <div class="text-center mb-12">
+      <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        {finalTitle}
+      </h2>
+      <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+        {finalSubtitle}
+      </p>
+    </div>
+
+    <!-- Carrusel -->
+    <div class="relative">
+      <!-- Botones de navegación -->
+      <div class="absolute -top-16 right-0 z-10 flex gap-2">
+        <button 
+          id="locations-prev" 
+          class="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label={t.previousLocations}
+        >
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <button 
+          id="locations-next" 
+          class="w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label={t.moreLocations}
+        >
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Contenedor del carrusel -->
+      <div class="overflow-hidden">
+        <div 
+          id="locations-track"
+          class="flex gap-6 transition-transform duration-300 ease-out"
+        >
+          {popularLocations.map((location, index) => (
+            <div class="flex-shrink-0 w-56">
+              <a 
+                href={location.url} 
+                class="block group relative overflow-hidden rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                title={location.originalName}
+              >
+                <div class="relative aspect-[4/3]">
+                  <img 
+                    src={location.image} 
+                    alt={`${t.propertiesIn} ${location.originalName}`}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading={index < 4 ? "eager" : "lazy"}
+                    onerror={`this.src='${getValidImage('', location.type, index)}'`}
+                  />
+                  <!-- Overlay con gradiente mejorado -->
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/10"></div>
+                  
+                  <!-- Contenido centrado verticalmente -->
+                  <div class="absolute inset-0 flex flex-col justify-center items-center text-center text-white px-4">
+                    <!-- Nombre estilo VALLA PUBLICITARIA - Con tono rojizo-anaranjado de marca -->
+                    <h3 class="text-xl font-black mb-6 transition-all duration-300 leading-tight tracking-wide text-white group-hover:text-orange-600 group-hover:scale-105 transform">
+                      {location.name}
+                    </h3>
+                    
+                    <!-- Info de propiedades y precio en la parte inferior -->
+                    <div class="absolute bottom-4 left-4 right-4 flex justify-between items-end">
+                      <div class="text-left">
+                        <div class="text-sm font-semibold text-white">
+                          {location.availableProperties} {t.properties}
+                        </div>
+                        <div class="text-xs opacity-75">
+                          {t.from} {location.priceFrom}
+                        </div>
+                      </div>
+                      <svg class="w-4 h-4 group-hover:translate-x-1 group-hover:text-orange-400 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+    
+    <!-- CTA -->
+    <div class="text-center mt-10">
+      <a 
+        href={locationsUrl}
+        class="inline-flex items-center gap-2 px-6 py-3 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-orange-600 hover:text-orange-600 transition-all duration-300 font-medium group"
+      >
+        {t.viewAllLocations}
+        <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const track = document.getElementById('locations-track');
+  const prevBtn = document.getElementById('locations-prev');
+  const nextBtn = document.getElementById('locations-next');
+  
+  if (!track || !prevBtn || !nextBtn) return;
+
+  let currentIndex = 0;
+  const itemWidth = 224; // w-56
+  const gap = 24;
+  const moveDistance = itemWidth + gap;
+  const totalItems = track.children.length;
+  const visibleItems = Math.min(4, totalItems);
+  const maxIndex = Math.max(0, totalItems - visibleItems);
+
+  function updateCarousel() {
+    const translateX = currentIndex * moveDistance;
+    track.style.transform = `translateX(-${translateX}px)`;
+    
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex >= maxIndex;
+    
+    prevBtn.style.opacity = currentIndex === 0 ? '0.5' : '1';
+    nextBtn.style.opacity = currentIndex >= maxIndex ? '0.5' : '1';
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (currentIndex > 0) {
+      currentIndex--;
+      updateCarousel();
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentIndex < maxIndex) {
+      currentIndex++;
+      updateCarousel();
+    }
+  });
+
+  updateCarousel();
+});
+</script>

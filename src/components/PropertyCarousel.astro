@@ -1,0 +1,586 @@
+---
+export interface Props {
+  title: string;
+  subtitle?: string;
+  properties: Array<{
+    id?: string | number;
+    slug: string;
+    titulo: string;
+    precio: string;
+    imagen: string;
+    imagenes?: string[];
+    sector: string;
+    habitaciones: number;
+    banos: number;
+    metros: number;
+    tipo: string;
+    destacado?: boolean;
+    nuevo?: boolean;
+    descuento?: string;
+    code?: string;
+    is_project?: boolean;
+    project_badges?: string[];
+    habitaciones_rango?: string;
+    banos_rango?: string;
+    metros_rango?: string;
+    reserva_desde?: string;
+    built_area?: number;
+    land_area?: number;
+    metros_terreno?: number;
+    nivel?: number;
+    parking_spots?: number;
+    parqueos?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    url?: string;
+  }>;
+  viewAllLink?: string;
+  theme?: 'default' | 'luxury' | 'investment';
+  language?: 'es' | 'en' | 'fr';
+}
+
+const { 
+  title, 
+  subtitle, 
+  properties, 
+  viewAllLink,
+  theme = 'default',
+  language = 'es'
+} = Astro.props;
+
+if (!properties || properties.length === 0) return null;
+
+// Traducciones trilingües
+const translations = {
+  es: {
+    viewAll: 'Ver todas',
+    addToFavorites: 'Agregar a favoritos',
+    previous: 'Anterior',
+    next: 'Siguiente',
+    reserve: 'Reserva',
+    priceOnRequest: 'Precio a consultar',
+    locationNotSpecified: 'Ubicación no especificada',
+    propertyWithoutName: 'Propiedad sin nombre',
+    property: 'Propiedad'
+  },
+  en: {
+    viewAll: 'View all',
+    addToFavorites: 'Add to favorites',
+    previous: 'Previous',
+    next: 'Next',
+    reserve: 'Reserve',
+    priceOnRequest: 'Price on request',
+    locationNotSpecified: 'Location not specified',
+    propertyWithoutName: 'Property without name',
+    property: 'Property'
+  },
+  fr: {
+    viewAll: 'Voir tout',
+    addToFavorites: 'Ajouter aux favoris',
+    previous: 'Précédent',
+    next: 'Suivant',
+    reserve: 'Réserver',
+    priceOnRequest: 'Prix sur demande',
+    locationNotSpecified: 'Emplacement non spécifié',
+    propertyWithoutName: 'Propriété sans nom',
+    property: 'Propriété'
+  }
+};
+
+const t = translations[language] || translations.es;
+
+// ID único para este carrusel
+const carouselId = `carousel-${Math.random().toString(36).substr(2, 9)}`;
+
+// Procesar propiedades igual que antes pero con traducciones
+const processedProperties = properties.map((property, index) => ({
+  ...property,
+  id: property.id || `carousel-${index}`,
+  titulo: property.titulo || t.propertyWithoutName,
+  precio: property.precio || t.priceOnRequest,
+  imagen: property.imagen || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen',
+  imagenes: property.imagenes || [property.imagen || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'],
+  sector: property.sector || t.locationNotSpecified,
+  habitaciones: property.habitaciones || 0,
+  banos: property.banos || 0,
+  metros: property.metros || 0,
+  tipo: property.tipo || t.property
+}));
+---
+
+<section class="py-8">
+  <div class="container mx-auto px-4">
+    {/* Header */}
+    <div class="flex items-start justify-between mb-6 gap-6">
+      <div class="flex-1">
+        <h3 class="text-2xl md:text-3xl font-bold text-gray-900">{title}</h3>
+        {subtitle && (
+          <p class="text-gray-600 mt-2">{subtitle}</p>
+        )}
+      </div>
+      {viewAllLink && (
+        <div class="hidden md:flex flex-col items-end">
+          <a 
+            href={viewAllLink}
+            class="flex items-start gap-2 text-[#f04e00] hover:text-[#d94400] font-medium transition-colors text-right leading-tight max-w-xs"
+          >
+            <span class="text-sm leading-tight">
+              {t.viewAll}
+            </span>
+            <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+          </a>
+        </div>
+      )}
+    </div>
+
+    {/* Carrusel Container */}
+    <div class="relative px-12">
+      {/* Botones de navegación */}
+      <button
+        class="carousel-nav-prev absolute -left-2 top-1/2 -translate-y-1/2 z-30 w-12 h-12 bg-white rounded-full shadow-xl border border-gray-200 flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all duration-200"
+        aria-label={t.previous}
+      >
+        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+
+      <button
+        class="carousel-nav-next absolute -right-2 top-1/2 -translate-y-1/2 z-30 w-12 h-12 bg-white rounded-full shadow-xl border border-gray-200 flex items-center justify-center hover:shadow-2xl hover:scale-105 transition-all duration-200"
+        aria-label={t.next}
+      >
+        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+        </svg>
+      </button>
+
+      {/* Carrusel */}
+      <div class="overflow-hidden">
+        <div class="flex gap-4 transition-transform duration-300" id={carouselId}>
+          {processedProperties.map((property, index) => {
+            const propertyImages = property.imagenes || [property.imagen];
+            const hasMultipleImages = propertyImages.length > 1;
+            const imageCarouselId = `${carouselId}-img-${index}`;
+
+            return (
+              <article class="flex-shrink-0 w-72">
+                <a 
+                  href={property.url || `#`}
+                  class="group cursor-pointer block"
+                  data-property-id={property.id}
+                >
+                  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1">
+                    {/* Imagen con carousel */}
+                    <div class="relative aspect-[4/2.8] overflow-hidden bg-gray-200">
+                      {/* Contenedor de imágenes */}
+                      <div 
+                        class="image-carousel-container w-full h-full relative"
+                        data-image-carousel={imageCarouselId}
+                      >
+                        {propertyImages.map((img, imgIndex) => (
+                          <img 
+                            src={img || 'https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen'} 
+                            alt={`${property.titulo} - Imagen ${imgIndex + 1}`}
+                            class={`image-slide absolute inset-0 w-full h-full object-cover transition-all duration-300 ${imgIndex === 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
+                            data-slide-index={imgIndex}
+                            data-image-carousel={imageCarouselId}
+                            loading="lazy"
+                            onerror="this.src='https://via.placeholder.com/400x300/e5e7eb/9ca3af?text=Sin+Imagen';"
+                          />
+                        ))}
+                      </div>
+                      
+                      {/* Controles de navegación de imágenes */}
+                      {hasMultipleImages && (
+                        <div class="image-controls absolute inset-0 flex items-center justify-between p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <button 
+                            class="image-prev-btn w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 shadow-sm flex items-center justify-center transition-colors z-20"
+                            data-image-carousel={imageCarouselId}
+                            data-direction="prev"
+                            type="button"
+                            aria-label={t.previous}
+                          >
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                          </button>
+                          
+                          <button 
+                            class="image-next-btn w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 shadow-sm flex items-center justify-center transition-colors z-20"
+                            data-image-carousel={imageCarouselId}
+                            data-direction="next"
+                            type="button"
+                            aria-label={t.next}
+                          >
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* Indicadores de imagen */}
+                      {hasMultipleImages && (
+                        <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                          {propertyImages.map((_, dotIndex) => (
+                            <div 
+                              class={`image-dot w-1.5 h-1.5 rounded-full transition-all duration-200 ${dotIndex === 0 ? 'bg-white/90' : 'bg-white/40'}`}
+                              data-image-carousel={imageCarouselId}
+                              data-dot-index={dotIndex}
+                            ></div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Badge de tipo */}
+                      {property.is_project && property.reserva_desde ? (
+                        <span class="absolute top-2 left-2 bg-gray-700/90 text-white px-2 py-1 rounded text-xs font-medium shadow-sm">
+                          {t.reserve} {property.reserva_desde}
+                        </span>
+                      ) : property.tipo && property.tipo !== t.property && (
+                        <span class="absolute top-2 left-2 bg-white/90 text-gray-700 px-2 py-1 rounded text-xs font-medium shadow-sm">
+                          {property.tipo}
+                        </span>
+                      )}
+                      
+                      {/* Botón de favoritos */}
+                      <button 
+                        class="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 hover:bg-white transition-colors shadow-md z-20"
+                        aria-label={t.addToFavorites}
+                        onclick={`event.preventDefault(); event.stopPropagation(); toggleCarouselFavorite('${property.id}', '${property.titulo.replace(/'/g, "\\'")}');`}
+                        data-favorite-id={property.id}
+                      >
+                        <svg class="w-4 h-4 text-gray-600 hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    {/* Contenido */}
+                    <div class="p-3">
+                      {/* Precio y código */}
+                      <div class="flex justify-between items-start mb-2">
+                        <div class="text-lg font-bold text-[#f04e00]">
+                          {property.precio}
+                        </div>
+                        {property.code && (
+                          <div class="text-xs text-gray-400 font-mono">
+                            #{property.code}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Ubicación */}
+                      <div class="flex items-center gap-1 mb-2">
+                        <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <p class="text-xs text-gray-600 truncate">{property.sector}</p>
+                      </div>
+                      
+                      {/* Título */}
+                      <div class="h-8 flex items-center mb-3">
+                        <h4 class="font-medium text-gray-800 line-clamp-2 group-hover:text-[#f04e00] transition-colors leading-tight text-sm">
+                          {property.titulo}
+                        </h4>
+                      </div>
+                      
+                      {/* Características */}
+                      <div class="flex items-center justify-between text-gray-900 text-xs">
+                        {(property.bedrooms > 0 || property.habitaciones > 0 || (property.is_project && property.habitaciones_rango && !property.habitaciones_rango.includes('0') && property.habitaciones_rango.trim() !== '0')) && (
+                          <span class="flex items-center gap-1">
+                            <i class="fas fa-bed text-[#f04e00]"></i>
+                            <span class="font-semibold">
+                              {property.is_project && property.habitaciones_rango ? 
+                                property.habitaciones_rango.replace(/\s*(hab|habitaciones?)\s*/gi, '').trim() : 
+                                property.bedrooms || property.habitaciones
+                              }
+                            </span>
+                          </span>
+                        )}
+                        
+                        {(property.bathrooms > 0 || property.banos > 0 || (property.is_project && property.banos_rango && !property.banos_rango.includes('0') && property.banos_rango.trim() !== '0')) && (
+                          <span class="flex items-center gap-1">
+                            <i class="fas fa-bath text-[#f04e00]"></i>
+                            <span class="font-semibold">
+                              {property.is_project && property.banos_rango ? 
+                                property.banos_rango.replace(/\s*(baños?|bath|bathroom)\s*/gi, '').trim() : 
+                                property.bathrooms || property.banos
+                              }
+                            </span>
+                          </span>
+                        )}
+                        
+                        {((property.built_area > 0) || (property.land_area > 0) || (property.metros > 0) || (property.metros_terreno > 0) || (property.is_project && property.metros_rango && !property.metros_rango.includes('0') && property.metros_rango.trim() !== '0')) && (
+                          <span class="flex items-center gap-1">
+                            <i class="fas fa-th-large text-[#f04e00]"></i>
+                            <span class="font-semibold">
+                              {property.is_project && property.metros_rango ? 
+                                property.metros_rango.replace(/\s*m²?\s*/gi, '').trim() + 'm²' : 
+                                property.built_area > 0 ? `${property.built_area}m²` :
+                                property.land_area > 0 ? `${property.land_area}m²` :
+                                property.metros_terreno > 0 ? `${property.metros_terreno}m²` :
+                                property.metros > 0 ? `${property.metros}m²` : ''
+                              }
+                            </span>
+                          </span>
+                        )}
+                        
+                        {(property.parking_spots > 0 || property.parqueos > 0) && (
+                          <span class="flex items-center gap-1">
+                            <i class="fas fa-car text-[#f04e00]"></i>
+                            <span class="font-semibold">
+                              {property.parking_spots || property.parqueos}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </a>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+
+    {/* Ver todas móvil */}
+    {viewAllLink && (
+      <div class="mt-6 text-center md:hidden">
+        <a 
+          href={viewAllLink}
+          class="inline-flex items-start gap-2 text-[#f04e00] hover:text-[#d94400] font-medium"
+        >
+          <span class="text-sm leading-tight">
+            {t.viewAll}
+          </span>
+          <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </a>
+      </div>
+    )}
+  </div>
+</section>
+
+<script define:vars={{ carouselId }}>
+  // El script JavaScript permanece igual...
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('Inicializando PropertyCarousel:', carouselId);
+    
+    // ===== CARRUSEL PRINCIPAL (NAVEGACIÓN ENTRE TARJETAS) =====
+    const carousel = document.getElementById(carouselId);
+    if (!carousel) {
+      console.error('Carousel no encontrado:', carouselId);
+      return;
+    }
+    
+    const carouselContainer = carousel.parentElement.parentElement;
+    const prevBtn = carouselContainer.querySelector('.carousel-nav-prev');
+    const nextBtn = carouselContainer.querySelector('.carousel-nav-next');
+    
+    if (!prevBtn || !nextBtn) {
+      console.error('Botones de navegación no encontrados');
+      return;
+    }
+    
+    let currentIndex = 0;
+    const items = carousel.children;
+    const itemWidth = 288 + 16;
+    const containerWidth = carousel.parentElement.offsetWidth;
+    const visibleItems = Math.floor(containerWidth / itemWidth);
+    const maxIndex = Math.max(0, items.length - visibleItems);
+
+    function updateMainCarousel() {
+      const translateX = currentIndex * itemWidth;
+      carousel.style.transform = `translateX(-${translateX}px)`;
+
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex >= maxIndex;
+
+      prevBtn.style.opacity = currentIndex === 0 ? '0.5' : '1';
+      nextBtn.style.opacity = currentIndex >= maxIndex ? '0.5' : '1';
+    }
+    
+    prevBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateMainCarousel();
+      }
+    });
+    
+    nextBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (currentIndex < maxIndex) {
+        currentIndex++;
+        updateMainCarousel();
+      }
+    });
+
+    updateMainCarousel();
+
+    // ===== RESTO DEL CÓDIGO JAVASCRIPT IGUAL =====
+    const imageStates = new Map();
+    
+    function initImageCarousels() {
+      const imageContainers = carousel.querySelectorAll('.image-carousel-container');
+      
+      imageContainers.forEach(container => {
+        const carouselId = container.getAttribute('data-image-carousel');
+        if (!carouselId) return;
+        
+        imageStates.set(carouselId, 0);
+        
+        const prevButton = container.parentElement.querySelector('.image-prev-btn');
+        const nextButton = container.parentElement.querySelector('.image-next-btn');
+        
+        if (prevButton && nextButton) {
+          prevButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            navigateImages(carouselId, 'prev');
+          });
+          
+          nextButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            navigateImages(carouselId, 'next');
+          });
+        }
+      });
+    }
+    
+    function navigateImages(imageCarouselId, direction) {
+      const images = document.querySelectorAll(`[data-image-carousel="${imageCarouselId}"].image-slide`);
+      const dots = document.querySelectorAll(`[data-image-carousel="${imageCarouselId}"][data-dot-index]`);
+      
+      if (images.length <= 1) return;
+      
+      let currentImageIndex = imageStates.get(imageCarouselId) || 0;
+      
+      if (direction === 'next') {
+        currentImageIndex = (currentImageIndex + 1) % images.length;
+      } else {
+        currentImageIndex = currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1;
+      }
+      
+      imageStates.set(imageCarouselId, currentImageIndex);
+      
+      images.forEach((img, index) => {
+        if (index === currentImageIndex) {
+          img.style.opacity = '1';
+          img.style.transform = 'scale(1)';
+        } else {
+          img.style.opacity = '0';
+          img.style.transform = 'scale(1.05)';
+        }
+      });
+      
+      dots.forEach((dot, index) => {
+        if (index === currentImageIndex) {
+          dot.className = dot.className.replace('bg-white/40', 'bg-white/90');
+        } else {
+          dot.className = dot.className.replace('bg-white/90', 'bg-white/40');
+        }
+      });
+    }
+    
+    initImageCarousels();
+    
+    // ===== FUNCIONES DE FAVORITOS IGUALES =====
+    async function toggleCarouselFavorite(propertyId, propertyTitle) {
+      if (!window.simpleFavoritesManager) return;
+
+      try {
+        const isCurrentlyFavorite = window.simpleFavoritesManager.isFavorite(propertyId);
+        updateCarouselFavoriteButtonUI(propertyId, !isCurrentlyFavorite);
+        await window.simpleFavoritesManager.toggleFavorite(propertyId);
+      } catch (error) {
+        console.error('Error toggling favorite:', error);
+        const currentState = window.simpleFavoritesManager.isFavorite(propertyId);
+        updateCarouselFavoriteButtonUI(propertyId, currentState);
+        alert('Error al actualizar favorito. Inténtalo de nuevo.');
+      }
+    }
+
+    function updateCarouselFavoriteButtonUI(propertyId, isFavorite) {
+      const button = carousel.querySelector(`[data-favorite-id="${propertyId}"]`);
+      if (!button) return;
+      
+      const icon = button.querySelector('svg');
+      if (!icon) return;
+      
+      if (isFavorite) {
+        icon.setAttribute('fill', 'currentColor');
+        icon.classList.remove('text-gray-600');
+        icon.classList.add('text-red-500');
+      } else {
+        icon.setAttribute('fill', 'none');
+        icon.classList.remove('text-red-500');
+        icon.classList.add('text-gray-600');
+      }
+    }
+
+    function updateCarouselFavoritesUI(info) {
+      if (!info || !info.favorites) return;
+      
+      const favoritesSet = new Set(info.favorites);
+      
+      carousel.querySelectorAll('[data-favorite-id]').forEach(button => {
+        const propertyId = button.getAttribute('data-favorite-id');
+        const isFavorite = favoritesSet.has(propertyId);
+        updateCarouselFavoriteButtonUI(propertyId, isFavorite);
+      });
+    }
+
+    async function initializeCarouselFavorites() {
+      try {
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        while (!window.simpleFavoritesManager && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+        
+        if (window.simpleFavoritesManager) {
+          const info = window.simpleFavoritesManager.getDeviceInfo();
+          if (info && info.count > 0) {
+            updateCarouselFavoritesUI(info);
+          }
+          
+          window.simpleFavoritesManager.addListener(updateCarouselFavoritesUI);
+        }
+      } catch (error) {
+        console.error('Error conectando carrusel con SimpleFavoritesManager:', error);
+      }
+    }
+    
+    initializeCarouselFavorites();
+    window.toggleCarouselFavorite = toggleCarouselFavorite;
+  });
+</script>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .image-slide {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  }
+  
+  .image-controls {
+    transition: opacity 0.2s ease-in-out;
+  }
+</style>

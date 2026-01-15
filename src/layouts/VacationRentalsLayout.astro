@@ -1,0 +1,811 @@
+---
+// src/layouts/VacationRentalsLayout.astro - Layout para página de planes de rentas vacacionales
+import Layout from './Layout.astro';
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK 
+// ===================================================================
+
+let vacationRentalsData = data;
+
+// Si no hay datos, usar fallback estático
+if (!vacationRentalsData || !vacationRentalsData.memberships) {
+  console.log('🏖️ VacationRentalsLayout: Usando datos estáticos de fallback');
+  
+  vacationRentalsData = {
+    language: language,
+    memberships: [
+      {
+        name: language === 'es' ? 'Básico' : language === 'en' ? 'Basic' : 'Basique',
+        price: '$49',
+        period: language === 'es' ? '/mes' : language === 'en' ? '/month' : '/mois',
+        description: language === 'es' ? 'Ideal para propietarios con 1-2 propiedades' :
+                     language === 'en' ? 'Ideal for owners with 1-2 properties' :
+                     'Idéal pour les propriétaires avec 1-2 propriétés',
+        features: [
+          language === 'es' ? 'Hasta 2 propiedades listadas' :
+          language === 'en' ? 'Up to 2 properties listed' :
+          'Jusqu\'à 2 propriétés listées',
+          language === 'es' ? 'Fotos básicas incluidas' :
+          language === 'en' ? 'Basic photos included' :
+          'Photos de base incluses',
+          language === 'es' ? 'Calendario de disponibilidad' :
+          language === 'en' ? 'Availability calendar' :
+          'Calendrier de disponibilité',
+          language === 'es' ? 'Mensajería con huéspedes' :
+          language === 'en' ? 'Guest messaging' :
+          'Messagerie avec les invités',
+          language === 'es' ? 'Soporte por email' :
+          language === 'en' ? 'Email support' :
+          'Support par email',
+          language === 'es' ? 'Comisión 0% por booking' :
+          language === 'en' ? '0% booking commission' :
+          'Commission 0% par réservation'
+        ],
+        popular: false,
+        savings: language === 'es' ? 'Ahorra vs Airbnb: $180/mes' :
+                 language === 'en' ? 'Save vs Airbnb: $180/month' :
+                 'Économie vs Airbnb: $180/mois'
+      },
+      {
+        name: language === 'es' ? 'Profesional' : language === 'en' ? 'Professional' : 'Professionnel',
+        price: '$89',
+        period: language === 'es' ? '/mes' : language === 'en' ? '/month' : '/mois',
+        description: language === 'es' ? 'Perfecto para gestores de múltiples propiedades' :
+                     language === 'en' ? 'Perfect for managers of multiple properties' :
+                     'Parfait pour les gestionnaires de propriétés multiples',
+        features: [
+          language === 'es' ? 'Hasta 5 propiedades listadas' :
+          language === 'en' ? 'Up to 5 properties listed' :
+          'Jusqu\'à 5 propriétés listées',
+          language === 'es' ? 'Fotografía profesional incluida' :
+          language === 'en' ? 'Professional photography included' :
+          'Photographie professionnelle incluse',
+          language === 'es' ? 'Tour virtual 360° incluido' :
+          language === 'en' ? '360° virtual tour included' :
+          'Visite virtuelle 360° incluse',
+          language === 'es' ? 'Marketing en redes sociales' :
+          language === 'en' ? 'Social media marketing' :
+          'Marketing sur les réseaux sociaux',
+          language === 'es' ? 'Reportes de ocupación detallados' :
+          language === 'en' ? 'Detailed occupancy reports' :
+          'Rapports d\'occupation détaillés',
+          language === 'es' ? 'Optimización de precios automática' :
+          language === 'en' ? 'Automatic price optimization' :
+          'Optimisation automatique des prix',
+          language === 'es' ? 'Soporte prioritario' :
+          language === 'en' ? 'Priority support' :
+          'Support prioritaire',
+          language === 'es' ? 'Comisión 0% por booking' :
+          language === 'en' ? '0% booking commission' :
+          'Commission 0% par réservation'
+        ],
+        popular: true,
+        savings: language === 'es' ? 'Ahorra vs Airbnb: $450/mes' :
+                 language === 'en' ? 'Save vs Airbnb: $450/month' :
+                 'Économie vs Airbnb: $450/mois'
+      },
+      {
+        name: 'Premium',
+        price: '$149',
+        period: language === 'es' ? '/mes' : language === 'en' ? '/month' : '/mois',
+        description: language === 'es' ? 'Para operadores serios con portafolios grandes' :
+                     language === 'en' ? 'For serious operators with large portfolios' :
+                     'Pour les opérateurs sérieux avec de grands portefeuilles',
+        features: [
+          language === 'es' ? 'Propiedades ilimitadas' :
+          language === 'en' ? 'Unlimited properties' :
+          'Propriétés illimitées',
+          language === 'es' ? 'Video promocional profesional' :
+          language === 'en' ? 'Professional promotional video' :
+          'Vidéo promotionnelle professionnelle',
+          language === 'es' ? 'Gestión completa de booking' :
+          language === 'en' ? 'Complete booking management' :
+          'Gestion complète des réservations',
+          language === 'es' ? 'Channel manager integrado' :
+          language === 'en' ? 'Integrated channel manager' :
+          'Gestionnaire de canaux intégré',
+          language === 'es' ? 'Dashboard analítico avanzado' :
+          language === 'en' ? 'Advanced analytics dashboard' :
+          'Tableau de bord analytique avancé',
+          language === 'es' ? 'Account manager dedicado' :
+          language === 'en' ? 'Dedicated account manager' :
+          'Gestionnaire de compte dédié',
+          language === 'es' ? 'Check-in automático' :
+          language === 'en' ? 'Automatic check-in' :
+          'Enregistrement automatique',
+          language === 'es' ? 'Limpieza coordinada' :
+          language === 'en' ? 'Coordinated cleaning' :
+          'Nettoyage coordonné',
+          language === 'es' ? 'Comisión 0% por booking' :
+          language === 'en' ? '0% booking commission' :
+          'Commission 0% par réservation'
+        ],
+        popular: false,
+        savings: language === 'es' ? 'Ahorra vs Airbnb: $800+/mes' :
+                 language === 'en' ? 'Save vs Airbnb: $800+/month' :
+                 'Économie vs Airbnb: $800+/mois'
+      }
+    ],
+    stats: [
+      { 
+        number: '32%', 
+        label: language === 'es' ? 'Aumento promedio en ingresos' :
+               language === 'en' ? 'Average income increase' :
+               'Augmentation moyenne des revenus'
+      },
+      { 
+        number: '0%', 
+        label: language === 'es' ? 'Comisión por booking' :
+               language === 'en' ? 'Booking commission' :
+               'Commission de réservation'
+      },
+      { 
+        number: '75%', 
+        label: language === 'es' ? 'Ocupación promedio' :
+               language === 'en' ? 'Average occupancy' :
+               'Occupation moyenne'
+      },
+      { 
+        number: '180+', 
+        label: language === 'es' ? 'Propietarios activos' :
+               language === 'en' ? 'Active owners' :
+               'Propriétaires actifs'
+      }
+    ],
+    casosExito: [
+      {
+        owner: 'María González',
+        property: language === 'es' ? 'Villa en Punta Cana' :
+                  language === 'en' ? 'Villa in Punta Cana' :
+                  'Villa à Punta Cana',
+        beforeIncome: '$3,200/mes',
+        afterIncome: '$4,800/mes',
+        increase: '+50%',
+        plan: language === 'es' ? 'Profesional' : language === 'en' ? 'Professional' : 'Professionnel',
+        testimonial: language === 'es' ? 'Desde que me uní a CLIC, mis ingresos aumentaron significativamente. El equipo maneja todo y yo solo recibo el dinero.' :
+                     language === 'en' ? 'Since I joined CLIC, my income increased significantly. The team handles everything and I just receive the money.' :
+                     'Depuis que j\'ai rejoint CLIC, mes revenus ont considérablement augmenté. L\'équipe gère tout et je ne fais que recevoir l\'argent.',
+        avatar: 'https://i.pravatar.cc/150?img=5'
+      },
+      {
+        owner: 'Carlos Martínez',
+        property: language === 'es' ? '3 Apartamentos en Bávaro' :
+                  language === 'en' ? '3 Apartments in Bavaro' :
+                  '3 Appartements à Bavaro',
+        beforeIncome: '$5,400/mes',
+        afterIncome: '$7,200/mes',
+        increase: '+33%',
+        plan: 'Premium',
+        testimonial: language === 'es' ? 'La plataforma me permite gestionar mis 3 propiedades desde una sola dashboard. Los reportes son excelentes.' :
+                     language === 'en' ? 'The platform allows me to manage my 3 properties from a single dashboard. The reports are excellent.' :
+                     'La plateforme me permet de gérer mes 3 propriétés depuis un seul tableau de bord. Les rapports sont excellents.',
+        avatar: 'https://i.pravatar.cc/150?img=8'
+      },
+      {
+        owner: 'Ana Rodríguez',
+        property: language === 'es' ? 'Casa en Las Terrenas' :
+                  language === 'en' ? 'House in Las Terrenas' :
+                  'Maison à Las Terrenas',
+        beforeIncome: '$1,800/mes',
+        afterIncome: '$2,600/mes',
+        increase: '+44%',
+        plan: language === 'es' ? 'Básico' : language === 'en' ? 'Basic' : 'Basique',
+        testimonial: language === 'es' ? 'Perfecta para empezar. Sin complicaciones y con excelentes resultados desde el primer mes.' :
+                     language === 'en' ? 'Perfect to start with. No complications and excellent results from the first month.' :
+                     'Parfait pour commencer. Aucune complication et d\'excellents résultats dès le premier mois.',
+        avatar: 'https://i.pravatar.cc/150?img=16'
+      }
+    ],
+    comparison: [
+      {
+        feature: language === 'es' ? 'Comisión por booking' :
+                 language === 'en' ? 'Booking commission' :
+                 'Commission de réservation',
+        clic: '0%',
+        airbnb: language === 'es' ? '3% huésped + 14-16% anfitrión' :
+                language === 'en' ? '3% guest + 14-16% host' :
+                '3% invité + 14-16% hôte',
+        booking: '15-25%',
+        vrbo: '8% + 3%'
+      },
+      {
+        feature: language === 'es' ? 'Costo mensual' :
+                 language === 'en' ? 'Monthly cost' :
+                 'Coût mensuel',
+        clic: '$49-149',
+        airbnb: language === 'es' ? '$0 + comisiones altas' :
+                language === 'en' ? '$0 + high commissions' :
+                '$0 + commissions élevées',
+        booking: language === 'es' ? '$0 + comisiones altas' :
+                 language === 'en' ? '$0 + high commissions' :
+                 '$0 + commissions élevées',
+        vrbo: language === 'es' ? '$0 + comisiones altas' :
+              language === 'en' ? '$0 + high commissions' :
+              '$0 + commissions élevées'
+      },
+      {
+        feature: language === 'es' ? 'Fotografía profesional' :
+                 language === 'en' ? 'Professional photography' :
+                 'Photographie professionnelle',
+        clic: language === 'es' ? '✓ Incluida' : language === 'en' ? '✓ Included' : '✓ Incluse',
+        airbnb: language === 'es' ? '✗ Costo extra' : language === 'en' ? '✗ Extra cost' : '✗ Coût supplémentaire',
+        booking: language === 'es' ? '✗ Costo extra' : language === 'en' ? '✗ Extra cost' : '✗ Coût supplémentaire',
+        vrbo: language === 'es' ? '✗ Costo extra' : language === 'en' ? '✗ Extra cost' : '✗ Coût supplémentaire'
+      }
+    ],
+    propiedadesExitosas: [
+      {
+        slug: 'villa-maria-punta-cana',
+        titulo: language === 'es' ? 'Villa de María - Punta Cana' :
+                language === 'en' ? 'Maria\'s Villa - Punta Cana' :
+                'Villa de Maria - Punta Cana',
+        precio: language === 'es' ? 'Genera $4,800/mes' :
+                language === 'en' ? 'Generates $4,800/month' :
+                'Génère $4,800/mois',
+        imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+        sector: 'Punta Cana',
+        habitaciones: 4,
+        banos: 4,
+        ocupacion: '85%',
+        tipo: 'Villa',
+        plan: language === 'es' ? 'Profesional' : language === 'en' ? 'Professional' : 'Professionnel',
+        destacado: true
+      }
+    ],
+    faqs: [
+      {
+        question: language === 'es' ? '¿Realmente no cobran comisión por booking?' :
+                  language === 'en' ? 'Do you really not charge booking commission?' :
+                  'Ne facturez-vous vraiment pas de commission de réservation?',
+        answer: language === 'es' ? 'Correcto. Solo pagas tu membresía mensual. Te quedas con el 100% de los ingresos de cada reserva, sin comisiones ocultas.' :
+                language === 'en' ? 'Correct. You only pay your monthly membership. You keep 100% of the income from each booking, no hidden commissions.' :
+                'Correct. Vous ne payez que votre adhésion mensuelle. Vous conservez 100% des revenus de chaque réservation, sans commissions cachées.'
+      },
+      {
+        question: language === 'es' ? '¿Qué incluye la fotografía profesional?' :
+                  language === 'en' ? 'What does professional photography include?' :
+                  'Qu\'est-ce qui est inclus dans la photographie professionnelle?',
+        answer: language === 'es' ? 'Sesión completa con fotógrafo profesional, edición, y hasta 20 fotos en alta resolución. En plan Premium incluimos video también.' :
+                language === 'en' ? 'Complete session with professional photographer, editing, and up to 20 high-resolution photos. Premium plan includes video too.' :
+                'Session complète avec photographe professionnel, édition, et jusqu\'à 20 photos en haute résolution. Le plan Premium inclut aussi la vidéo.'
+      }
+    ],
+    seo: {
+      title: language === 'es' ? 'Planes para Propietarios - Rentas Vacacionales CLIC' :
+             language === 'en' ? 'Owner Plans - CLIC Vacation Rentals' :
+             'Plans Propriétaires - Locations de Vacances CLIC',
+      description: language === 'es' ? 'Maximiza tus ingresos por rentas vacacionales. Planes desde $49/mes, sin comisiones por booking. Fotografía profesional incluida.' :
+                   language === 'en' ? 'Maximize your vacation rental income. Plans from $49/month, no booking commissions. Professional photography included.' :
+                   'Maximisez vos revenus de location de vacances. Plans à partir de 49$/mois, sans commissions de réservation. Photographie professionnelle incluse.'
+    }
+  };
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const memberships = vacationRentalsData.memberships || [];
+const stats = vacationRentalsData.stats || [];
+const casosExito = vacationRentalsData.casosExito || [];
+const comparison = vacationRentalsData.comparison || [];
+const propiedadesExitosas = vacationRentalsData.propiedadesExitosas || [];
+const faqs = vacationRentalsData.faqs || [];
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    heroTitle: 'Maximiza tus Ingresos por',
+    heroHighlight: 'Rentas Vacacionales',
+    heroSubtitle: 'Únete a 180+ propietarios que generan más ingresos con nuestra plataforma. Sin comisiones por booking, solo membresía mensual.',
+    viewPlans: 'Ver planes y precios',
+    successCases: 'Casos de éxito',
+    successTitle: 'Casos de Éxito Reales',
+    successSubtitle: 'Propietarios reales que han aumentado significativamente sus ingresos',
+    plansTitle: 'Planes de Membresía',
+    plansSubtitle: 'Elige el plan que mejor se adapte a tu portafolio de propiedades',
+    recommended: 'RECOMENDADO',
+    startWith: 'Empezar con',
+    moreProperties: '¿Tienes más de 10 propiedades? Contacta para un plan personalizado',
+    enterprisePlan: 'Plan Enterprise personalizado',
+    comparisonTitle: 'CLIC vs Competencia',
+    comparisonSubtitle: 'Compara y descubre por qué CLIC es la mejor opción para propietarios',
+    successPropertiesTitle: 'Propiedades Exitosas de Nuestros Miembros',
+    successPropertiesSubtitle: 'Estas propiedades están generando excelentes ingresos con nuestros planes',
+    howItWorksTitle: 'Cómo Funciona',
+    howItWorksSubtitle: 'Proceso simple para empezar a generar más ingresos',
+    faqTitle: 'Preguntas Frecuentes',
+    faqSubtitle: 'Respuestas a las dudas más comunes de propietarios',
+    finalCtaTitle: '¿Listo para Maximizar tus Ingresos?',
+    finalCtaSubtitle: 'Únete a 180+ propietarios que ya están generando más dinero con CLIC',
+    choosePlan: 'Elegir mi plan',
+    talkSpecialist: 'Hablar con especialista',
+    benefits: '✓ Sin compromisos a largo plazo • ✓ Puedes cancelar cuando quieras • ✓ Setup incluido',
+    increase: 'de aumento',
+    plan: 'Plan',
+    howItWorksSteps: [
+      {
+        title: 'Elige tu Plan',
+        description: 'Selecciona la membresía que mejor se adapte a tu portafolio'
+      },
+      {
+        title: 'Setup Completo',
+        description: 'Creamos tu perfil, tomamos fotos profesionales y listamos tu propiedad'
+      },
+      {
+        title: 'Recibe Reservas',
+        description: 'Empiezas a recibir reservas calificadas desde la primera semana'
+      },
+      {
+        title: 'Maximiza Ingresos',
+        description: 'Optimizamos precios y ocupación para maximizar tus ganancias'
+      }
+    ]
+  },
+  en: {
+    heroTitle: 'Maximize Your Income from',
+    heroHighlight: 'Vacation Rentals',
+    heroSubtitle: 'Join 180+ owners who generate more income with our platform. No booking commissions, only monthly membership.',
+    viewPlans: 'View plans and pricing',
+    successCases: 'Success cases',
+    successTitle: 'Real Success Cases',
+    successSubtitle: 'Real owners who have significantly increased their income',
+    plansTitle: 'Membership Plans',
+    plansSubtitle: 'Choose the plan that best fits your property portfolio',
+    recommended: 'RECOMMENDED',
+    startWith: 'Start with',
+    moreProperties: 'Have more than 10 properties? Contact for a custom plan',
+    enterprisePlan: 'Custom Enterprise plan',
+    comparisonTitle: 'CLIC vs Competition',
+    comparisonSubtitle: 'Compare and discover why CLIC is the best option for owners',
+    successPropertiesTitle: 'Successful Properties from Our Members',
+    successPropertiesSubtitle: 'These properties are generating excellent income with our plans',
+    howItWorksTitle: 'How It Works',
+    howItWorksSubtitle: 'Simple process to start generating more income',
+    faqTitle: 'Frequently Asked Questions',
+    faqSubtitle: 'Answers to the most common questions from owners',
+    finalCtaTitle: 'Ready to Maximize Your Income?',
+    finalCtaSubtitle: 'Join 180+ owners who are already generating more money with CLIC',
+    choosePlan: 'Choose my plan',
+    talkSpecialist: 'Talk to specialist',
+    benefits: '✓ No long-term commitments • ✓ You can cancel anytime • ✓ Setup included',
+    increase: 'increase',
+    plan: 'Plan',
+    howItWorksSteps: [
+      {
+        title: 'Choose Your Plan',
+        description: 'Select the membership that best fits your portfolio'
+      },
+      {
+        title: 'Complete Setup',
+        description: 'We create your profile, take professional photos and list your property'
+      },
+      {
+        title: 'Receive Bookings',
+        description: 'You start receiving qualified bookings from the first week'
+      },
+      {
+        title: 'Maximize Income',
+        description: 'We optimize prices and occupancy to maximize your earnings'
+      }
+    ]
+  },
+  fr: {
+    heroTitle: 'Maximisez vos Revenus de',
+    heroHighlight: 'Locations de Vacances',
+    heroSubtitle: 'Rejoignez 180+ propriétaires qui génèrent plus de revenus avec notre plateforme. Aucune commission de réservation, seulement un abonnement mensuel.',
+    viewPlans: 'Voir les plans et tarifs',
+    successCases: 'Cas de succès',
+    successTitle: 'Vrais Cas de Succès',
+    successSubtitle: 'Vrais propriétaires qui ont considérablement augmenté leurs revenus',
+    plansTitle: 'Plans d\'Adhésion',
+    plansSubtitle: 'Choisissez le plan qui convient le mieux à votre portefeuille de propriétés',
+    recommended: 'RECOMMANDÉ',
+    startWith: 'Commencer avec',
+    moreProperties: 'Avez-vous plus de 10 propriétés? Contactez pour un plan personnalisé',
+    enterprisePlan: 'Plan Enterprise personnalisé',
+    comparisonTitle: 'CLIC vs Concurrence',
+    comparisonSubtitle: 'Comparez et découvrez pourquoi CLIC est la meilleure option pour les propriétaires',
+    successPropertiesTitle: 'Propriétés Réussies de nos Membres',
+    successPropertiesSubtitle: 'Ces propriétés génèrent d\'excellents revenus avec nos plans',
+    howItWorksTitle: 'Comment ça Marche',
+    howItWorksSubtitle: 'Processus simple pour commencer à générer plus de revenus',
+    faqTitle: 'Questions Fréquemment Posées',
+    faqSubtitle: 'Réponses aux questions les plus courantes des propriétaires',
+    finalCtaTitle: 'Prêt à Maximiser vos Revenus?',
+    finalCtaSubtitle: 'Rejoignez 180+ propriétaires qui génèrent déjà plus d\'argent avec CLIC',
+    choosePlan: 'Choisir mon plan',
+    talkSpecialist: 'Parler à un spécialiste',
+    benefits: '✓ Aucun engagement à long terme • ✓ Vous pouvez annuler à tout moment • ✓ Configuration incluse',
+    increase: 'd\'augmentation',
+    plan: 'Plan',
+    howItWorksSteps: [
+      {
+        title: 'Choisissez votre Plan',
+        description: 'Sélectionnez l\'adhésion qui convient le mieux à votre portefeuille'
+      },
+      {
+        title: 'Configuration Complète',
+        description: 'Nous créons votre profil, prenons des photos professionnelles et listons votre propriété'
+      },
+      {
+        title: 'Recevez des Réservations',
+        description: 'Vous commencez à recevoir des réservations qualifiées dès la première semaine'
+      },
+      {
+        title: 'Maximisez les Revenus',
+        description: 'Nous optimisons les prix et l\'occupation pour maximiser vos gains'
+      }
+    ]
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// URLs según idioma
+const routes = {
+  es: {
+    contact: '/contacto',
+    vacationRentals: '/rentas-vacacionales'
+  },
+  en: {
+    contact: '/en/contact',
+    vacationRentals: '/en/vacation-rentals'
+  },
+  fr: {
+    contact: '/fr/contact',
+    vacationRentals: '/fr/locations-vacances'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+console.log('✅ VacationRentalsLayout preparado:', {
+  language,
+  membershipsCount: memberships.length,
+  statsCount: stats.length,
+  successCasesCount: casosExito.length,
+  faqsCount: faqs.length
+});
+---
+
+<Layout 
+  title={vacationRentalsData.seo?.title || text.heroTitle}
+  description={vacationRentalsData.seo?.description || text.heroSubtitle}
+  language={language}
+>
+  <!-- Hero Section -->
+  <section class="relative bg-gradient-to-r from-[#f04e00] to-[#ff7a3d] py-20 overflow-hidden min-h-[600px]">
+    <!-- Background Image -->
+    <div class="absolute inset-0">
+      <img 
+        src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" 
+        alt="Propiedades de lujo para rentas vacacionales"
+        class="w-full h-full object-cover opacity-30"
+      />
+      <div class="absolute inset-0 bg-gradient-to-r from-[#f04e00]/85 to-[#ff7a3d]/80"></div>
+    </div>
+    
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center text-white">
+        <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+          {text.heroTitle} <br/>
+          <span class="text-yellow-200">{text.heroHighlight}</span>
+        </h1>
+        <p class="text-xl md:text-2xl mb-8 text-white drop-shadow-md">
+          {text.heroSubtitle}
+        </p>
+        
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+          {stats.map((stat) => (
+            <div class="text-center bg-white/15 backdrop-blur-sm rounded-lg p-4">
+              <div class="text-3xl font-bold text-yellow-200 mb-2">{stat.number}</div>
+              <div class="text-sm text-white">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href="#planes"
+            class="inline-block px-8 py-4 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-semibold shadow-lg"
+          >
+            {text.viewPlans}
+          </a>
+          <a 
+            href="#casos-exito"
+            class="inline-block px-8 py-4 bg-white/20 backdrop-blur-sm text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+          >
+            {text.successCases}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Success Cases -->
+  <section id="casos-exito" class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          {text.successTitle}
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          {text.successSubtitle}
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {casosExito.map((caso) => (
+          <div class="bg-white rounded-xl shadow-lg p-6">
+            <div class="flex items-center gap-4 mb-6">
+              <img 
+                src={caso.avatar} 
+                alt={caso.owner}
+                class="w-16 h-16 rounded-full object-cover"
+              />
+              <div>
+                <h3 class="font-bold text-gray-900">{caso.owner}</h3>
+                <p class="text-sm text-gray-600">{caso.property}</p>
+                <span class="text-xs bg-[#f04e00] text-white px-2 py-1 rounded-full">
+                  {text.plan} {caso.plan}
+                </span>
+              </div>
+            </div>
+            
+            <div class="mb-6">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-600">Antes:</span>
+                <span class="font-medium text-gray-700">{caso.beforeIncome}</span>
+              </div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm text-gray-600">Ahora:</span>
+                <span class="font-bold text-[#f04e00]">{caso.afterIncome}</span>
+              </div>
+              <div class="text-center">
+                <span class="text-2xl font-bold text-green-600">{caso.increase}</span>
+                <span class="text-sm text-gray-600 block">{text.increase}</span>
+              </div>
+            </div>
+            
+            <blockquote class="text-gray-700 italic">
+              "{caso.testimonial}"
+            </blockquote>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Membership Plans -->
+  <section id="planes" class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          {text.plansTitle}
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          {text.plansSubtitle}
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        {memberships.map((plan) => (
+          <div class={`relative bg-white rounded-2xl shadow-lg border-2 p-8 ${plan.popular ? 'border-[#f04e00] scale-105 shadow-2xl' : 'border-gray-200'}`}>
+            {plan.popular && (
+              <div class="absolute -top-2 left-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-b-lg text-xs font-bold shadow-lg z-10">
+                {text.recommended}
+              </div>
+            )}
+            
+            <div class="text-center mb-6">
+              <h3 class="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+              <div class="mb-4">
+                <span class="text-4xl font-bold text-[#f04e00]">{plan.price}</span>
+                <span class="text-gray-600">{plan.period}</span>
+              </div>
+              <p class="text-gray-600 mb-2">{plan.description}</p>
+              <p class="text-sm text-green-600 font-medium">{plan.savings}</p>
+            </div>
+            
+            <ul class="space-y-3 mb-8">
+              {plan.features.map((feature) => (
+                <li class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-gray-700">{feature}</span>
+                </li>
+              ))}
+            </ul>
+            
+            <a 
+              href={`${currentRoutes.contact}?servicio=rentas&plan=${plan.name.toLowerCase()}`}
+              class={`block w-full text-center px-6 py-3 rounded-lg font-semibold transition-colors ${
+                plan.popular 
+                ? 'bg-[#f04e00] text-white hover:bg-[#d94400]' 
+                : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+              }`}
+            >
+              {text.startWith} {plan.name}
+            </a>
+          </div>
+        ))}
+      </div>
+      
+      <div class="text-center mt-12">
+        <p class="text-gray-600 mb-4">
+          {text.moreProperties}
+        </p>
+        <a 
+          href={`${currentRoutes.contact}?servicio=rentas&plan=enterprise`}
+          class="inline-block px-6 py-2 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors"
+        >
+          {text.enterprisePlan}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Table -->
+  {comparison.length > 0 && (
+    <section class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            {text.comparisonTitle}
+          </h2>
+          <p class="text-xl text-gray-600">
+            {text.comparisonSubtitle}
+          </p>
+        </div>
+        
+        <div class="max-w-5xl mx-auto">
+          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-[#f04e00] text-white">
+                  <tr>
+                    <th class="px-6 py-4 text-left">Característica</th>
+                    <th class="px-6 py-4 text-center">CLIC</th>
+                    <th class="px-6 py-4 text-center">Airbnb</th>
+                    <th class="px-6 py-4 text-center">Booking.com</th>
+                    <th class="px-6 py-4 text-center">VRBO</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparison.map((row, index) => (
+                    <tr class={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                      <td class="px-6 py-4 font-medium text-gray-900">{row.feature}</td>
+                      <td class="px-6 py-4 text-center font-bold text-[#f04e00]">{row.clic}</td>
+                      <td class="px-6 py-4 text-center text-gray-600">{row.airbnb}</td>
+                      <td class="px-6 py-4 text-center text-gray-600">{row.booking}</td>
+                      <td class="px-6 py-4 text-center text-gray-600">{row.vrbo}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Success Properties -->
+  {propiedadesExitosas.length > 0 && (
+    <PropertyCarousel 
+      title={text.successPropertiesTitle}
+      subtitle={text.successPropertiesSubtitle}
+      properties={propiedadesExitosas}
+      viewAllLink={currentRoutes.vacationRentals}
+    />
+  )}
+
+  <!-- How It Works -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          {text.howItWorksTitle}
+        </h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+          {text.howItWorksSubtitle}
+        </p>
+      </div>
+      
+      <div class="max-w-4xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {text.howItWorksSteps.map((step, index) => (
+            <div class="text-center">
+              <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl text-white font-bold">{index + 1}</span>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
+              <p class="text-gray-600 text-sm">
+                {step.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  {faqs.length > 0 && (
+    <section class="py-16 bg-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {text.faqTitle}
+            </h2>
+            <p class="text-xl text-gray-600">
+              {text.faqSubtitle}
+            </p>
+          </div>
+          
+          <div class="space-y-6">
+            {faqs.map((faq) => (
+              <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                  {faq.question}
+                </h3>
+                <p class="text-gray-600">
+                  {faq.answer}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Final CTA -->
+  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+    <div class="container mx-auto px-4 text-center">
+      <div class="max-w-3xl mx-auto text-white">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">
+          {text.finalCtaTitle}
+        </h2>
+        <p class="text-xl mb-8 text-orange-100">
+          {text.finalCtaSubtitle}
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href="#planes"
+            class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+          >
+            {text.choosePlan}
+          </a>
+          <a 
+            href={`${currentRoutes.contact}?servicio=rentas`}
+            class="inline-block px-8 py-3 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+          >
+            {text.talkSpecialist}
+          </a>
+        </div>
+        
+        <p class="text-sm text-orange-200 mt-6">
+          {text.benefits}
+        </p>
+      </div>
+    </div>
+  </section>
+</Layout>

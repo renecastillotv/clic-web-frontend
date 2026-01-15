@@ -1,0 +1,824 @@
+---
+// src/components/property/PropertyHero.astro
+interface Props {
+  data?: any;
+  language?: 'es' | 'en' | 'fr';
+}
+
+const { data = {} } = Astro.props;
+
+// FIX 1: Detección correcta del idioma con prioridades
+const language = data.language || Astro.props.language || 'es';
+
+console.log('🔍 PropertyHero - Detección de idioma:', {
+  dataLanguage: data.language,
+  propsLanguage: Astro.props.language,
+  finalLanguage: language
+});
+
+// FIX 2: Función para obtener contenido localizado
+const getLocalizedContent = (baseObject, language) => {
+  if (!baseObject) return {};
+  
+  const contentKey = `content_${language}`;
+  const localizedContent = baseObject[contentKey] || {};
+  
+  return {
+    ...baseObject,
+    // Priorizar contenido localizado sobre contenido base
+    title: localizedContent.name || baseObject.name || baseObject.title,
+    name: localizedContent.name || baseObject.name,
+    description: localizedContent.description || baseObject.description
+  };
+};
+
+// Aplicar localización a la propiedad
+const baseProperty = data?.property || {};
+const property = getLocalizedContent(baseProperty, language);
+const images = data?.images || [];
+
+console.log('🔍 PropertyHero - Contenido localizado:', {
+  originalTitle: baseProperty.name || baseProperty.title,
+  localizedTitle: property.title,
+  hasLocalizedContent: !!baseProperty[`content_${language}`],
+  language: language
+});
+
+// Traducciones para la interfaz
+const translations = {
+  es: {
+    shareProperty: 'Compartir propiedad',
+    share: 'Compartir',
+    addToFavorites: 'Agregar a favoritos',
+    favorites: 'Favoritos',
+    property: 'Propiedad',
+    view: 'Vista',
+    morePhotos: 'más fotos',
+    linkCopied: 'Enlace copiado al portapapeles',
+    errorFavorite: 'Error al actualizar favorito. Inténtalo de nuevo.',
+    floorOrdinals: {
+      1: '1ro.',
+      2: '2do.',
+      3: '3er.',
+      default: (n) => n >= 4 && n <= 9 ? `${n}to.` : `${n}mo.`
+    }
+  },
+  en: {
+    shareProperty: 'Share property',
+    share: 'Share',
+    addToFavorites: 'Add to favorites',
+    favorites: 'Favorites',
+    property: 'Property',
+    view: 'View',
+    morePhotos: 'more photos',
+    linkCopied: 'Link copied to clipboard',
+    errorFavorite: 'Error updating favorite. Please try again.',
+    floorOrdinals: {
+      1: '1st',
+      2: '2nd',
+      3: '3rd',
+      default: (n) => `${n}th`
+    }
+  },
+  fr: {
+    shareProperty: 'Partager la propriété',
+    share: 'Partager',
+    addToFavorites: 'Ajouter aux favoris',
+    favorites: 'Favoris',
+    property: 'Propriété',
+    view: 'Vue',
+    morePhotos: 'plus de photos',
+    linkCopied: 'Lien copié dans le presse-papiers',
+    errorFavorite: 'Erreur lors de la mise à jour des favoris. Veuillez réessayer.',
+    floorOrdinals: {
+      1: '1er',
+      2: '2ème',
+      3: '3ème',
+      default: (n) => `${n}ème`
+    }
+  }
+};
+
+// Verificar que el idioma existe y asignar traducción de forma segura
+const availableLanguages = Object.keys(translations);
+const isValidLanguage = language && availableLanguages.includes(language);
+const safeLanguage = isValidLanguage ? language : 'es';
+const t = translations[safeLanguage];
+
+console.log('🔍 PropertyHero - Estado final:', {
+  originalLanguage: language,
+  safeLanguage: safeLanguage,
+  isValidLanguage: isValidLanguage,
+  morePhotosText: t?.morePhotos,
+  propertyTitle: property?.title,
+  imagesCount: images.length
+});
+
+// Función helper para verificar si un valor es válido
+const isValidValue = (value: any): boolean => {
+  return value !== null && 
+         value !== undefined && 
+         value !== 'N/A' && 
+         value !== '' && 
+         value !== 0 && 
+         String(value).trim() !== '';
+};
+
+// Función para obtener el ordinal del piso según el idioma
+const getFloorOrdinal = (floor: number): string => {
+  if (!t || !t.floorOrdinals) {
+    return `${floor}°`;
+  }
+  
+  const floorOrdinals = t.floorOrdinals;
+  return floorOrdinals[floor] || floorOrdinals.default(floor);
+};
+
+// Función para determinar el layout óptimo basado en el número de imágenes
+const getLayoutClass = (imageCount: number): string => {
+  if (imageCount === 1) return 'single-image';
+  if (imageCount === 2) return 'two-images';
+  if (imageCount === 3) return 'three-images';
+  if (imageCount === 4) return 'four-images';
+  return 'five-plus-images';
+};
+
+const layoutClass = getLayoutClass(images.length);
+const isSingleImage = layoutClass === 'single-image';
+---
+
+<!-- Hero Gallery Section - Sin espacio superior (OPTIMIZED) -->
+<div class="relative w-full h-[65.5vh] min-h-[529px] bg-white overflow-hidden -mt-1">
+
+  <!-- Dynamic Gallery Grid -->
+  <div class={`gallery-container ${layoutClass} h-full p-0`}>
+
+    <!-- Botones de acción - Posicionados dentro de la imagen -->
+    <div class="absolute top-4 right-4 md:top-6 md:right-6 z-30 flex flex-col gap-2 md:gap-3 pointer-events-auto">
+      <!-- Botón de compartir -->
+      <button
+        class="action-button w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg transition-all duration-300"
+        onclick="shareProperty()"
+        aria-label={t?.shareProperty || 'Compartir propiedad'}
+        title={t?.share || 'Compartir'}
+      >
+        <i class="fas fa-share-alt text-white text-base md:text-lg"></i>
+      </button>
+
+      <!-- Botón de favoritos -->
+      <button
+        class="action-button w-9 h-9 md:w-11 md:h-11 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg transition-all duration-300"
+        onclick={`togglePropertyFavorite('${property?.id || 'hero-property'}', '${(property?.title || t?.property || 'Propiedad').replace(/'/g, "\\'")}');`}
+        data-favorite-id={property?.id || 'hero-property'}
+        aria-label={t?.addToFavorites || 'Agregar a favoritos'}
+        title={t?.favorites || 'Favoritos'}
+      >
+        <i class="fas fa-heart text-white text-base md:text-lg transition-colors duration-300"></i>
+      </button>
+    </div>
+    
+    <!-- Layout para 1 imagen -->
+    {layoutClass === 'single-image' && (
+      <div class="single-layout h-full relative overflow-hidden shadow-2xl group">
+        <img 
+          src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
+          alt={property?.title || t?.property || 'Propiedad'}
+          width="1200"
+          height="800"
+          fetchpriority="high"
+          class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
+          loading="eager"
+          decoding="sync"
+          onerror="this.src='/images/placeholder-property.jpg'"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+      </div>
+    )}
+
+    <!-- Layout para 2 imágenes -->
+    {layoutClass === 'two-images' && (
+      <>
+        <div class="main-image relative overflow-hidden rounded-2xl shadow-2xl group cursor-pointer" onclick="openLightbox && openLightbox(0)">
+          <img
+            src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
+            alt={property?.title || t?.property || 'Propiedad'}
+            width="1200"
+            height="800"
+            fetchpriority="high"
+            class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
+            loading="eager"
+            decoding="sync"
+            onerror="this.src='/images/placeholder-property.jpg'"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+        </div>
+        <div class="secondary-image relative overflow-hidden rounded-xl shadow-xl group cursor-pointer" onclick="openLightbox && openLightbox(1)">
+          <img
+            src={images[1] || '/images/placeholder-property.jpg'}
+            alt={`${property?.title || t?.property || 'Propiedad'} - ${t?.view || 'Vista'} 2`}
+            width="600"
+            height="600"
+            class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
+            onerror="this.src='/images/placeholder-property.jpg'"
+          />
+        </div>
+      </>
+    )}
+
+    <!-- Layout para 3 imágenes -->
+    {layoutClass === 'three-images' && (
+      <>
+        <div class="main-image relative overflow-hidden rounded-2xl shadow-2xl group cursor-pointer" onclick="openLightbox && openLightbox(0)">
+          <img
+            src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
+            alt={property?.title || t?.property || 'Propiedad'}
+            width="1200"
+            height="800"
+            fetchpriority="high"
+            class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
+            loading="eager"
+            decoding="sync"
+            onerror="this.src='/images/placeholder-property.jpg'"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+        </div>
+        <div class="secondary-top relative overflow-hidden rounded-xl shadow-xl group cursor-pointer" onclick="openLightbox && openLightbox(1)">
+          <img 
+            src={images[1] || '/images/placeholder-property.jpg'}
+            alt={`${property?.title || t?.property || 'Propiedad'} - ${t?.view || 'Vista'} 2`}
+            class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
+            loading="lazy"
+            onerror="this.src='/images/placeholder-property.jpg'"
+          />
+        </div>
+        <div class="secondary-bottom relative overflow-hidden rounded-xl shadow-xl group cursor-pointer" onclick="openLightbox && openLightbox(2)">
+          <img 
+            src={images[2] || '/images/placeholder-property.jpg'}
+            alt={`${property?.title || t?.property || 'Propiedad'} - ${t?.view || 'Vista'} 3`}
+            class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
+            loading="lazy"
+            onerror="this.src='/images/placeholder-property.jpg'"
+          />
+        </div>
+      </>
+    )}
+
+    <!-- Layout para 4 imágenes -->
+    {layoutClass === 'four-images' && (
+      <>
+        <div class="main-image relative overflow-hidden rounded-2xl shadow-2xl group cursor-pointer" onclick="openLightbox && openLightbox(0)">
+          <img
+            src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
+            alt={property?.title || t?.property || 'Propiedad'}
+            width="1200"
+            height="800"
+            fetchpriority="high"
+            class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
+            loading="eager"
+            decoding="sync"
+            onerror="this.src='/images/placeholder-property.jpg'"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+        </div>
+        {images.slice(1, 4).map((img, index) => (
+          <div class="secondary-image relative overflow-hidden rounded-xl shadow-xl group cursor-pointer" onclick={`openLightbox && openLightbox(${index + 1})`}>
+            <img 
+              src={img || '/images/placeholder-property.jpg'}
+              alt={`${property?.title || t?.property || 'Propiedad'} - ${t?.view || 'Vista'} ${index + 2}`}
+              class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
+              loading="lazy"
+              onerror="this.src='/images/placeholder-property.jpg'"
+            />
+            {index === 2 && images.length > 4 && (
+              <div class="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm">
+                <div class="text-white text-center">
+                  <div class="text-xl font-bold">+{images.length - 4}</div>
+                  <div class="text-xs opacity-90">{t?.morePhotos || 'más fotos'}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </>
+    )}
+
+    <!-- Layout para 5+ imágenes -->
+    {layoutClass === 'five-plus-images' && (
+      <>
+        <div class="main-image relative overflow-hidden rounded-2xl shadow-2xl group cursor-pointer" onclick="openLightbox && openLightbox(0)">
+          <img
+            src={images[0] || data?.mainImage || '/images/placeholder-property.jpg'}
+            alt={property?.title || t?.property || 'Propiedad'}
+            width="1200"
+            height="800"
+            fetchpriority="high"
+            class="w-full h-full object-cover transition-all duration-1000 ease-out group-hover:scale-110"
+            loading="eager"
+            decoding="sync"
+            onerror="this.src='/images/placeholder-property.jpg'"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+        </div>
+        {images.slice(1, 5).map((img, index) => (
+          <div class="secondary-image relative overflow-hidden rounded-xl shadow-xl group cursor-pointer" onclick={`openLightbox && openLightbox(${index + 1})`}>
+            <img 
+              src={img || '/images/placeholder-property.jpg'}
+              alt={`${property?.title || t?.property || 'Propiedad'} - ${t?.view || 'Vista'} ${index + 2}`}
+              class="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
+              loading="lazy"
+              onerror="this.src='/images/placeholder-property.jpg'"
+            />
+            {index === 3 && images.length > 5 && (
+              <div class="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm">
+                <div class="text-white text-center">
+                  <div class="text-xl font-bold">+{images.length - 5}</div>
+                  <div class="text-xs opacity-90">{t?.morePhotos || 'más fotos'}</div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </>
+    )}
+  </div>
+
+  <!-- Overlay Content -->
+  <div class="absolute inset-0 pointer-events-none">
+
+    <!-- Título Principal - Condicional según número de imágenes -->
+    {isSingleImage ? (
+      <!-- Título centrado para imagen única -->
+      <div class="absolute inset-x-0 bottom-24 md:bottom-32 pointer-events-auto">
+        <div class="text-center px-4 md:px-6">
+          <h1 class="text-2xl md:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl mb-4">
+            {property?.title || t?.property || 'Propiedad'}
+          </h1>
+        </div>
+      </div>
+    ) : (
+      <!-- Título y detalles en esquina inferior izquierda para múltiples imágenes -->
+      <div class="absolute bottom-3 left-3 md:bottom-6 md:left-6 right-3 md:right-auto pointer-events-auto max-w-full md:max-w-2xl">
+        <h1 class="text-lg md:text-3xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl mb-2 md:mb-3 truncate">
+          {property?.title || t?.property || 'Propiedad'}
+        </h1>
+
+        <!-- Características para múltiples imágenes - solo iconos + números -->
+        <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+          {isValidValue(property?.bedrooms) && (
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2">
+              <i class="fas fa-bed text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{property.bedrooms}</span>
+            </div>
+          )}
+
+          {isValidValue(property?.bathrooms) && (
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2">
+              <i class="fas fa-bath text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{property.bathrooms}</span>
+            </div>
+          )}
+
+          {isValidValue(property?.built_area) && (
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2">
+              <i class="fas fa-th-large text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{property.built_area}m²</span>
+            </div>
+          )}
+
+          {isValidValue(property?.parking_spots) && (
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2 hidden sm:flex">
+              <i class="fas fa-car text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{property.parking_spots}</span>
+            </div>
+          )}
+
+          {isValidValue(property?.nivel) && (
+            <div class="glassmorphism-badge flex items-center gap-1 md:gap-2 hidden sm:flex">
+              <i class="fas fa-layer-group text-[#f04e00] text-xs md:text-base"></i>
+              <span class="text-white font-semibold text-xs md:text-base">{getFloorOrdinal(property.nivel)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+    <!-- Información de Características - Solo para imagen única - solo iconos + números -->
+    {isSingleImage && (
+      <div class="absolute bottom-3 left-3 right-3 md:bottom-6 md:left-6 md:right-6 pointer-events-auto">
+        <div class="flex items-center justify-center gap-2 md:gap-4 flex-wrap">
+          {isValidValue(property?.bedrooms) && (
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2">
+              <i class="fas fa-bed text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{property.bedrooms}</span>
+            </div>
+          )}
+
+          {isValidValue(property?.bathrooms) && (
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2">
+              <i class="fas fa-bath text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{property.bathrooms}</span>
+            </div>
+          )}
+
+          {isValidValue(property?.built_area) && (
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2">
+              <i class="fas fa-th-large text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{property.built_area}m²</span>
+            </div>
+          )}
+
+          {isValidValue(property?.nivel) && (
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2 hidden sm:flex">
+              <i class="fas fa-layer-group text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{getFloorOrdinal(property.nivel)}</span>
+            </div>
+          )}
+
+          {isValidValue(property?.parking_spots) && (
+            <div class="glassmorphism-badge-large flex items-center gap-1 md:gap-2 hidden sm:flex">
+              <i class="fas fa-car text-[#f04e00] text-sm md:text-lg"></i>
+              <span class="text-sm md:text-lg font-semibold text-white">{property.parking_spots}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+
+  </div>
+</div>
+
+<style>
+  /* Glassmorphism Action Buttons - Botones de acción sutiles */
+  .action-button {
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+  }
+
+  .action-button:hover {
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .action-button:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  /* Estado favorito activo */
+  .action-button.is-favorite i {
+    color: #ef4444 !important;
+  }
+
+  .action-button.is-favorite:hover i {
+    color: #dc2626 !important;
+  }
+
+  /* Glassmorphism Badges - Efecto de vidrio oscuro elegante */
+  .glassmorphism-badge {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+  }
+
+  .glassmorphism-badge:hover {
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .glassmorphism-badge-large {
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.875rem;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.35);
+    transition: all 0.3s ease;
+  }
+
+  .glassmorphism-badge-large:hover {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  }
+
+  /* Layouts Adaptativos */
+  .single-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  .two-images {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr;
+    gap: 1rem;
+  }
+
+  .three-images {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .three-images .main-image {
+    grid-row: 1 / -1;
+  }
+
+  .four-images {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .four-images .main-image {
+    grid-row: 1 / -1;
+  }
+
+  .five-plus-images {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .five-plus-images .main-image {
+    grid-row: 1 / -1;
+  }
+
+  /* Efectos de Hover Mejorados */
+  .gallery-container > div:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Transiciones suaves para todos los elementos */
+  .gallery-container > div,
+  .bg-black\/60,
+  .bg-white {
+    transition: all 0.3s ease;
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .two-images,
+    .three-images,
+    .four-images,
+    .five-plus-images {
+      grid-template-columns: 1fr;
+      grid-template-rows: 2fr 1fr 1fr;
+    }
+
+    .main-image {
+      grid-row: 1 / 2 !important;
+    }
+
+    .gallery-container {
+      padding: 0.75rem;
+    }
+  }
+
+  /* Animaciones de Entrada */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .gallery-container > div {
+    animation: fadeInScale 0.6s ease-out forwards;
+  }
+
+  .gallery-container > div:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+
+  .gallery-container > div:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+
+  .gallery-container > div:nth-child(4) {
+    animation-delay: 0.3s;
+  }
+
+  .gallery-container > div:nth-child(5) {
+    animation-delay: 0.4s;
+  }
+
+  /* Animación para overlay content */
+  .absolute.bottom-6 > div,
+  .absolute.bottom-32 > div,
+  .absolute.inset-x-0 > div {
+    animation: fadeInUp 0.8s ease-out forwards;
+  }
+</style>
+
+<script define:vars={{ language: safeLanguage, translations }}>
+  console.log('🔍 PropertyHero Script - Variables recibidas:', {
+    language: language,
+    hasTranslations: !!translations,
+    translationsKeys: translations ? Object.keys(translations) : 'NO TRANSLATIONS'
+  });
+  
+  // Obtener traducciones para el idioma actual
+  const currentTranslations = translations[language] || translations['es'];
+  
+  console.log('🔍 PropertyHero Script - Traducciones finales:', {
+    currentLanguage: language,
+    hasCurrentTranslations: !!currentTranslations,
+    morePhotosText: currentTranslations?.morePhotos,
+    currentTranslationsKeys: currentTranslations ? Object.keys(currentTranslations) : 'NO CURRENT TRANSLATIONS'
+  });
+  
+  async function togglePropertyFavorite(propertyId, propertyTitle) {
+    console.log('PropertyHero: Toggle favorite:', propertyId, propertyTitle);
+    
+    if (!window.simpleFavoritesManager) {
+      console.error('SimpleFavoritesManager not available');
+      return;
+    }
+
+    try {
+      // Actualizar UI inmediatamente
+      const isCurrentlyFavorite = window.simpleFavoritesManager.isFavorite(propertyId);
+      updateHeroFavoriteButtonUI(propertyId, !isCurrentlyFavorite);
+      
+      // Llamar a la API
+      await window.simpleFavoritesManager.toggleFavorite(propertyId);
+      
+      console.log(`Favorito ${isCurrentlyFavorite ? 'removido' : 'agregado'}:`, propertyTitle);
+      
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      
+      // Revertir UI en caso de error
+      const currentState = window.simpleFavoritesManager.isFavorite(propertyId);
+      updateHeroFavoriteButtonUI(propertyId, currentState);
+      
+      alert(currentTranslations?.errorFavorite || 'Error al actualizar favorito. Inténtalo de nuevo.');
+    }
+  }
+
+  function updateHeroFavoriteButtonUI(propertyId, isFavorite) {
+    const button = document.querySelector(`[data-favorite-id="${propertyId}"]`);
+    if (!button) return;
+    
+    if (isFavorite) {
+      button.classList.add('is-favorite');
+    } else {
+      button.classList.remove('is-favorite');
+    }
+  }
+
+  // ===== FUNCIÓN DE COMPARTIR =====
+  
+  function shareProperty() {
+    const propertyData = {
+      title: document.querySelector('h1')?.textContent || currentTranslations?.property || 'Propiedad',
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      // Web Share API (móviles)
+      navigator.share({
+        title: propertyData.title,
+        url: propertyData.url
+      }).catch(error => console.log('Error sharing:', error));
+    } else {
+      // Fallback: copiar al portapapeles
+      navigator.clipboard.writeText(propertyData.url).then(() => {
+        // Mostrar mensaje temporal
+        showShareMessage();
+      }).catch(error => {
+        console.log('Error copying to clipboard:', error);
+        // Fallback: seleccionar texto
+        fallbackShare(propertyData.url);
+      });
+    }
+  }
+
+  function showShareMessage() {
+    const message = document.createElement('div');
+    message.textContent = currentTranslations?.linkCopied || 'Enlace copiado al portapapeles';
+    message.className = 'fixed top-4 right-4 bg-black/80 text-white px-4 py-2 rounded-lg text-sm z-50 backdrop-blur-sm';
+    document.body.appendChild(message);
+    
+    setTimeout(() => {
+      message.remove();
+    }, 3000);
+  }
+
+  function fallbackShare(url) {
+    const textArea = document.createElement('textarea');
+    textArea.value = url;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showShareMessage();
+  }
+
+  // ===== SINCRONIZACIÓN CON FAVORITES MANAGER =====
+  
+  function syncHeroWithFavoritesManager() {
+    if (window.simpleFavoritesManager) {
+      try {
+        const favoriteButton = document.querySelector('[data-favorite-id]');
+        if (favoriteButton) {
+          const propertyId = favoriteButton.getAttribute('data-favorite-id');
+          const isFavorite = window.simpleFavoritesManager.isFavorite(propertyId);
+          updateHeroFavoriteButtonUI(propertyId, isFavorite);
+        }
+      } catch (error) {
+        console.error('Error sincronizando favoritos en hero:', error);
+      }
+    }
+  }
+
+  // ===== INICIALIZACIÓN =====
+  
+  document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Initializing PropertyHero functionality');
+    
+    // Prevenir inicialización múltiple
+    if (window._propertyHeroInitialized) {
+      return;
+    }
+    window._propertyHeroInitialized = true;
+    
+    try {
+      // Esperar al SimpleFavoritesManager
+      let attempts = 0;
+      const maxAttempts = 50;
+      
+      while (!window.simpleFavoritesManager && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      if (window.simpleFavoritesManager) {
+        console.log('SimpleFavoritesManager found in PropertyHero');
+        
+        // Sincronizar estado inicial
+        syncHeroWithFavoritesManager();
+        
+        // Agregar listener para cambios
+        window.simpleFavoritesManager.addListener(() => {
+          syncHeroWithFavoritesManager();
+        });
+        
+        // Sincronización periódica
+        setInterval(() => {
+          if (window.simpleFavoritesManager && !window._syncInProgress) {
+            syncHeroWithFavoritesManager();
+          }
+        }, 2000);
+        
+        console.log('SimpleFavoritesManager connected to PropertyHero');
+      }
+    } catch (error) {
+      console.error('Error connecting with SimpleFavoritesManager:', error);
+    }
+    
+    console.log('PropertyHero functionality initialized');
+  });
+
+  // ===== FUNCIONES GLOBALES =====
+  
+  window.togglePropertyFavorite = togglePropertyFavorite;
+  window.shareProperty = shareProperty;
+  window.syncHeroWithFavoritesManager = syncHeroWithFavoritesManager;
+</script>

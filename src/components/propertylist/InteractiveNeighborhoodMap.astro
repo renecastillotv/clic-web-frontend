@@ -1,0 +1,374 @@
+---
+// InteractiveNeighborhoodMap.astro - Mapa interactivo con lugares cercanos
+export interface Props {
+  sector: string;
+  centerCoordinates: [number, number];
+  nearbyPlaces: Array<{
+    name: string;
+    category: string;
+    coordinates: [number, number];
+    distance: string;
+    rating?: number;
+    description?: string;
+    address?: string;
+    website?: string;
+    phone?: string;
+  }>;
+  properties?: Array<{
+    id: string;
+    title: string;
+    coordinates: [number, number];
+    price: string;
+    type: string;
+    bedrooms: number;
+    bathrooms: number;
+  }>;
+}
+
+const { 
+  sector, 
+  centerCoordinates, 
+  nearbyPlaces = [], 
+  properties = []
+} = Astro.props;
+
+// Categorías con íconos y colores
+const categoryStyles = {
+  'Educación': { icon: '🎓', color: '#3B82F6', bgColor: 'bg-blue-50', textColor: 'text-blue-700' },
+  'Salud': { icon: '🏥', color: '#EF4444', bgColor: 'bg-red-50', textColor: 'text-red-700' },
+  'Comercial': { icon: '🛍️', color: '#10B981', bgColor: 'bg-green-50', textColor: 'text-green-700' },
+  'Entretenimiento': { icon: '🎪', color: '#8B5CF6', bgColor: 'bg-purple-50', textColor: 'text-purple-700' },
+  'Transporte': { icon: '🚌', color: '#F59E0B', bgColor: 'bg-yellow-50', textColor: 'text-yellow-700' },
+  'Restaurantes': { icon: '🍽️', color: '#EC4899', bgColor: 'bg-pink-50', textColor: 'text-pink-700' },
+  'Finanzas': { icon: '🏦', color: '#6B7280', bgColor: 'bg-gray-50', textColor: 'text-gray-700' },
+  'Parques': { icon: '🌳', color: '#059669', bgColor: 'bg-emerald-50', textColor: 'text-emerald-700' }
+};
+
+// Agrupar lugares por categoría
+const placesByCategory = nearbyPlaces.reduce((acc, place) => {
+  if (!acc[place.category]) acc[place.category] = [];
+  acc[place.category].push(place);
+  return acc;
+}, {});
+
+// ID único para este mapa
+const mapId = `map-${Math.random().toString(36).substr(2, 9)}`;
+---
+
+<section class="py-16 bg-white">
+  <div class="container mx-auto px-4">
+    <div class="max-w-6xl mx-auto">
+      
+      <!-- Header -->
+      <div class="text-center mb-10">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          Explora {sector} y sus Alrededores
+        </h2>
+        <p class="text-lg text-gray-600">
+          Descubre todo lo que hace especial a {sector}: servicios, entretenimiento y comodidades a tu alcance
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <!-- Mapa (3 columnas) -->
+        <div class="lg:col-span-3">
+          <div class="bg-gray-100 rounded-xl overflow-hidden shadow-lg">
+            <!-- Contenedor del mapa -->
+            <div id={mapId} class="w-full h-96 relative bg-gray-200">
+              <!-- Fallback mientras carga el mapa -->
+              <div class="absolute inset-0 flex items-center justify-center text-gray-500">
+                <div class="text-center">
+                  <svg class="w-12 h-12 mx-auto mb-3 animate-spin text-[#f04e00]" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p class="text-sm">Cargando mapa interactivo...</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Controles del mapa -->
+            <div class="p-4 bg-white border-t">
+              <div class="flex flex-wrap gap-2">
+                <button 
+                  class="map-filter-btn active px-3 py-1 rounded-full text-sm font-medium transition-colors bg-[#f04e00] text-white"
+                  data-category="all"
+                >
+                  Todo
+                </button>
+                {Object.entries(placesByCategory).map(([category, places]) => {
+                  const style = categoryStyles[category] || categoryStyles['Finanzas'];
+                  return (
+                    <button 
+                      class={`map-filter-btn px-3 py-1 rounded-full text-sm font-medium transition-colors ${style.bgColor} ${style.textColor} hover:bg-opacity-80`}
+                      data-category={category}
+                    >
+                      <span class="mr-1">{style.icon}</span>
+                      {category} ({places.length})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Leyenda -->
+          <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+            <h4 class="font-semibold text-gray-900 mb-3">Leyenda del Mapa</h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-[#f04e00] rounded-full"></div>
+                <span>Propiedades disponibles</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span>Servicios públicos</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span>Comercios</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+                <span>Entretenimiento</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar con lugares destacados (1 columna) -->
+        <div class="lg:col-span-1">
+          <div class="sticky top-24">
+            <h3 class="text-xl font-bold text-gray-900 mb-6">Lugares Destacados</h3>
+            
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+              {Object.entries(placesByCategory).map(([category, places]) => {
+                const style = categoryStyles[category] || categoryStyles['Finanzas'];
+                return (
+                  <div class="category-section">
+                    <h4 class={`font-semibold mb-2 flex items-center gap-2 ${style.textColor}`}>
+                      <span>{style.icon}</span>
+                      {category}
+                    </h4>
+                    <div class="space-y-2 ml-6">
+                      {places.slice(0, 3).map(place => (
+                        <div 
+                          class="place-item p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer border-l-4"
+                          style={`border-left-color: ${style.color}`}
+                          data-coordinates={`${place.coordinates[0]},${place.coordinates[1]}`}
+                          data-name={place.name}
+                        >
+                          <h5 class="font-medium text-gray-900 text-sm line-clamp-1">{place.name}</h5>
+                          <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs text-gray-500">{place.distance}</span>
+                            {place.rating && (
+                              <div class="flex items-center gap-1">
+                                <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                                <span class="text-xs text-gray-600">{place.rating}</span>
+                              </div>
+                            )}
+                          </div>
+                          {place.description && (
+                            <p class="text-xs text-gray-600 mt-1 line-clamp-2">{place.description}</p>
+                          )}
+                        </div>
+                      ))}
+                      {places.length > 3 && (
+                        <div class="text-xs text-gray-500 pl-3">
+                          +{places.length - 3} más en el mapa
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <!-- Estadísticas rápidas -->
+            <div class="mt-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg">
+              <h4 class="font-semibold text-gray-900 mb-3">En un Radio de 2km</h4>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Servicios totales:</span>
+                  <span class="font-medium">{nearbyPlaces.length}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Promedio rating:</span>
+                  <span class="font-medium">{nearbyPlaces.filter(p => p.rating).length > 0 ? 
+                    (nearbyPlaces.filter(p => p.rating).reduce((sum, p) => sum + p.rating, 0) / nearbyPlaces.filter(p => p.rating).length).toFixed(1) : 'N/A'}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Propiedades:</span>
+                  <span class="font-medium">{properties.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Scripts para el mapa interactivo -->
+<script define:vars={{ mapId, centerCoordinates, nearbyPlaces, properties, categoryStyles }}>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('🗺️ Inicializando mapa interactivo de', mapId);
+    
+    // Referencias DOM
+    const mapContainer = document.getElementById(mapId);
+    const filterBtns = document.querySelectorAll('.map-filter-btn');
+    const placeItems = document.querySelectorAll('.place-item');
+    
+    // Estado del mapa
+    let currentFilter = 'all';
+    let mapInitialized = false;
+    
+    // Simular inicialización de mapa (aquí iría Leaflet/MapBox)
+    function initializeMap() {
+      if (mapInitialized) return;
+      
+      console.log('📍 Centro del mapa:', centerCoordinates);
+      console.log('🏢 Lugares cercanos:', nearbyPlaces.length);
+      console.log('🏠 Propiedades:', properties.length);
+      
+      // Simular carga del mapa
+      setTimeout(() => {
+        const fallback = mapContainer.querySelector('.absolute');
+        if (fallback) {
+          fallback.innerHTML = `
+            <div class="w-full h-full bg-gradient-to-br from-blue-200 to-green-200 flex items-center justify-center">
+              <div class="text-center">
+                <div class="w-16 h-16 bg-[#f04e00] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  </svg>
+                </div>
+                <p class="text-gray-700 font-medium">Mapa de ${sector}</p>
+                <p class="text-sm text-gray-600">${nearbyPlaces.length} lugares • ${properties.length} propiedades</p>
+              </div>
+            </div>
+          `;
+        }
+        mapInitialized = true;
+      }, 1000);
+    }
+    
+    // Filtrar por categoría
+    function filterByCategory(category) {
+      currentFilter = category;
+      
+      // Actualizar botones
+      filterBtns.forEach(btn => {
+        if (btn.dataset.category === category) {
+          btn.classList.add('active', 'bg-[#f04e00]', 'text-white');
+          btn.classList.remove('bg-opacity-10');
+        } else {
+          btn.classList.remove('active', 'bg-[#f04e00]', 'text-white');
+          btn.classList.add('bg-opacity-10');
+        }
+      });
+      
+      // Filtrar elementos del sidebar
+      const categorySections = document.querySelectorAll('.category-section');
+      categorySections.forEach(section => {
+        const categoryTitle = section.querySelector('h4').textContent.trim();
+        if (category === 'all' || categoryTitle === category) {
+          section.style.display = 'block';
+        } else {
+          section.style.display = 'none';
+        }
+      });
+      
+      console.log('🔍 Filtrando por:', category);
+    }
+    
+    // Event listeners para filtros
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterByCategory(btn.dataset.category);
+      });
+    });
+    
+    // Event listeners para elementos del sidebar
+    placeItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const coordinates = item.dataset.coordinates.split(',');
+        const name = item.dataset.name;
+        
+        console.log('📍 Centrar mapa en:', name, coordinates);
+        
+        // Resaltar elemento seleccionado
+        placeItems.forEach(i => i.classList.remove('ring-2', 'ring-[#f04e00]'));
+        item.classList.add('ring-2', 'ring-[#f04e00]');
+        
+        // Aquí iría la lógica para centrar el mapa real
+      });
+    });
+    
+    // Intersection Observer para cargar el mapa cuando sea visible
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !mapInitialized) {
+          initializeMap();
+        }
+      });
+    }, {
+      threshold: 0.1
+    });
+    
+    observer.observe(mapContainer);
+    
+    // Cleanup
+    window.addEventListener('beforeunload', () => {
+      observer.disconnect();
+    });
+  });
+</script>
+
+<style>
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .map-filter-btn:not(.active):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  .place-item:hover {
+    transform: translateY(-1px);
+  }
+  
+  /* Scrollbar personalizado para el sidebar */
+  .overflow-y-auto::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .overflow-y-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 2px;
+  }
+  
+  .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+  }
+  
+  .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+</style>

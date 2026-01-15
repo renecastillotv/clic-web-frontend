@@ -1,0 +1,321 @@
+---
+// src/components/property/sidebar/ShareWidget.astro
+export interface Props {
+  data: any;
+  language?: 'es' | 'en' | 'fr';
+}
+
+const { data, language = 'es' } = Astro.props;
+
+const property = data.property || {};
+
+// Traducciones para el widget de compartir
+const translations = {
+  es: {
+    shareProperty: 'Compartir Propiedad',
+    shareOnFacebook: 'Compartir en Facebook',
+    shareOnTwitter: 'Compartir en Twitter',
+    shareOnWhatsApp: 'Compartir por WhatsApp',
+    shareByEmail: 'Compartir por Email',
+    copyLink: 'Copiar enlace',
+    
+    // Textos para compartir
+    emailSubject: 'CLIC Inmobiliaria',
+    emailBodyIntro: 'Te comparto esta propiedad:',
+    emailPrice: 'Precio:',
+    emailLocation: 'Ubicación:',
+    emailSeeMore: 'Ver más:',
+    
+    // Meta textos
+    propertyAt: 'Propiedad en',
+    checkOut: 'Mira esta propiedad:'
+  },
+  en: {
+    shareProperty: 'Share Property',
+    shareOnFacebook: 'Share on Facebook',
+    shareOnTwitter: 'Share on Twitter',
+    shareOnWhatsApp: 'Share on WhatsApp',
+    shareByEmail: 'Share by Email',
+    copyLink: 'Copy link',
+    
+    // Textos para compartir
+    emailSubject: 'CLIC Real Estate',
+    emailBodyIntro: 'I\'m sharing this property with you:',
+    emailPrice: 'Price:',
+    emailLocation: 'Location:',
+    emailSeeMore: 'See more:',
+    
+    // Meta textos
+    propertyAt: 'Property in',
+    checkOut: 'Check out this property:'
+  },
+  fr: {
+    shareProperty: 'Partager la Propriété',
+    shareOnFacebook: 'Partager sur Facebook',
+    shareOnTwitter: 'Partager sur Twitter',
+    shareOnWhatsApp: 'Partager sur WhatsApp',
+    shareByEmail: 'Partager par Email',
+    copyLink: 'Copier le lien',
+    
+    // Textos para compartir
+    emailSubject: 'CLIC Immobilier',
+    emailBodyIntro: 'Je partage cette propriété avec vous:',
+    emailPrice: 'Prix:',
+    emailLocation: 'Emplacement:',
+    emailSeeMore: 'Voir plus:',
+    
+    // Meta textos
+    propertyAt: 'Propriété à',
+    checkOut: 'Découvrez cette propriété:'
+  }
+};
+
+const t = translations[language];
+
+// Función para obtener el contenido localizado de la propiedad
+const getLocalizedPropertyTitle = () => {
+  if (property[`content_${language}`]?.name) {
+    return property[`content_${language}`].name;
+  }
+  return property.title || property.name || t.propertyAt;
+};
+
+const localizedTitle = getLocalizedPropertyTitle();
+
+console.log('📤 ShareWidget loaded:', {
+  language: language,
+  propertyTitle: localizedTitle,
+  propertyPrice: property.price,
+  propertyLocation: property.location
+});
+---
+
+<!-- Share Property Widget -->
+<div class="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+  <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">{t.shareProperty}</h3>
+  
+  <!-- Iconos en una sola línea -->
+  <div class="flex items-center justify-center gap-4 mb-4">
+    <!-- Facebook -->
+    <a 
+      href="#"
+      onclick={`shareOnFacebook('${typeof window !== 'undefined' ? window.location.href : ''}')`}
+      class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200"
+      title={t.shareOnFacebook}
+    >
+      <i class="fab fa-facebook-f text-gray-600 text-sm"></i>
+    </a>
+
+    <!-- Twitter -->
+    <a 
+      href="#"
+      onclick={`shareOnTwitter('${localizedTitle}', '${property.price || ''}', '${typeof window !== 'undefined' ? window.location.href : ''}')`}
+      class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200"
+      title={t.shareOnTwitter}
+    >
+      <i class="fab fa-twitter text-gray-600 text-sm"></i>
+    </a>
+
+    <!-- WhatsApp -->
+    <a 
+      href="#"
+      onclick={`shareOnWhatsApp('${localizedTitle}', '${property.price || ''}', '${typeof window !== 'undefined' ? window.location.href : ''}')`}
+      class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200"
+      title={t.shareOnWhatsApp}
+    >
+      <i class="fab fa-whatsapp text-gray-600 text-sm"></i>
+    </a>
+
+    <!-- Email -->
+    <a 
+      href="#"
+      onclick={`shareByEmail('${localizedTitle}', '${property.price || ''}', '${property.location || ''}', '${typeof window !== 'undefined' ? window.location.href : ''}')`}
+      class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors duration-200"
+      title={t.shareByEmail}
+    >
+      <i class="fas fa-envelope text-gray-600 text-sm"></i>
+    </a>
+  </div>
+
+  <!-- Copy Link -->
+  <button 
+    onclick="copyPropertyLink()"
+    class="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 border border-gray-200"
+  >
+    <i class="fas fa-link text-gray-500 text-sm"></i>
+    <span class="text-sm">{t.copyLink}</span>
+  </button>
+</div>
+
+<script define:vars={{ language, translations, localizedTitle, property }}>
+  // Obtener traducciones para el idioma actual
+  const t = translations[language] || translations['es'];
+  
+  console.log('📤 ShareWidget Script - Language:', {
+    language: language,
+    localizedTitle: localizedTitle,
+    hasTranslations: !!t
+  });
+
+  // Función para compartir en Facebook
+  function shareOnFacebook(url) {
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+    window.open(facebookUrl, '_blank', 'noopener,noreferrer,width=600,height=400');
+  }
+
+  // Función para compartir en Twitter
+  function shareOnTwitter(title, price, url) {
+    let tweetText = `${t.checkOut} ${title}`;
+    if (price) {
+      tweetText += ` - ${price}`;
+    }
+    
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(tweetText)}`;
+    window.open(twitterUrl, '_blank', 'noopener,noreferrer,width=600,height=400');
+  }
+
+  // Función para compartir en WhatsApp
+  function shareOnWhatsApp(title, price, url) {
+    let whatsappText = `${t.checkOut} ${title}`;
+    if (price) {
+      whatsappText += ` - ${price}`;
+    }
+    whatsappText += ` ${url}`;
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  // Función para compartir por email
+  function shareByEmail(title, price, location, url) {
+    const subject = `${title} - ${t.emailSubject}`;
+    
+    let body = `${t.emailBodyIntro} ${title}\n\n`;
+    if (price) {
+      body += `${t.emailPrice} ${price}\n`;
+    }
+    if (location) {
+      body += `${t.emailLocation} ${location}\n`;
+    }
+    body += `\n${t.emailSeeMore} ${url}`;
+    
+    const emailUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = emailUrl;
+  }
+
+  // Función para copiar enlace (ya existe globalmente, pero la redefinimos por si acaso)
+  function copyPropertyLink() {
+    const url = window.location.href;
+    
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(() => {
+        showCopyFeedback();
+      }).catch(() => {
+        fallbackCopyTextToClipboard(url);
+      });
+    } else {
+      fallbackCopyTextToClipboard(url);
+    }
+  }
+
+  function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      showCopyFeedback();
+    } catch (err) {
+      console.error('Error copying to clipboard:', err);
+      showCopyFeedback(true);
+    }
+    
+    document.body.removeChild(textArea);
+  }
+
+  function showCopyFeedback(isError = false) {
+    let message;
+    let bgColor;
+    
+    if (isError) {
+      switch(language) {
+        case 'en':
+          message = 'Error copying link';
+          break;
+        case 'fr':
+          message = 'Erreur lors de la copie';
+          break;
+        default:
+          message = 'Error al copiar enlace';
+      }
+      bgColor = '#ef4444';
+    } else {
+      switch(language) {
+        case 'en':
+          message = 'Link copied!';
+          break;
+        case 'fr':
+          message = 'Lien copié!';
+          break;
+        default:
+          message = 'Enlace copiado!';
+      }
+      bgColor = '#22c55e';
+    }
+    
+    let notification = document.getElementById('copy-notification');
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'copy-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      `;
+      document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.style.background = bgColor;
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
+  }
+
+  // Hacer las funciones disponibles globalmente
+  window.shareOnFacebook = shareOnFacebook;
+  window.shareOnTwitter = shareOnTwitter;
+  window.shareOnWhatsApp = shareOnWhatsApp;
+  window.shareByEmail = shareByEmail;
+  
+  // Sobrescribir la función global de copyPropertyLink si existe
+  if (typeof window.copyPropertyLink === 'undefined') {
+    window.copyPropertyLink = copyPropertyLink;
+  }
+</script>

@@ -1,0 +1,493 @@
+---
+// src/components/property/sidebar/ProjectWidget.astro
+export interface Props {
+  data: any;
+  language?: 'es' | 'en' | 'fr';
+}
+
+const { data = {} } = Astro.props;
+
+// FIX: Detección correcta del idioma (igual que otros componentes)
+const language = data.language || Astro.props.language || 'es';
+
+const project = data.project || null;
+const property = data.property || {};
+
+// Traducciones para el widget de proyecto
+const translations = {
+  es: {
+    projectInfo: 'Información del Proyecto',
+    includedBenefits: 'Beneficios Incluidos',
+    housingBonus: 'BONO VIVIENDA',
+    whiteLineAppliances: 'LÍNEA BLANCA',
+    availableTypologies: 'Tipologías Disponibles',
+    bedrooms: 'hab',
+    bathrooms: 'baños',
+    consult: 'Consultar',
+    available: 'disponibles',
+    financingPlan: 'Plan de Financiamiento',
+    reservation: 'Reserva:',
+    atSignature: '% a la firma:',
+    separation: 'Separación',
+    construction: '% construcción:',
+    installments: 'Cuotas',
+    onDelivery: '% contra entrega:',
+    financing: 'Financiamiento',
+    deliverySchedule: 'Cronograma de Entrega',
+    stage: 'Etapa',
+    completed: '% completado',
+    projectGuarantees: 'Garantías del Proyecto',
+    certifiedDeveloper: 'Desarrollador certificado',
+    constructionGuarantee: 'Garantía de construcción',
+    financingAvailable: 'Financiamiento disponible',
+    constructionCompany: 'Constructora',
+    yearsExperience: '+ años de experiencia',
+    completedProjects: '+ proyectos completados',
+    requestProjectInfo: 'Solicitar Información del Proyecto',
+    
+    // Fechas por defecto
+    defaultDelivery1: 'Abril 2026',
+    defaultDelivery2: 'Mayo 2027',
+    
+    // Mensaje de WhatsApp
+    whatsappMessage: {
+      greeting: '¡Hola! Me interesa obtener más información sobre el proyecto:',
+      wouldLike: 'Me gustaría conocer:',
+      availability: '• Disponibilidad de unidades',
+      paymentPlans: '• Planes de pago especiales',
+      deliveryDates: '• Fechas de entrega actualizadas',
+      reservationProcess: '• Proceso de reserva',
+      virtualTours: '• Tours virtuales disponibles',
+      meetingQuestion: '¿Cuándo podríamos coordinar una reunión informativa?'
+    },
+    
+    feedbackMessage: '¡Perfecto! Te contactaremos con información detallada del proyecto.',
+    feedbackFallback: '¡Te contactaremos con información del proyecto!'
+  },
+  en: {
+    projectInfo: 'Project Information',
+    includedBenefits: 'Included Benefits',
+    housingBonus: 'HOUSING BONUS',
+    whiteLineAppliances: 'APPLIANCES',
+    availableTypologies: 'Available Typologies',
+    bedrooms: 'bed',
+    bathrooms: 'bath',
+    consult: 'Consult',
+    available: 'available',
+    financingPlan: 'Financing Plan',
+    reservation: 'Reservation:',
+    atSignature: '% at signature:',
+    separation: 'Separation',
+    construction: '% construction:',
+    installments: 'Installments',
+    onDelivery: '% on delivery:',
+    financing: 'Financing',
+    deliverySchedule: 'Delivery Schedule',
+    stage: 'Stage',
+    completed: '% completed',
+    projectGuarantees: 'Project Guarantees',
+    certifiedDeveloper: 'Certified developer',
+    constructionGuarantee: 'Construction guarantee',
+    financingAvailable: 'Financing available',
+    constructionCompany: 'Construction Company',
+    yearsExperience: '+ years of experience',
+    completedProjects: '+ completed projects',
+    requestProjectInfo: 'Request Project Information',
+    
+    // Fechas por defecto
+    defaultDelivery1: 'April 2026',
+    defaultDelivery2: 'May 2027',
+    
+    // Mensaje de WhatsApp
+    whatsappMessage: {
+      greeting: 'Hello! I\'m interested in getting more information about the project:',
+      wouldLike: 'I would like to know about:',
+      availability: '• Unit availability',
+      paymentPlans: '• Special payment plans',
+      deliveryDates: '• Updated delivery dates',
+      reservationProcess: '• Reservation process',
+      virtualTours: '• Available virtual tours',
+      meetingQuestion: 'When could we schedule an information meeting?'
+    },
+    
+    feedbackMessage: 'Perfect! We\'ll contact you with detailed project information.',
+    feedbackFallback: 'We\'ll contact you with project information!'
+  },
+  fr: {
+    projectInfo: 'Informations du Projet',
+    includedBenefits: 'Avantages Inclus',
+    housingBonus: 'BONUS LOGEMENT',
+    whiteLineAppliances: 'ÉLECTROMÉNAGER',
+    availableTypologies: 'Typologies Disponibles',
+    bedrooms: 'ch',
+    bathrooms: 'sdb',
+    consult: 'Consulter',
+    available: 'disponibles',
+    financingPlan: 'Plan de Financement',
+    reservation: 'Réservation:',
+    atSignature: '% à la signature:',
+    separation: 'Séparation',
+    construction: '% construction:',
+    installments: 'Mensualités',
+    onDelivery: '% à la livraison:',
+    financing: 'Financement',
+    deliverySchedule: 'Calendrier de Livraison',
+    stage: 'Étape',
+    completed: '% terminé',
+    projectGuarantees: 'Garanties du Projet',
+    certifiedDeveloper: 'Développeur certifié',
+    constructionGuarantee: 'Garantie de construction',
+    financingAvailable: 'Financement disponible',
+    constructionCompany: 'Entreprise de Construction',
+    yearsExperience: '+ ans d\'expérience',
+    completedProjects: '+ projets terminés',
+    requestProjectInfo: 'Demander des Informations sur le Projet',
+    
+    // Fechas por defecto
+    defaultDelivery1: 'Avril 2026',
+    defaultDelivery2: 'Mai 2027',
+    
+    // Mensaje de WhatsApp
+    whatsappMessage: {
+      greeting: 'Bonjour! Je suis intéressé par plus d\'informations sur le projet:',
+      wouldLike: 'J\'aimerais connaître:',
+      availability: '• Disponibilité des unités',
+      paymentPlans: '• Plans de paiement spéciaux',
+      deliveryDates: '• Dates de livraison mises à jour',
+      reservationProcess: '• Processus de réservation',
+      virtualTours: '• Visites virtuelles disponibles',
+      meetingQuestion: 'Quand pourrions-nous programmer une réunion d\'information?'
+    },
+    
+    feedbackMessage: 'Parfait! Nous vous contacterons avec des informations détaillées sur le projet.',
+    feedbackFallback: 'Nous vous contacterons avec des informations sur le projet!'
+  }
+};
+
+const t = translations[language];
+
+// Función para formatear fecha de entrega
+function formatDeliveryDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+
+  // Si es formato YYYY-MM, agregar día 15 para evitar problemas de timezone
+  if (/^\d{4}-\d{2}$/.test(dateStr)) {
+    const [year, month] = dateStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, 15);
+    return date.toLocaleDateString(
+      language === 'es' ? 'es-DO' : language === 'fr' ? 'fr-FR' : 'en-US',
+      { month: 'long', year: 'numeric' }
+    );
+  }
+
+  // Fecha completa
+  const date = new Date(dateStr + 'T12:00:00');
+  return date.toLocaleDateString(
+    language === 'es' ? 'es-DO' : language === 'fr' ? 'fr-FR' : 'en-US',
+    { month: 'long', year: 'numeric' }
+  );
+}
+
+// Pre-procesar las fases para el template
+const processedPhases = (project?.phases || []).slice(0, 2).map((phase: any, index: number) => {
+  const nameContainsDate = phase.name && /\d{4}/.test(phase.name);
+  return {
+    ...phase,
+    displayName: nameContainsDate ? phase.name : `${t.stage} ${index + 1}`,
+    formattedDate: formatDeliveryDate(phase.estimatedDelivery),
+    showDate: !nameContainsDate,
+    showProgress: phase.completionPercentage > 0
+  };
+});
+
+console.log('🏗️ ProjectWidget loaded:', {
+  language: language,
+  isProject: data.isProject,
+  projectName: project?.name,
+  hasTypologies: !!(project?.typologies?.length),
+  hasPaymentPlans: !!(project?.paymentPlans?.length),
+  hasPhases: !!(project?.phases?.length),
+  processedPhasesCount: processedPhases.length,
+  hasTranslations: !!t
+});
+---
+
+<!-- Project Information Widget -->
+{data.isProject && project && (
+  <div class="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+    <!-- Header del Proyecto -->
+    <div class="mb-6">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">{t.projectInfo}</h3>
+          <p class="text-sm text-gray-600">{project.name || property.title}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Beneficios Especiales - Usar datos reales de la BD -->
+    {project.benefits && project.benefits.length > 0 && (
+      <div class="mb-6">
+        <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          {t.includedBenefits}
+        </h4>
+        <div class="space-y-2">
+          <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div class="flex flex-wrap items-center gap-2">
+              {project.benefits.map((benefit: string) => (
+                <span class="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-1 rounded-md">{benefit}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Tipologías -->
+    {project.typologies && project.typologies.length > 0 && (
+      <div class="mb-6">
+        <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-2-2H7v-2h10v2zm0-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+          </svg>
+          {t.availableTypologies}
+        </h4>
+        <div class="space-y-2">
+          {project.typologies.slice(0, 3).map((typo: any) => (
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-900">
+                  {typo.bedrooms}&nbsp;{t.bedrooms}, {typo.bathrooms}&nbsp;{t.bathrooms}
+                </span>
+                <span class="text-sm font-semibold text-gray-900">
+                  {typo.priceFrom ? `${typo.currency}${(typo.priceFrom / 1000).toFixed(0)}K` : t.consult}
+                  {typo.priceTo && typo.priceFrom !== typo.priceTo && (
+                    <>-{(typo.priceTo / 1000).toFixed(0)}K</>
+                  )}
+                </span>
+              </div>
+              {typo.area && (
+                <div class="text-xs text-gray-600 mt-1">
+                  {typo.area}&nbsp;m² • {typo.availableUnits || 0}&nbsp;{t.available}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Plan de Pago -->
+    {project.paymentPlans && project.paymentPlans.length > 0 && (
+      <div class="mb-6">
+        <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+          </svg>
+          {t.financingPlan}
+        </h4>
+        {project.paymentPlans.slice(0, 1).map((plan: any) => (
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-700">{t.reservation}</span>
+                <span class="text-sm font-semibold text-gray-900">
+                  {plan.reservationCurrency}${plan.reservation?.toLocaleString() || '1,000'}
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-700">{plan.separationPercentage}{t.atSignature}</span>
+                <span class="text-sm font-medium text-gray-900">{t.separation}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-700">{plan.constructionPercentage}{t.construction}</span>
+                <span class="text-sm font-medium text-gray-900">{t.installments}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-700">{plan.deliveryPercentage}{t.onDelivery}</span>
+                <span class="text-sm font-medium text-gray-900">{t.financing}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+
+    <!-- Fechas de Entrega - Usando fases pre-procesadas -->
+    {processedPhases.length > 0 && (
+      <div class="mb-6">
+        <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+          </svg>
+          {t.deliverySchedule}
+        </h4>
+        <div class="space-y-2">
+          {processedPhases.map((phase: any) => (
+            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-900">
+                  {phase.displayName}
+                </span>
+                {phase.showDate && phase.formattedDate && (
+                  <span class="text-sm font-semibold text-gray-900">
+                    {phase.formattedDate}
+                  </span>
+                )}
+              </div>
+              {phase.showProgress && (
+                <div class="mt-2">
+                  <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      class="bg-gray-600 h-2 rounded-full transition-all duration-300"
+                      style={`width: ${phase.completionPercentage}%`}
+                    ></div>
+                  </div>
+                  <span class="text-xs text-gray-600 mt-1 block">
+                    {phase.completionPercentage}{t.completed}
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Garantías del Proyecto - Usar datos reales de la BD -->
+    {project.guarantees && project.guarantees.length > 0 && (
+      <div class="mb-4">
+        <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+          </svg>
+          {t.projectGuarantees}
+        </h4>
+        <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+          <div class="space-y-2">
+            {project.guarantees.map((guarantee: string) => (
+              <div class="flex items-center gap-2 text-sm text-gray-700">
+                <svg class="w-3 h-3 text-gray-600 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+                <span>{guarantee}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Developer Info genérica -->
+    <div class="pt-4 border-t border-gray-200">
+      <div class="flex items-center gap-3">
+        <!-- Logo genérico con icono de construcción -->
+        <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+          <i class="fa-solid fa-helmet-safety text-gray-600 text-lg"></i>
+        </div>
+        
+        <div>
+          <p class="text-sm font-semibold text-gray-900">{t.constructionCompany}</p>
+          <p class="text-xs text-gray-600">
+            {project.developer?.years_experience || 10}{t.yearsExperience} • {project.developer?.total_projects || 15}{t.completedProjects}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA para proyectos -->
+    <div class="mt-6 pt-4 border-t border-gray-200">
+      <button 
+        onclick="requestProjectInfo()"
+        class="w-full bg-gray-900 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        {t.requestProjectInfo}
+      </button>
+    </div>
+
+    <!-- Metadata para SEO (invisible) -->
+    <div style="display: none;" itemscope itemtype="https://schema.org/RealEstateProject">
+      <span itemprop="name">{project.name}</span>
+      <span itemprop="developer">{project.developer?.name}</span>
+      <span itemprop="location">{property.location}</span>
+    </div>
+  </div>
+)}
+
+<script define:vars={{ language, translations, project, property }}>
+  // Obtener traducciones para el idioma actual
+  const t = translations[language] || translations['es'];
+  
+  console.log('🏗️ ProjectWidget Script - Language:', {
+    language: language,
+    hasTranslations: !!t,
+    projectName: project?.name
+  });
+
+  // Función para solicitar información del proyecto
+  window.requestProjectInfo = function() {
+    const projectName = document.querySelector('[data-project-name]')?.dataset.projectName || 
+                       document.querySelector('h1')?.textContent || 
+                       property?.title ||
+                       project?.name ||
+                       (language === 'en' ? 'Project of interest' : 
+                        language === 'fr' ? 'Projet d\'intérêt' : 'Proyecto de interés');
+    
+    const msg = t.whatsappMessage;
+    const message = `${msg.greeting} ${projectName}.
+
+${msg.wouldLike}
+${msg.availability}
+${msg.paymentPlans}
+${msg.deliveryDates}
+${msg.reservationProcess}
+${msg.virtualTours}
+
+${msg.meetingQuestion}`;
+    
+    // Integración con WhatsApp
+    const whatsappUrl = `https://wa.me/18295550100?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Mostrar feedback si la función está disponible
+    if (window.showCopyFeedback) {
+      window.showCopyFeedback(t.feedbackMessage);
+    } else {
+      // Crear notificación temporal si no existe la función global
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #22c55e;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      `;
+      notification.textContent = t.feedbackFallback;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => notification.style.transform = 'translateX(0)', 100);
+      setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => document.body.removeChild(notification), 300);
+      }, 3000);
+    }
+  };
+</script>

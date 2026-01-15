@@ -1,0 +1,1509 @@
+---
+export interface Props {
+  propertyData: any;
+}
+
+const { propertyData } = Astro.props;
+
+// Extraer datos del proyecto
+const property = propertyData?.property || {};
+const projectDetails = propertyData?.projectDetails || {};
+const agent = propertyData?.agent || {};
+const seo = propertyData?.seo || {};
+
+// Preparar imágenes para la galería
+const propertyImages = property?.images_unified || [];
+const mainImage = property?.main_image_optimized?.url || property?.main_image_url;
+
+// Agregar imagen principal si no está en las unified
+if (mainImage && !propertyImages.some(img => img.url === mainImage)) {
+  propertyImages.unshift({
+    url: mainImage,
+    title: property?.name || 'Imagen principal',
+    is_main: true,
+    sort_order: 0
+  });
+}
+
+// Asegurar al menos 5 imágenes para la galería (repetir si es necesario)
+while (propertyImages.length < 5) {
+  propertyImages.push(...propertyImages.slice(0, Math.min(5 - propertyImages.length, propertyImages.length)));
+}
+
+// Preparar datos para el template
+const projectData = {
+  title: property?.name?.split('–')?.[0]?.trim() || property?.name || 'Proyecto',
+  subtitle: property?.name?.split('–')?.[1]?.trim() || '',
+  location: `${property?.sectors?.name || ''}, ${property?.cities?.name || ''}`.replace(/^, |, $/g, ''),
+  price: property?.pricing_unified?.display_price?.formatted || `${property?.sale_price?.toLocaleString() || '0'} ${property?.sale_currency || 'USD'}`,
+  priceRange: projectDetails?.project_typologies?.length > 0 ? 
+    `${Math.min(...projectDetails.project_typologies.map(t => t.sale_price_from)).toLocaleString()}-${Math.max(...projectDetails.project_typologies.map(t => t.sale_price_to)).toLocaleString()}` : 
+    property?.pricing_unified?.display_price?.formatted || 'Consultar precio',
+  reservation: projectDetails?.project_payment_plans?.[0]?.reservation_amount ? 
+    `${projectDetails.project_payment_plans[0].reservation_amount.toLocaleString()}` : 
+    '$1,000',
+  reference: property?.code?.toString() || property?.id || 'REF001',
+  agent: {
+    name: agent?.name || 'CLIC Inmobiliaria',
+    code: agent?.external_id || 'CLIC001',
+    phone: agent?.phone || '+1-829-514-8080',
+    email: agent?.email || 'info@clic.do',
+    position: agent?.position || 'Agente Inmobiliario'
+  }
+};
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{seo.title}</title>
+    
+    <!-- Meta tags SEO -->
+    <meta name="description" content={seo.description}>
+    <meta name="keywords" content={seo.keywords?.join(', ')}>
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content={seo.og?.title}>
+    <meta property="og:description" content={seo.og?.description}>
+    <meta property="og:image" content={seo.og?.image}>
+    <meta property="og:type" content={seo.og?.type}>
+    <meta property="og:url" content={seo.og?.url}>
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content={seo.twitter?.card}>
+    <meta property="twitter:title" content={seo.twitter?.title}>
+    <meta property="twitter:description" content={seo.twitter?.description}>
+    <meta property="twitter:image" content={seo.twitter?.image}>
+    
+    <!-- Structured Data -->
+    {seo.structured_data && (
+      <script type="application/ld+json" set:html={JSON.stringify(seo.structured_data)}></script>
+    )}
+    
+    <!-- Fonts y iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Variables CSS */
+        :root {
+            --primary: #FF4D10;
+            --primary-light: #FF6B3D;
+            --primary-dark: #E03900;
+            --dark-blue: #1A2438;
+            --dark-grey: #333333;
+            --mid-grey: #666666;
+            --light-grey: #F5F5F5;
+            --white: #FFFFFF;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.05);
+            --radius: 8px;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 2rem;
+            --spacing-lg: 4rem;
+            --transition: all 0.3s ease;
+        }
+
+        /* Reset y base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--dark-grey);
+            line-height: 1.6;
+            background-color: var(--white);
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            background-color: var(--light-grey);
+            padding: var(--spacing-sm) 0;
+        }
+
+        .breadcrumb-item {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--mid-grey);
+            font-weight: 500;
+        }
+
+        .breadcrumb-item:not(:last-child)::after {
+            content: '/';
+            margin: 0 10px;
+            color: #ccc;
+        }
+
+        .breadcrumb-item a:hover {
+            color: var(--primary);
+        }
+
+        /* Layout Principal */
+        .property-detail {
+            padding: 0;
+        }
+
+        .property-layout {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* Galería hero */
+        .gallery-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            height: 600px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .gallery-main {
+            grid-row: 1 / 3;
+            grid-column: 1 / 2;
+            overflow: hidden;
+            border-radius: var(--radius);
+            position: relative;
+        }
+
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius);
+            cursor: pointer;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .view-all-photos {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+            border: none;
+        }
+
+        .view-all-photos:hover {
+            background: rgba(255, 255, 255, 1) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.2) !important;
+        }
+
+        /* Header de propiedad */
+        .property-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        .property-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .property-location {
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+            color: var(--mid-grey);
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .property-location i {
+            margin-right: 8px;
+            color: var(--primary);
+        }
+
+        .property-badges {
+            display: flex;
+            gap: 10px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .property-badge {
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 5px 12px;
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .property-badge.project {
+            background-color: #2196f3;
+        }
+
+        .property-price {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .price-per-sqm {
+            font-size: 1rem;
+            color: var(--mid-grey);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .property-id {
+            font-size: 0.85rem;
+            color: var(--mid-grey);
+        }
+
+        /* Sección de título */
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-sm);
+            position: relative;
+            padding-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .section-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background-color: var(--primary);
+        }
+
+        /* Detalles técnicos */
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .detail-card {
+            background: var(--light-grey);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .detail-card:hover {
+            background-color: #e8e8e8;
+        }
+
+        .detail-icon {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-label {
+            color: var(--mid-grey);
+            font-weight: 500;
+        }
+
+        /* Sección de proyecto */
+        .project-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: var(--radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+            border-left: 4px solid var(--primary);
+        }
+
+        .project-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .project-badge {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(255, 77, 16, 0.3);
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .project-typology {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            margin-bottom: 0.75rem;
+        }
+
+        .typology-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .typology-price {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .typology-status {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-available {
+            color: #28a745;
+        }
+
+        .status-sold {
+            color: #dc3545;
+        }
+
+        .investment-item {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Características especiales */
+        .characteristics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .characteristic-card {
+            background: white;
+            padding: 1.25rem;
+            border-radius: 12px;
+            border: 2px solid #f0f0f0;
+            transition: all 0.3s ease;
+        }
+
+        .characteristic-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .characteristic-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .characteristic-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .characteristic-title {
+            font-weight: 600;
+            color: var(--dark-grey);
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .characteristic-description {
+            color: var(--mid-grey);
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* Amenidades */
+        .amenities-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .amenity-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #e9ecef;
+            transition: var(--transition);
+        }
+
+        .amenity-item:hover {
+            background: #e8e8e8;
+        }
+
+        .amenity-icon-container {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .amenity-text {
+            font-weight: 600;
+            color: var(--dark-grey);
+            font-size: 0.95rem;
+        }
+
+        /* Sidebar */
+        .sticky-sidebar {
+            position: sticky;
+            top: 100px;
+        }
+
+        .agent-widget {
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .agent-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid #eee;
+        }
+
+        .agent-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-right: 15px;
+        }
+
+        .agent-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .agent-name {
+            font-size: 1.2rem;
+            margin-bottom: 0;
+            font-weight: 600;
+        }
+
+        .agent-position {
+            font-size: 0.9rem;
+            color: var(--mid-grey);
+        }
+
+        .agent-badge {
+            display: inline-block;
+            background-color: var(--primary-light);
+            color: var(--white);
+            padding: 3px 8px;
+            border-radius: 50px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .agent-rating {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .rating-stars {
+            margin-bottom: 0.5rem;
+        }
+
+        .rating-text {
+            font-size: 0.9rem;
+            color: var(--mid-grey);
+            font-weight: 500;
+        }
+
+        /* Formularios */
+        .contact-form {
+            margin-top: var(--spacing-sm);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(255, 77, 16, 0.1);
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn-elegant {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+            font-size: 1rem;
+            text-decoration: none;
+        }
+
+        .btn-elegant:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-whatsapp {
+            background-color: #25d366;
+            font-size: 0.9rem;
+            padding: 0.75rem;
+        }
+
+        .btn-whatsapp:hover {
+            background-color: #128c7e;
+        }
+
+        .contact-buttons {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        /* Widget de compartir */
+        .share-widget {
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: var(--spacing-md);
+        }
+
+        .share-options {
+            display: flex;
+            justify-content: space-between;
+            margin-top: var(--spacing-sm);
+        }
+
+        .share-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .share-icon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--light-grey);
+            color: var(--mid-grey);
+            transition: var(--transition);
+        }
+
+        .share-icon.facebook:hover {
+            background-color: #3b5998;
+            color: white;
+        }
+
+        .share-icon.twitter:hover {
+            background-color: #1da1f2;
+            color: white;
+        }
+
+        .share-icon.whatsapp:hover {
+            background-color: #25d366;
+            color: white;
+        }
+
+        .share-icon.email:hover {
+            background-color: #777;
+            color: white;
+        }
+
+        .share-label {
+            font-size: 0.8rem;
+        }
+
+        /* FAQs */
+        .faqs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .faq-item:hover {
+            box-shadow: var(--shadow);
+        }
+
+        .faq-question {
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            border-bottom: 1px solid #f0f0f0;
+            transition: var(--transition);
+        }
+
+        .faq-question:hover {
+            background: #f8f9fa;
+        }
+
+        .faq-question h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--dark-grey);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .faq-question i {
+            color: var(--primary);
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .faq-question.active i {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            padding: 0 1.25rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .faq-answer.active {
+            padding: 1rem 1.25rem;
+            max-height: 200px;
+        }
+
+        .faq-answer p {
+            margin: 0;
+            color: var(--mid-grey);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .property-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .gallery-container {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto;
+                height: auto;
+            }
+
+            .gallery-main {
+                grid-row: auto;
+                grid-column: span 2;
+                height: 300px;
+            }
+
+            .gallery-item:not(.gallery-main) {
+                height: 150px;
+            }
+
+            .project-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .property-header {
+                flex-direction: column;
+            }
+
+            .property-title {
+                font-size: 1.8rem;
+            }
+
+            .property-price {
+                font-size: 1.8rem;
+            }
+
+            .amenities-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .characteristics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .details-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 576px) {
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .amenities-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .gallery-container {
+                grid-template-columns: 1fr;
+            }
+
+            .gallery-main {
+                grid-column: 1;
+            }
+
+            .gallery-item:not(.gallery-main) {
+                display: none;
+            }
+
+            .share-options {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Referral Banner -->
+    <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 0.75rem;">
+        <div class="container">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; font-weight: 600;">
+                <i class="fas fa-user-tie"></i>
+                Propiedad presentada por <strong>{projectData.agent.name}</strong>
+                <span style="background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem;">
+                    {projectData.agent.code}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+        <div class="container">
+            <div class="breadcrumb-item">
+                <a href="/">Inicio</a>
+            </div>
+            <div class="breadcrumb-item">
+                <a href="/comprar">Venta</a>
+            </div>
+            <div class="breadcrumb-item">
+                <a href={`/comprar/${property.cities?.name?.toLowerCase().replace(/\s+/g, '-')}`}>
+                    {property.cities?.name}
+                </a>
+            </div>
+            <div class="breadcrumb-item">
+                <span>{property.sectors?.name}</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <div class="property-detail">
+        <!-- Galería hero a pantalla completa -->
+        <div style="position: relative; margin-bottom: 2rem; width: 100vw; margin-left: calc(-50vw + 50%); height: 70vh; min-height: 500px;">
+            <!-- Galería de imágenes fullscreen -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; height: 100%; padding: 0;">
+                {propertyImages.slice(0, 5).map((image, index) => (
+                    <div 
+                        key={index}
+                        style={index === 0 ? "grid-row: 1 / 3; grid-column: 1 / 2; overflow: hidden; position: relative; cursor: pointer;" : "overflow: hidden; position: relative; cursor: pointer;"}
+                        onclick={`openLightbox(${index})`}
+                    >
+                        <img 
+                            src={image.url}
+                            alt={image.title || `${property.name} - Imagen ${index + 1}`}
+                            style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease;"
+                        />
+                    </div>
+                ))}
+            </div>
+
+            <!-- Información superpuesta en la galería -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;">
+                <!-- Badges superiores izquierdos -->
+                <div style="position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto;">
+                    <span style="background: var(--primary); color: white; padding: 8px 16px; border-radius: 25px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 77, 16, 0.4); border: 2px solid rgba(255,255,255,0.2);">
+                        Ref: {projectData.reference}
+                    </span>
+                    <span style="background: white; color: var(--primary); padding: 8px 16px; border-radius: 25px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); border: 2px solid var(--primary);">
+                        PROYECTO
+                    </span>
+                </div>
+
+                <!-- Precio superior derecho -->
+                <div style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); color: var(--dark-grey); padding: 20px 28px; border-radius: 20px; text-align: right; pointer-events: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.12); border: 1px solid rgba(255,255,255,0.2);">
+                    <div style="font-size: 2.2rem; font-weight: 700; line-height: 1; margin-bottom: 6px; color: var(--primary);">
+                        {projectData.priceRange}
+                    </div>
+                    <div style="font-size: 0.76rem; color: var(--mid-grey); font-weight: 500;">
+                        Reserva con {projectData.reservation}
+                    </div>
+                </div>
+
+                <!-- Ver fotos -->
+                <div style="position: absolute; bottom: 20px; right: 20px; pointer-events: auto;">
+                    <button class="view-all-photos" onclick="event.stopPropagation(); openLightbox(0)" style="background: rgba(255,255,255,0.95); color: var(--dark-grey); padding: 12px 24px; border-radius: 25px; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 600; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.15); backdrop-filter: blur(10px); transition: all 0.3s ease; white-space: nowrap; min-width: 140px;">
+                        <i class="fas fa-images" style="color: var(--primary); flex-shrink: 0;"></i>
+                        <span>Ver {propertyImages.length} fotos</span>
+                    </button>
+                </div>
+
+                <!-- Título y ubicación -->
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.75)); padding: 80px 20px 30px; color: white; pointer-events: auto;">
+                    <div style="max-width: 800px;">
+                        <h1 style="font-size: 2.8rem; font-weight: 700; margin-bottom: 8px; line-height: 1.2; text-shadow: 0 2px 12px rgba(0,0,0,0.7);">
+                            {projectData.title}
+                        </h1>
+                        {projectData.subtitle && (
+                            <h2 style="font-size: 1.6rem; font-weight: 400; margin-bottom: 16px; opacity: 0.95; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                                {projectData.subtitle}
+                            </h2>
+                        )}
+                        <div style="display: flex; align-items: center; font-size: 1.2rem; gap: 10px; opacity: 0.9; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+                            <i class="fas fa-map-marker-alt" style="color: var(--primary); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
+                            {projectData.location}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layout principal con container -->
+        <div class="container">
+            <div class="property-layout">
+                <!-- Columna izquierda (main) -->
+                <main class="property-left">
+                    
+                    <!-- Descripción -->
+                    <div style="margin-bottom: 2rem;">
+                        <h2 class="section-title">Descripción del Proyecto</h2>
+                        <div style="line-height: 1.8; color: var(--dark-grey);">
+                            <p id="description-preview">
+                                {property.description || `${property.name} es un proyecto residencial innovador ubicado en ${projectData.location}. Este desarrollo ofrece apartamentos modernos con acabados de primera calidad...`}
+                            </p>
+                            <button id="read-more-btn" onclick="toggleDescription()" style="color: var(--primary); background: none; border: none; cursor: pointer; font-weight: 600; padding: 0; margin-top: 10px;">
+                                Leer más <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Detalles del Proyecto -->
+                    <div style="margin-bottom: 2rem;">
+                        <h2 class="section-title">Detalles del Proyecto</h2>
+                        <div class="details-grid">
+                            <div class="detail-card">
+                                <div class="detail-icon">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <div class="detail-value">{projectDetails.total_units || 'N/A'}</div>
+                                <div class="detail-label">Total Unidades</div>
+                            </div>
+
+                            <div class="detail-card">
+                                <div class="detail-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="detail-value">
+                                    {projectDetails.estimated_completion_date ? 
+                                        new Date(projectDetails.estimated_completion_date).getFullYear() : 
+                                        'TBD'
+                                    }
+                                </div>
+                                <div class="detail-label">Año de Entrega</div>
+                            </div>
+
+                            <div class="detail-card">
+                                <div class="detail-icon">
+                                    <i class="fas fa-tools"></i>
+                                </div>
+                                <div class="detail-value">
+                                    {projectDetails.construction_status === 'construction' ? 'En Construcción' : 
+                                     projectDetails.construction_status === 'completed' ? 'Completado' : 
+                                     'Planificación'}
+                                </div>
+                                <div class="detail-label">Estado</div>
+                            </div>
+
+                            <div class="detail-card">
+                                <div class="detail-icon">
+                                    <i class="fas fa-handshake"></i>
+                                </div>
+                                <div class="detail-value">
+                                    {projectDetails.sales_status === 'pre_sale' ? 'Pre-Venta' : 
+                                     projectDetails.sales_status === 'active' ? 'Activa' : 
+                                     'Disponible'}
+                                </div>
+                                <div class="detail-label">Ventas</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tipologías del Proyecto -->
+                    {projectDetails.project_typologies && projectDetails.project_typologies.length > 0 && (
+                        <div class="project-section">
+                            <h2 class="section-title">Tipologías Disponibles</h2>
+                            <div class="project-grid">
+                                {projectDetails.project_typologies.map((typology) => (
+                                    <div class="project-typology" key={typology.id}>
+                                        <div class="typology-header">
+                                            <h4>{typology.name}</h4>
+                                            <span class={`typology-status ${typology.is_sold_out ? 'status-sold' : 'status-available'}`}>
+                                                {typology.is_sold_out ? 'Agotado' : `${typology.available_units} disponibles`}
+                                            </span>
+                                        </div>
+                                        <div class="typology-price">
+                                            ${typology.sale_price_from?.toLocaleString()} - ${typology.sale_price_to?.toLocaleString()} {typology.sale_currency}
+                                        </div>
+                                        <div style="font-size: 0.9rem; color: var(--mid-grey); margin-bottom: 0.5rem;">
+                                            {typology.bedrooms} hab • {typology.bathrooms} baños • {typology.built_area}m²
+                                        </div>
+                                        {typology.description && (
+                                            <p style="font-size: 0.85rem; color: var(--mid-grey); margin: 0;">
+                                                {typology.description}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <!-- Amenidades -->
+                    {property.property_amenities && property.property_amenities.length > 0 && (
+                        <div style="margin-bottom: 2rem;">
+                            <h2 class="section-title">Amenidades</h2>
+                            <div class="amenities-grid">
+                                {property.property_amenities.map((amenity, index) => (
+                                    <div class="amenity-item" key={index}>
+                                        <div class="amenity-icon-container">
+                                            <i class={amenity.amenities.icon || "fas fa-star"} style="color: white; font-size: 1.1rem;"></i>
+                                        </div>
+                                        <span class="amenity-text">{amenity.amenities.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <!-- Beneficios del Proyecto -->
+                    {projectDetails.project_benefits && projectDetails.project_benefits.length > 0 && (
+                        <div style="margin-bottom: 2rem;">
+                            <h2 class="section-title">Beneficios Especiales</h2>
+                            <div class="characteristics-grid">
+                                {projectDetails.project_benefits.map((benefit) => (
+                                    <div class="characteristic-card" key={benefit.id}>
+                                        <div class="characteristic-header">
+                                            <div class="characteristic-icon">
+                                                <i class="fas fa-gift" style="color: white; font-size: 1.1rem;"></i>
+                                            </div>
+                                            <h4 class="characteristic-title">{benefit.project_benefits_catalog.name}</h4>
+                                        </div>
+                                        <p class="characteristic-description">
+                                            {benefit.custom_description || benefit.project_benefits_catalog.description}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <!-- FAQs -->
+                    {propertyData.relatedContent?.faqs && propertyData.relatedContent.faqs.length > 0 && (
+                        <div style="margin-top: 3rem;">
+                            <h2 class="section-title">Preguntas Frecuentes</h2>
+                            <div class="faqs-container">
+                                {propertyData.relatedContent.faqs.slice(0, 6).map((faq, index) => (
+                                    <div class="faq-item" key={faq.id}>
+                                        <div class="faq-question" onclick={`toggleFAQ(${index + 1})`}>
+                                            <h4>{faq.question}</h4>
+                                            <i class="fas fa-chevron-down" id={`faq-icon-${index + 1}`}></i>
+                                        </div>
+                                        <div class="faq-answer" id={`faq-answer-${index + 1}`}>
+                                            <p>{faq.answer}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                </main>
+
+                <!-- Columna derecha (aside - sidebar) -->
+                <aside class="property-right">
+                    <div style="position: relative;">
+                        <!-- Card de detalles -->
+                        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
+                            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--dark-grey); margin-bottom: 1rem; text-align: center;">
+                                Información del Proyecto
+                            </h3>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div style="text-align: center; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #f0f0f0;">
+                                    <div style="color: var(--primary); font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">
+                                        {projectDetails.project_typologies ? 
+                                            `${Math.min(...projectDetails.project_typologies.map(t => t.bedrooms))}-${Math.max(...projectDetails.project_typologies.map(t => t.bedrooms))}` : 
+                                            property.bedrooms || 'N/A'}
+                                    </div>
+                                    <div style="color: var(--mid-grey); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Habitaciones</div>
+                                </div>
+                                
+                                <div style="text-align: center; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #f0f0f0;">
+                                    <div style="color: var(--primary); font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">
+                                        {projectDetails.project_typologies ? 
+                                            `${Math.min(...projectDetails.project_typologies.map(t => t.bathrooms))}-${Math.max(...projectDetails.project_typologies.map(t => t.bathrooms))}` : 
+                                            property.bathrooms || 'N/A'}
+                                    </div>
+                                    <div style="color: var(--mid-grey); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Baños</div>
+                                </div>
+                                
+                                <div style="text-align: center; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #f0f0f0;">
+                                    <div style="color: var(--primary); font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">
+                                        {projectDetails.project_typologies ? 
+                                            `${Math.min(...projectDetails.project_typologies.map(t => t.built_area))}-${Math.max(...projectDetails.project_typologies.map(t => t.built_area))}m²` : 
+                                            `${property.built_area || 'N/A'}m²`}
+                                    </div>
+                                    <div style="color: var(--mid-grey); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Área</div>
+                                </div>
+                                
+                                <div style="text-align: center; padding: 1rem; background: white; border-radius: 12px; border: 1px solid #f0f0f0;">
+                                    <div style="color: var(--primary); font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">
+                                        {property.parking_spots || 'N/A'}
+                                    </div>
+                                    <div style="color: var(--mid-grey); font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Parqueos</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Widget del agente -->
+                        <div class="agent-widget">
+                            <div class="agent-header">
+                                <div class="agent-avatar">
+                                    <img src={`https://via.placeholder.com/70x70/FF4D10/FFFFFF?text=${agent.name.split(' ').map(n => n[0]).join('')}`} alt={agent.name} />
+                                </div>
+                                <div style="flex-grow: 1;">
+                                    <h3 class="agent-name">{agent.name}</h3>
+                                    <div class="agent-position">{agent.position}</div>
+                                    <span class="agent-badge">Código: {agent.external_id}</span>
+                                </div>
+                            </div>
+
+                            <!-- Rating del agente -->
+                            <div class="agent-rating">
+                                <div class="rating-stars">
+                                    <i class="fas fa-star" style="color: #ffc107; margin: 0 2px;"></i>
+                                    <i class="fas fa-star" style="color: #ffc107; margin: 0 2px;"></i>
+                                    <i class="fas fa-star" style="color: #ffc107; margin: 0 2px;"></i>
+                                    <i class="fas fa-star" style="color: #ffc107; margin: 0 2px;"></i>
+                                    <i class="fas fa-star" style="color: #ffc107; margin: 0 2px;"></i>
+                                </div>
+                                <div class="rating-text">5/5 - Agente Verificado</div>
+                            </div>
+
+                            <!-- Formulario de contacto -->
+                            <div class="contact-form">
+                                <form>
+                                    <div class="form-group">
+                                        <label for="contact-name">Nombre completo</label>
+                                        <input type="text" id="contact-name" class="form-control" placeholder="Tu nombre">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="contact-phone">Teléfono</label>
+                                        <input type="tel" id="contact-phone" class="form-control" placeholder="Tu teléfono">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="contact-email">Email</label>
+                                        <input type="email" id="contact-email" class="form-control" placeholder="Tu email">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="contact-message">Mensaje</label>
+                                        <textarea id="contact-message" class="form-control" placeholder="Estoy interesado en este proyecto..."></textarea>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn-elegant" style="width: 100%;">
+                                        <i class="fas fa-paper-plane" style="margin-right: 8px;"></i>
+                                        Contactar Asesor
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Botones de contacto directo -->
+                            <div class="contact-buttons">
+                                <a href={`https://wa.me/${agent.phone?.replace(/[^0-9]/g, '')}`} target="_blank" class="btn-elegant btn-whatsapp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                                <a href={`tel:${agent.phone}`} class="btn-outline" style="text-align: center;">
+                                    <i class="fas fa-phone"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Información adicional del proyecto -->
+                        {projectDetails.project_payment_plans && projectDetails.project_payment_plans.length > 0 && (
+                            <div class="project-section" style="margin-bottom: var(--spacing-md);">
+                                <h3 style="font-size: 1.2rem; margin-bottom: 1rem; color: var(--dark-grey);">
+                                    <i class="fas fa-credit-card" style="color: var(--primary); margin-right: 8px;"></i>
+                                    Plan de Pagos
+                                </h3>
+                                {projectDetails.project_payment_plans.map((plan) => (
+                                    <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 1rem;" key={plan.id}>
+                                        <h4 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--primary);">{plan.plan_name}</h4>
+                                        <p style="font-size: 0.85rem; color: var(--mid-grey); margin-bottom: 0.75rem;">{plan.description}</p>
+                                        
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+                                            <span>Reserva:</span>
+                                            <span style="font-weight: 600; color: var(--primary);">
+                                                ${plan.reservation_amount?.toLocaleString()} {plan.reservation_currency}
+                                            </span>
+                                        </div>
+                                        
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+                                            <span>Separación:</span>
+                                            <span style="font-weight: 600;">{plan.separation_percentage}%</span>
+                                        </div>
+                                        
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.85rem;">
+                                            <span>Durante construcción:</span>
+                                            <span style="font-weight: 600;">{plan.construction_percentage}%</span>
+                                        </div>
+                                        
+                                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                            <span>Contra entrega:</span>
+                                            <span style="font-weight: 600;">{plan.delivery_percentage}%</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <!-- Widget de compartir -->
+                        <div class="share-widget">
+                            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; text-align: center;">Compartir Proyecto</h3>
+                            <div class="share-options">
+                                <div class="share-option" onclick="shareOnFacebook()">
+                                    <div class="share-icon facebook">
+                                        <i class="fab fa-facebook-f"></i>
+                                    </div>
+                                    <span class="share-label">Facebook</span>
+                                </div>
+                                
+                                <div class="share-option" onclick="shareOnTwitter()">
+                                    <div class="share-icon twitter">
+                                        <i class="fab fa-twitter"></i>
+                                    </div>
+                                    <span class="share-label">Twitter</span>
+                                </div>
+                                
+                                <div class="share-option" onclick="shareOnWhatsApp()">
+                                    <div class="share-icon whatsapp">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </div>
+                                    <span class="share-label">WhatsApp</span>
+                                </div>
+                                
+                                <div class="share-option" onclick="shareByEmail()">
+                                    <div class="share-icon email">
+                                        <i class="fas fa-envelope"></i>
+                                    </div>
+                                    <span class="share-label">Email</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+
+    <script define:vars={{ propertyImagesData: propertyImages.map(img => img.url) }}>
+        // Todas las funciones JavaScript del proyecto
+        const propertyImages = propertyImagesData;
+        let currentImageIndex = 0;
+
+        function openLightbox(index) {
+            currentImageIndex = index;
+            
+            let modal = document.getElementById('lightbox-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'lightbox-modal';
+                modal.innerHTML = `
+                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                        <div style="position: relative; max-width: 90%; max-height: 90%;">
+                            <img id="lightbox-image" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;" />
+                            
+                            <button onclick="closeLightbox()" style="position: absolute; top: -40px; right: 0; background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            
+                            <button onclick="prevImage()" style="position: absolute; left: -50px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            
+                            <button onclick="nextImage()" style="position: absolute; right: -50px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            
+                            <div style="position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); color: white; font-size: 14px;">
+                                <span id="lightbox-counter"></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            updateLightboxImage();
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            const modal = document.getElementById('lightbox-modal');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        function prevImage() {
+            currentImageIndex = currentImageIndex > 0 ? currentImageIndex - 1 : propertyImages.length - 1;
+            updateLightboxImage();
+        }
+
+        function nextImage() {
+            currentImageIndex = currentImageIndex < propertyImages.length - 1 ? currentImageIndex + 1 : 0;
+            updateLightboxImage();
+        }
+
+        function updateLightboxImage() {
+            const image = document.getElementById('lightbox-image');
+            const counter = document.getElementById('lightbox-counter');
+            
+            if (image && counter) {
+                image.src = propertyImages[currentImageIndex];
+                counter.textContent = `${currentImageIndex + 1} / ${propertyImages.length}`;
+            }
+        }
+
+        function toggleFAQ(index) {
+            const question = document.querySelector(`#faq-answer-${index}`).previousElementSibling;
+            const answer = document.getElementById(`faq-answer-${index}`);
+            const icon = document.getElementById(`faq-icon-${index}`);
+            
+            question.classList.toggle('active');
+            answer.classList.toggle('active');
+            
+            if (answer.classList.contains('active')) {
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function toggleDescription() {
+            // Implementar toggle de descripción si es necesario
+        }
+
+        function shareOnFacebook() {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+        }
+
+        function shareOnTwitter() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(document.title);
+            window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
+        }
+
+        function shareOnWhatsApp() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(`Mira este increíble proyecto: ${document.title}`);
+            window.open(`https://wa.me/?text=${text} ${url}`, '_blank');
+        }
+
+        function shareByEmail() {
+            const subject = encodeURIComponent(document.title);
+            const body = encodeURIComponent(`Te recomiendo este proyecto: ${window.location.href}`);
+            window.location.href = `mailto:?subject=${subject}&body=${body}`;
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cerrar lightbox con tecla Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeLightbox();
+                } else if (e.key === 'ArrowLeft') {
+                    prevImage();
+                } else if (e.key === 'ArrowRight') {
+                    nextImage();
+                }
+            });
+
+            // Validación del formulario de contacto
+            const form = document.querySelector('.contact-form form');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const name = document.getElementById('contact-name').value.trim();
+                    const phone = document.getElementById('contact-phone').value.trim();
+                    const email = document.getElementById('contact-email').value.trim();
+                    const message = document.getElementById('contact-message').value.trim();
+
+                    if (!name || !phone || !email || !message) {
+                        alert('Por favor, completa todos los campos requeridos.');
+                        return;
+                    }
+
+                    // Validación de email
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        alert('Por favor, ingresa un email válido.');
+                        return;
+                    }
+
+                    // Simulación de envío
+                    const submitBtn = form.querySelector('.btn-elegant');
+                    const originalText = submitBtn.innerHTML;
+                    
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Enviando...';
+                    submitBtn.disabled = true;
+
+                    setTimeout(() => {
+                        alert('¡Mensaje enviado exitosamente! Te contactaremos pronto.');
+                        form.reset();
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }, 2000);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

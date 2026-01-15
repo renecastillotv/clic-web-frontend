@@ -1,0 +1,269 @@
+---
+// src/pages/[...slug].astro – Router compatible con middleware (assets fuera, 1 fetch, cache+CB)
+
+import PropertyListLayout from '../layouts/PropertyListLayout.astro';
+import SinglePropertyLayout from '../layouts/SinglePropertyLayout.astro';
+import Error404Layout from '../layouts/Error404Layout.astro';
+import HomepageLayout from '../layouts/HomepageLayout.astro';
+
+import AdvisorsLayout from '../layouts/AdvisorsLayout.astro';
+import SingleAdvisorLayout from '../layouts/SingleAdvisorLayout.astro';
+import FavoritesLayout from '../layouts/FavoritesLayout.astro';
+import SharedFavoritesLayout from '../layouts/SharedFavoritesLayout.astro';
+
+import TestimonialsMainLayout from '../layouts/TestimonialsMainLayout.astro';
+import TestimonialsCategoryLayout from '../layouts/TestimonialsCategoryLayout.astro';
+import TestimonialsSingleLayout from '../layouts/TestimonialsSingleLayout.astro';
+
+import ArticlesMainLayout from '../layouts/ArticlesMainLayout.astro';
+import ArticlesCategoryLayout from '../layouts/ArticlesCategoryLayout.astro';
+import ArticlesSingleLayout from '../layouts/ArticlesSingleLayout.astro';
+
+import VideosMainLayout from '../layouts/VideosMainLayout.astro';
+import VideosCategoryLayout from '../layouts/VideosCategoryLayout.astro';
+import VideosSingleLayout from '../layouts/VideosSingleLayout.astro';
+
+import ContactLayout from '../layouts/ContactLayout.astro';
+import SellLayout from '../layouts/SellLayout.astro';
+import VacationRentalsLayout from '../layouts/VacationRentalsLayout.astro';
+import VacationRentalsMainLayout from '../layouts/VacationRentalsMainLayout.astro';
+import VacationRentalsDynamicLayout from '../layouts/VacationRentalsDynamicLayout.astro';
+import CuratedListingsLayout from '../layouts/CuratedListingsLayout.astro';
+import CuratedListingsSingleLayout from '../layouts/CuratedListingsSingleLayout.astro';
+import LocationsLayout from '../layouts/LocationsLayout.astro';
+import PropertyTypesLayout from '../layouts/PropertyTypesLayout.astro';
+import LegalLayout from '../layouts/LegalLayout.astro';
+import * as sitemapHandler from './sitemap.xml.js';
+import * as robotsHandler from './robots.txt.js';
+export const prerender = false;
+
+// 1) Early-exit para assets (en prod lo debe cortar el middleware; aquí es "cinturón y tirantes")
+const p = Astro.url.pathname;
+if (p === '/sitemap.xml') {
+  const res = await sitemapHandler.GET({ request: Astro.request });
+  return res;
+}
+if (p === '/robots.txt') {
+  const res = await robotsHandler.GET({ request: Astro.request });
+  return res;
+}
+
+const ASSET_RE = /\.(?:png|jpe?g|webp|gif|svg|ico|css|js|map|woff2?|ttf|txt|pdf|mp4|mp3)$/i;
+const ASSET_DIR_RE = /^\/(?:images|img|assets|static|_astro)\//i;
+
+if (ASSET_RE.test(p) || ASSET_DIR_RE.test(p)) {
+  // 404 barato y cacheable (negative caching) → evita reintentos y NO renderiza 404 de página
+  return new Response('', {
+    status: 404,
+    headers: { 'cache-control': 'public, max-age=300, s-maxage=300' } // 5 min
+  });
+}
+
+console.log(`✅ Page request: ${p}`);
+
+// 2) Config
+const LANGUAGES = ['es', 'en', 'fr'];
+const SPECIAL_ROUTES = [
+  'asesores','favoritos','testimonios','videos','articulos','contacto',
+  'rentas-vacacionales','planes-rentas-vacacionales','vender','listados-de',
+  'ubicaciones','propiedades','terminos-y-condiciones','politicas-de-privacidad',
+  'advisors','favorites','testimonials','articles','contact',
+  'vacation-rentals','vacation-rental-plans','sell','listings-of',
+  'locations','property-types','terms-and-conditions','privacy-policy',
+  'conseillers','favoris','temoignages','locations-vacances',
+  'plans-locations-vacances','vendre','listes-de',
+  'emplacements','types-de-proprietes','termes-et-conditions','politique-de-confidentialite'
+];
+
+// Nueva API de Neon en Vercel (reemplaza Supabase Edge Functions)
+const MAIN_BACKEND = 'https://clic-api-neon.vercel.app';
+const CONTENT_BACKEND = 'https://clic-api-neon.vercel.app';
+// La API de Neon es pública, no requiere autenticación
+const AUTH_TOKEN = '';
+
+// 3) Cache + circuit breaker
+type CacheVal = { json:any; exp:number };
+const PAGE_CACHE: Map<string, CacheVal> = (globalThis as any).__EDGE_PAGE_CACHE__ ?? new Map();
+(globalThis as any).__EDGE_PAGE_CACHE__ = PAGE_CACHE;
+
+const FAIL_MEMO: Map<string, number> = (globalThis as any).__EDGE_FAIL_MEMO__ ?? new Map();
+(globalThis as any).__EDGE_FAIL_MEMO__ = FAIL_MEMO;
+
+const CACHE_TTL_MS = 60_000;
+const FAIL_TTL_MS  = 8000;
+const MAIN_TIMEOUT_MS = 5000;
+const CONTENT_TIMEOUT_MS = 5000;
+
+// 4) Parse de ruta
+const { slug } = Astro.params;
+let segments: string[] = [];
+if (slug) {
+  if (typeof slug === 'string') segments = slug.split('/').filter(Boolean);
+  else if (Array.isArray(slug)) segments = slug.filter(Boolean);
+}
+
+let language = 'es';
+let rest = segments;
+if (segments[0] && LANGUAGES.includes(segments[0])) {
+  language = segments[0];
+  rest = segments.slice(1);
+}
+
+const first = rest[0] ?? '';
+const useContent = (first === '' || SPECIAL_ROUTES.includes(first));
+
+// 5) Build path para backend
+let backendPath = language !== 'es' ? `/${language}` : '';
+backendPath += rest.length ? `/${rest.join('/')}` : '/';
+
+// 6) Fetch único con split timeouts + cache + circuit-breaker
+async function callBackendOnce(backendBase: string, path: string) {
+  const isContent = backendBase.includes('content-backend');
+  const timeoutMs = isContent ? CONTENT_TIMEOUT_MS : MAIN_TIMEOUT_MS;
+  
+  // 🔧 FIX: Preservar query parameters originales + agregar domain (con puerto)
+  const originalParams = new URLSearchParams(Astro.url.search);
+  originalParams.set('domain', Astro.url.host);  // host incluye puerto (localhost:4321)
+  const url = `${backendBase}${path}?${originalParams.toString()}`;
+
+  // circuit breaker: si falló recientemente, no bloquee SSR
+  const lastFail = FAIL_MEMO.get(url) ?? 0;
+  if (Date.now() - lastFail < FAIL_TTL_MS) {
+    console.warn(`⛔ CB skip: ${url}`);
+    return { pageType: '404', language, error: 'circuit-breaker' };
+  }
+
+  // cache
+  const now = Date.now();
+  const hit = PAGE_CACHE.get(url);
+  if (hit && hit.exp > now) {
+    console.log(`⚡ cache HIT: ${url}`);
+    return hit.json;
+  }
+
+  console.log(`➡️ Using: ${isContent ? 'CONTENT' : 'MAIN'} → ${backendPath}`);
+  console.log(`🔍 Full URL with params: ${url}`);
+  console.time(`⏱️ ${url}`);
+  try {
+    // Headers base - la API de Neon no requiere autenticación
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'User-Agent': `CLIC-Router/${Astro.url.host}`,
+      'X-Original-Host': Astro.url.host  // Incluir puerto (localhost:4321)
+    };
+    // Solo agregar Authorization si hay token (para compatibilidad)
+    if (AUTH_TOKEN) {
+      headers['Authorization'] = AUTH_TOKEN;
+    }
+    const res = await fetch(url, {
+      headers,
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (!res.ok) throw new Error(`Backend ${res.status}`);
+    const json = await res.json();
+    console.timeEnd(`⏱️ ${url}`);
+    PAGE_CACHE.set(url, { json, exp: now + CACHE_TTL_MS });
+    return json;
+  } catch (e:any) {
+    console.timeEnd(`⏱️ ${url}`);
+    console.error('Backend error:', e?.message || e);
+    FAIL_MEMO.set(url, Date.now());
+    return { pageType: '404', language, error: String(e?.message || e) };
+  }
+}
+
+const backendUrl = useContent ? CONTENT_BACKEND : MAIN_BACKEND;
+let pageData = await callBackendOnce(backendUrl, backendPath);
+pageData.language = language;
+
+const pageType = pageData.pageType || pageData.type || (
+  pageData.property?.id ? 'single-property' :
+  Array.isArray(pageData.properties) ? 'property-list' : '404'
+);
+
+// 7) Flags de render
+const showHomepage = pageType === 'homepage';
+const showPropertyList = pageType === 'property-list';
+const showSingleProperty = pageType === 'single-property' || pageType === 'single-property-project';
+const showAdvisorsList = pageType === 'advisors-list' || pageType === 'advisors-main';
+const showAdvisorSingle = pageType === 'advisor-single';
+const showFavoritesMain = pageType === 'favorites-main';
+const showFavoritesShared = pageType === 'favorites-shared';
+const showTestimonialsMain = pageType === 'testimonials-main';
+const showTestimonialsCategory = pageType === 'testimonials-category';
+const showTestimonialsSingle = pageType === 'testimonials-single';
+const showArticlesMain = pageType === 'articles-main';
+const showArticlesCategory = pageType === 'articles-category';
+const showArticlesSingle = pageType === 'articles-single' || pageType === 'articles-single-404';
+const showVideosMain = pageType === 'videos-main';
+const showVideosCategory = pageType === 'videos-category';
+const showVideosSingle = pageType === 'videos-single';
+const showContact = pageType === 'contact';
+const showSell = pageType === 'sell';
+const showVacationRentalsMain = pageType === 'vacation-rentals-main';
+const showVacationRentalsPlans = pageType === 'vacation-rentals-plans';
+const showVacationRentalsDynamic = pageType === 'vacation-rentals-dynamic';
+const showCuratedListingsMain = pageType === 'curated-listings-main';
+const showCuratedListingsSingle = pageType === 'curated-listings-single';
+const showLocationsMain = pageType === 'locations-main';
+const showPropertyTypesMain = pageType === 'property-types-main';
+const showLegalTerms = pageType === 'legal-terms';
+const showLegalPrivacy = pageType === 'legal-privacy';
+const show404 = pageType === '404' || !pageType;
+---
+
+{showHomepage && <HomepageLayout data={pageData} language={pageData.language} />}
+
+{show404 && <Error404Layout data={pageData} language={pageData.language} />}
+
+{showPropertyList && <PropertyListLayout data={pageData} language={pageData.language} />}
+
+{showSingleProperty && <SinglePropertyLayout data={pageData} language={pageData.language} />}
+
+{showAdvisorsList && <AdvisorsLayout data={pageData} language={pageData.language} />}
+
+{showAdvisorSingle && <SingleAdvisorLayout data={pageData} language={pageData.language} />}
+
+{showFavoritesMain && <FavoritesLayout data={pageData} language={pageData.language} />}
+
+{showFavoritesShared && <SharedFavoritesLayout data={pageData} language={pageData.language} />}
+
+{showTestimonialsMain && <TestimonialsMainLayout data={pageData} language={pageData.language} />}
+
+{showTestimonialsCategory && <TestimonialsCategoryLayout data={pageData} language={pageData.language} />}
+
+{showTestimonialsSingle && <TestimonialsSingleLayout data={pageData} language={pageData.language} />}
+
+{showArticlesMain && <ArticlesMainLayout data={pageData} language={pageData.language} />}
+
+{showArticlesCategory && <ArticlesCategoryLayout data={pageData} language={pageData.language} />}
+
+{showArticlesSingle && <ArticlesSingleLayout data={pageData} language={pageData.language} />}
+
+{showVideosMain && <VideosMainLayout data={pageData} language={pageData.language} />}
+
+{showVideosCategory && <VideosCategoryLayout data={pageData} language={pageData.language} />}
+
+{showVideosSingle && <VideosSingleLayout data={pageData} language={pageData.language} />}
+
+{showContact && <ContactLayout data={pageData} language={pageData.language} />}
+
+{showSell && <SellLayout data={pageData} language={pageData.language} />}
+
+{showVacationRentalsMain && <VacationRentalsMainLayout data={pageData} language={pageData.language} />}
+
+{showVacationRentalsPlans && <VacationRentalsLayout data={pageData} language={pageData.language} />}
+
+{showVacationRentalsDynamic && <VacationRentalsDynamicLayout data={pageData} language={pageData.language} />}
+
+{showCuratedListingsMain && <CuratedListingsLayout data={pageData} language={pageData.language} />}
+
+{showCuratedListingsSingle && <CuratedListingsSingleLayout data={pageData} language={pageData.language} />}
+
+{showLocationsMain && <LocationsLayout data={pageData} language={pageData.language} />}
+
+{showPropertyTypesMain && <PropertyTypesLayout data={pageData} language={pageData.language} />}
+
+{showLegalTerms && <LegalLayout data={{...pageData, legalType: 'terms'}} language={pageData.language} />}
+
+{showLegalPrivacy && <LegalLayout data={{...pageData, legalType: 'privacy'}} language={pageData.language} />}

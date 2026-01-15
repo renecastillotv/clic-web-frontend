@@ -1,0 +1,307 @@
+---
+// src/components/property/PropertyDescription.astro
+export interface Props {
+  data: any;
+  language?: string;
+}
+
+const { data, language } = Astro.props;
+
+// Try to get language from multiple sources
+const currentLanguage = language || 
+                       data.language || 
+                       data.globalConfig?.language || 
+                       'es';
+
+// Multilingual translations for UI elements
+const translations = {
+  es: {
+    title: 'Descripción',
+    readMore: 'Leer más',
+    readLess: 'Leer menos',
+    fallbackDescription: [
+      'Excelente oportunidad de inversión en una de las zonas de mayor crecimiento de República Dominicana.',
+      'Esta propiedad ofrece acabados de primera calidad y una ubicación estratégica, perfecta para familias que buscan comodidad y tranquilidad.',
+      '¡No te pierdas esta increíble oportunidad de inversión!'
+    ]
+  },
+  en: {
+    title: 'Description',
+    readMore: 'Read more',
+    readLess: 'Read less',
+    fallbackDescription: [
+      'Excellent investment opportunity in one of the fastest growing areas of the Dominican Republic.',
+      'This property offers first-class finishes and a strategic location, perfect for families seeking comfort and tranquility.',
+      "Don't miss this incredible investment opportunity!"
+    ]
+  },
+  fr: {
+    title: 'Description',
+    readMore: 'Lire plus',
+    readLess: 'Lire moins',
+    fallbackDescription: [
+      "Excellente opportunité d'investissement dans l'une des zones à plus forte croissance de la République Dominicaine.",
+      'Cette propriété offre des finitions de première classe et un emplacement stratégique, parfait pour les familles cherchant le confort et la tranquillité.',
+      "Ne manquez pas cette incroyable opportunité d'investissement!"
+    ]
+  }
+};
+
+const t = translations[currentLanguage] || translations.es;
+
+const property = data.property || {};
+
+// Function to get localized description
+function getLocalizedDescription(property, targetLang) {
+  // Try language-specific content first
+  if (targetLang === 'en' && property.content_en?.description) {
+    return property.content_en.description;
+  }
+  
+  if (targetLang === 'fr' && property.content_fr?.description) {
+    return property.content_fr.description;
+  }
+  
+  // Fallback to main description
+  return property.description || '';
+}
+
+// Enhanced function to clean and format descriptions while preserving formatting
+function formatDescription(htmlText) {
+  if (!htmlText) return '';
+  
+  let processed = htmlText;
+  
+  // First, normalize common HTML entities
+  processed = processed
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+  
+  // Clean up malformed or redundant HTML while preserving important formatting
+  processed = processed
+    // Remove style attributes but keep the tags
+    .replace(/\s*style\s*=\s*["'][^"']*["']/gi, '')
+    // Remove class attributes that might break styling
+    .replace(/\s*class\s*=\s*["'][^"']*["']/gi, '')
+    // Convert common formatting to proper HTML
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **text** to <strong>
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')              // *text* to <em>
+    // Clean up multiple spaces
+    .replace(/\s+/g, ' ')
+    // Ensure proper paragraph structure
+    .replace(/<\/p>\s*<p[^>]*>/gi, '</p><p>')
+    .replace(/<p[^>]*>\s*<\/p>/gi, '') // Remove empty paragraphs
+    // Fix common issues with line breaks
+    .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '</p><p>')
+    // Clean up any orphaned closing tags
+    .replace(/<\/[^>]+>\s*$/, (match) => match.trim());
+  
+  // If the content doesn't have paragraph tags, wrap it
+  if (!processed.includes('<p>') && processed.trim()) {
+    // Split by double line breaks or significant breaks
+    const paragraphs = processed
+      .split(/\n\n|\r\n\r\n|<br\s*\/?>\s*<br\s*\/?>/)
+      .filter(p => p.trim())
+      .map(p => p.trim());
+    
+    processed = paragraphs
+      .map(paragraph => `<p>${paragraph}</p>`)
+      .join('');
+  }
+  
+  // Enhance specific content patterns for better readability
+  processed = processed
+    // Highlight level descriptions (Spanish)
+    .replace(/<p>([^<]*(?:primer nivel|segundo nivel|tercer nivel)[^<]*)<\/p>/gi, 
+      '<p class="font-semibold text-gray-900 mb-2">$1</p>')
+    // Highlight level descriptions (English)
+    .replace(/<p>([^<]*(?:first level|second level|third level|ground floor|upper floor)[^<]*)<\/p>/gi, 
+      '<p class="font-semibold text-gray-900 mb-2">$1</p>')
+    // Highlight level descriptions (French)
+    .replace(/<p>([^<]*(?:premier niveau|deuxième niveau|troisième niveau|rez-de-chaussée)[^<]*)<\/p>/gi, 
+      '<p class="font-semibold text-gray-900 mb-2">$1</p>')
+    // Highlight call-to-action phrases
+    .replace(/<p>([^<]*(?:No te pierdas|Don't miss|Ne manquez pas|increíble oportunidad|incredible opportunity|opportunité incroyable)[^<]*)<\/p>/gi, 
+      '<p class="font-medium text-[#f04e00] mt-4">$1</p>');
+  
+  return processed.trim();
+}
+
+// Get the localized description
+const rawDescription = getLocalizedDescription(property, currentLanguage);
+const formattedDescription = formatDescription(rawDescription);
+
+// Determine if "read more" is needed
+const needsReadMore = formattedDescription.length > 1500;
+const previewLength = 1200;
+
+console.log('📝 PropertyDescription loaded:', {
+  language: currentLanguage,
+  hasDescription: !!rawDescription,
+  descriptionLength: rawDescription?.length || 0,
+  formattedLength: formattedDescription.length,
+  needsReadMore: needsReadMore
+});
+---
+
+<!-- Description Section -->
+<div class="space-y-4" id="property-description-section">
+  <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+    {t.title}
+  </h2>
+  
+  {formattedDescription ? (
+    <div class="prose prose-lg max-w-none text-gray-700 text-justify">
+      <div id="description-content-wrapper">
+        <div id="description-preview" class="description-text">
+          <div set:html={needsReadMore ? 
+            formattedDescription.substring(0, previewLength) + '...' : 
+            formattedDescription
+          }></div>
+        </div>
+        
+        {needsReadMore && (
+          <div id="description-full" class="hidden description-text">
+            <div set:html={formattedDescription}></div>
+          </div>
+        )}
+      </div>
+      
+      {needsReadMore && (
+        <button 
+          id="read-more-btn" 
+          onclick="toggleDescription()"
+          class="text-[#f04e00] font-semibold hover:text-[#d94400] transition-colors mt-4 inline-flex items-center gap-2 bg-orange-50 hover:bg-orange-100 px-4 py-2 rounded-lg"
+        >
+          <span id="read-more-text">{t.readMore}</span>
+          <svg id="read-more-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </button>
+      )}
+    </div>
+  ) : (
+    <!-- Fallback content -->
+    <div class="prose prose-lg max-w-none text-gray-700 text-justify">
+      {t.fallbackDescription.map((paragraph, index) => (
+        <p class={`mb-3 leading-relaxed ${
+          index === t.fallbackDescription.length - 1 ? 'font-medium text-[#f04e00]' : ''
+        }`}>
+          {paragraph}
+        </p>
+      ))}
+    </div>
+  )}
+</div>
+
+<script define:vars={{ t }}>
+  // Toggle description functionality
+  function toggleDescription() {
+    try {
+      const preview = document.getElementById('description-preview');
+      const full = document.getElementById('description-full');
+      const text = document.getElementById('read-more-text');
+      const icon = document.getElementById('read-more-icon');
+      
+      // Validate all required elements exist
+      if (!full || !preview || !text || !icon) {
+        console.error('Missing required elements for toggle');
+        return;
+      }
+      
+      const isExpanded = !full.classList.contains('hidden');
+      
+      if (isExpanded) {
+        // Collapse - show preview, hide full
+        full.classList.add('hidden');
+        preview.classList.remove('hidden');
+        text.textContent = t.readMore;
+        icon.style.transform = 'rotate(0deg)';
+        
+        // Smooth scroll back to description section
+        const section = document.getElementById('property-description-section');
+        if (section) {
+          section.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      } else {
+        // Expand - hide preview, show full
+        preview.classList.add('hidden');
+        full.classList.remove('hidden');
+        text.textContent = t.readLess;
+        icon.style.transform = 'rotate(180deg)';
+      }
+    } catch (error) {
+      console.error('Error toggling description:', error);
+    }
+  }
+  
+  // Make function globally available
+  window.toggleDescription = toggleDescription;
+</script>
+
+<style>
+  /* Enhanced styling for description content */
+  .prose p {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+  }
+  
+  .prose strong, .prose b {
+    font-weight: 700;
+    color: #1f2937;
+  }
+  
+  .prose em, .prose i {
+    font-style: italic;
+  }
+  
+  .prose a {
+    color: #f04e00;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  
+  .prose a:hover {
+    color: #d94400;
+    text-decoration: none;
+  }
+  
+  .prose ul, .prose ol {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+  }
+  
+  .prose li {
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Ensure text justification works properly */
+  .text-justify {
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+  }
+  
+  /* Preserve emojis and special characters */
+  .prose {
+    font-feature-settings: "kern" 1, "liga" 1, "clig" 1;
+  }
+
+  /* Ensure description sections are properly displayed */
+  .description-text {
+    display: block;
+  }
+
+  .description-text.hidden {
+    display: none !important;
+  }
+</style>

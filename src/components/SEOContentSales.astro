@@ -1,0 +1,523 @@
+---
+// SEOContentSales.astro - Componente especializado para propiedades en venta
+export interface Props {
+  destino?: string;
+  tipo?: string;
+  presupuesto?: string;
+  habitaciones?: string;
+  totalProperties: number;
+  listings: any[];
+  marketData?: {
+    averagePrice: string;
+    priceGrowth: string;
+    averageROI: string;
+    rentalYield: string;
+    marketTrend: 'up' | 'stable' | 'down';
+    futureProjects: string[];
+  };
+  investmentData?: {
+    financing: string[];
+    taxBenefits: string[];
+    legalRequirements: string[];
+    propertyManagement: boolean;
+    citizenship: boolean;
+  };
+}
+
+const { 
+  destino, 
+  tipo, 
+  presupuesto, 
+  habitaciones, 
+  totalProperties, 
+  listings,
+  marketData,
+  investmentData
+} = Astro.props;
+
+// Data específica para VENTAS - Enfoque en inversión, ROI y mercado inmobiliario
+const destinoDataSales = {
+  'punta-cana': {
+    name: 'Punta Cana',
+    investmentDescription: 'el mercado inmobiliario de mayor crecimiento y rentabilidad en el Caribe',
+    marketHighlights: 'turismo sostenido, infraestructura en desarrollo, inversión extranjera creciente',
+    investmentPromise: 'retornos atractivos con potencial de plusvalía a largo plazo',
+    buyerProfile: 'inversionistas extranjeros, compradores de segunda residencia, desarrolladores',
+    marketStrength: 'liquidez alta, demanda internacional constante, regulaciones favorables',
+    futureGrowth: 'nuevos desarrollos hoteleros, expansión aeroportuaria, mejora en conectividad',
+    investmentReason: 'adquirir un activo en el destino turístico #1 del Caribe con proyección de crecimiento sostenido',
+    roiExpectation: '8-12% anual en rentas vacacionales, 5-8% plusvalía anual',
+    marketMaturity: 'mercado maduro con infraestructura establecida y demanda comprobada'
+  },
+  'cap-cana': {
+    name: 'Cap Cana',
+    investmentDescription: 'el segmento ultra-premium con exclusividad y rentabilidad superior',
+    marketHighlights: 'desarrollo masterplaneado, clientela VIP, servicios de lujo garantizados',
+    investmentPromise: 'inversión en el segmento más exclusivo con retornos premium',
+    buyerProfile: 'inversionistas de alto patrimonio, celebrities, empresarios internacionales',
+    marketStrength: 'escasez controlada, exclusividad garantizada, servicios de clase mundial',
+    futureGrowth: 'expansión de marina, nuevos campos de golf, desarrollos residenciales ultra-premium',
+    investmentReason: 'poseer un activo en el desarrollo más exclusivo del Caribe',
+    roiExpectation: '10-15% anual en rentas de lujo, 6-10% plusvalía anual',
+    marketMaturity: 'nicho exclusivo con demanda limitada pero muy solvente'
+  },
+  'las-terrenas': {
+    name: 'Las Terrenas',
+    investmentDescription: 'el mercado emergente con mayor potencial de crecimiento a largo plazo',
+    marketHighlights: 'desarrollo sostenible, comunidad europea establecida, precios accesibles',
+    investmentPromise: 'oportunidad de entrada en mercado con alto potencial de revalorización',
+    buyerProfile: 'inversionistas europeos, compradores de estilo de vida, desarrolladores boutique',
+    marketStrength: 'crecimiento orgánico, autenticidad preservada, comunidad internacional',
+    futureGrowth: 'mejoras en infraestructura vial, nuevos proyectos eco-friendly, aeropuerto mejorado',
+    investmentReason: 'invertir temprano en el próximo hotspot inmobiliario del país',
+    roiExpectation: '6-10% anual en rentas, 8-12% plusvalía potencial',
+    marketMaturity: 'mercado emergente con fundamentales sólidos'
+  },
+  'casa-de-campo': {
+    name: 'Casa de Campo',
+    investmentDescription: 'la inversión de prestigio con estabilidad y exclusividad garantizada',
+    marketHighlights: 'resort establecido, membresía exclusiva, historial comprobado de retornos',
+    investmentPromise: 'seguridad de inversión en resort de clase mundial',
+    buyerProfile: 'inversionistas de prestigio, familias de alto patrimonio, miembros del resort',
+    marketStrength: 'marca reconocida mundialmente, ocupación garantizada, servicios premium',
+    futureGrowth: 'renovaciones constantes, expansión de facilidades, mantenimiento de exclusividad',
+    investmentReason: 'adquirir un activo en el resort #1 de Latinoamérica',
+    roiExpectation: '7-11% anual en programa de rentas del resort, plusvalía estable',
+    marketMaturity: 'mercado maduro y estable con historial comprobado'
+  },
+  'samana': {
+    name: 'Samaná',
+    investmentDescription: 'la frontera de inversión en ecoturismo y desarrollo sostenible',
+    marketHighlights: 'potencial sin explotar, regulaciones ambientales, turismo de naturaleza',
+    investmentPromise: 'oportunidad única en mercado virgen con crecimiento proyectado',
+    buyerProfile: 'inversionistas visionarios, desarrolladores eco-conscientes, compradores de naturaleza',
+    marketStrength: 'regulación ambiental que preserva valor, turismo especializado creciente',
+    futureGrowth: 'desarrollo de ecoturismo, mejoras aeroportuarias, proyectos sustentables',
+    investmentReason: 'posicionarse en el futuro del turismo sostenible',
+    roiExpectation: '5-9% anual actual, potencial de 10-15% con desarrollo',
+    marketMaturity: 'pre-desarrollo con potencial de transformación'
+  },
+  'bavaro': {
+    name: 'Bávaro',
+    investmentDescription: 'el centro de actividad turística con liquidez y demanda garantizada',
+    marketHighlights: 'zona hotelera establecida, infraestructura completa, turismo masivo',
+    investmentPromise: 'inversión segura en zona de máxima actividad turística',
+    buyerProfile: 'inversionistas en rentas vacacionales, compradores de segunda residencia, fondos inmobiliarios',
+    marketStrength: 'volumen de transacciones alto, financiamiento disponible, mercado activo',
+    futureGrowth: 'densificación controlada, mejoras en transporte, nuevos complejos comerciales',
+    investmentReason: 'generar ingresos inmediatos en zona de máxima demanda turística',
+    roiExpectation: '7-10% anual en rentas, plusvalía sostenida',
+    marketMaturity: 'mercado establecido con oportunidades de optimización'
+  }
+};
+
+const tipoDataSales = {
+  'villa': {
+    name: 'Villas',
+    investmentDescription: 'activos inmobiliarios premium con máximo potencial de rentabilidad y plusvalía',
+    financialFeatures: ['ROI de 8-12% anual promedio', 'Plusvalía histórica de 5-8% anual', 'Liquidez alta en reventa', 'Potencial de desarrollo adicional'],
+    investmentBenefits: 'control total del activo con oportunidades de optimización y mejoras',
+    marketCapacity: 'segmento de alta demanda para rentas de lujo y ventas premium',
+    targetInvestor: 'inversionistas serios, desarrolladores, fondos inmobiliarios, familias de alto patrimonio',
+    portfolioAdvantages: 'diversificación geográfica, activo tangible, protección contra inflación, ingresos pasivos',
+    wealthBuilding: 'construcción de patrimonio a través de bienes raíces de alta calidad',
+    investmentLevel: 'inversión significativa con retornos proporcionales y prestigio incluido'
+  },
+  'apartamento': {
+    name: 'Apartamentos',
+    investmentDescription: 'inversiones eficientes con costos operativos optimizados y gestión simplificada',
+    financialFeatures: ['ROI de 6-10% anual', 'Costos de mantenimiento compartidos', 'Gestión centralizada', 'Amenidades incluidas'],
+    investmentBenefits: 'entrada accesible al mercado inmobiliario con servicios de administración profesional',
+    marketCapacity: 'alta demanda en rentas de corto y largo plazo',
+    targetInvestor: 'primeros inversionistas, profesionales, compradores de segunda residencia',
+    portfolioAdvantages: 'diversificación de riesgo, mantenimiento simplificado, servicios incluidos, ubicaciones premium',
+    wealthBuilding: 'acumulación de patrimonio inmobiliario con gestión profesional',
+    investmentLevel: 'inversión balanceada entre accesibilidad y rentabilidad'
+  },
+  'casa': {
+    name: 'Casas',
+    investmentDescription: 'oportunidades de inversión familiar con potencial de uso dual y estabilidad',
+    financialFeatures: ['ROI de 5-8% anual', 'Estabilidad de valor', 'Flexibilidad de uso', 'Costos predecibles'],
+    investmentBenefits: 'equilibrio perfecto entre inversión financiera y uso personal/familiar',
+    marketCapacity: 'demanda estable para familias y rentas de largo plazo',
+    targetInvestor: 'familias inversionistas, compradores de estilo de vida, jubilados, emigrantes',
+    portfolioAdvantages: 'activo de uso personal, estabilidad de mercado, comunidades establecidas, crecimiento orgánico',
+    wealthBuilding: 'preservación de patrimonio con opción de uso personal',
+    investmentLevel: 'inversión conservadora con beneficios personales adicionales'
+  },
+  'lujo': {
+    name: 'Propiedades de Lujo',
+    investmentDescription: 'activos de prestigio con exclusividad garantizada y retornos superiores',
+    financialFeatures: ['ROI de 10-15% anual', 'Plusvalía acelerada', 'Mercado exclusivo', 'Servicios premium incluidos'],
+    investmentBenefits: 'posicionamiento en el segmento más rentable con clientela de alto poder adquisitivo',
+    marketCapacity: 'demanda internacional constante para experiencias VIP',
+    targetInvestor: 'ultra-high-net-worth individuals, fondos de inversión, celebrities, empresarios globales',
+    portfolioAdvantages: 'máxima rentabilidad, exclusividad social, servicios concierge, ubicaciones únicas',
+    wealthBuilding: 'multiplicación de patrimonio en segmento ultra-premium',
+    investmentLevel: 'inversión de alto impacto para carteras sofisticadas'
+  }
+};
+
+// Obtener datos contextuales
+const currentDestino = destino ? destinoDataSales[destino] : null;
+const currentTipo = tipo ? tipoDataSales[tipo] : null;
+
+// Calcular precios promedio reales
+const realAvgPrice = listings.length > 0 
+  ? `$${Math.round(listings.reduce((sum, prop) => sum + parseInt(prop.precio.replace(/[^\d]/g, '')), 0) / listings.length).toLocaleString()}`
+  : marketData?.averagePrice || '$350,000';
+
+// Generar análisis de inversión
+const generateInvestmentAnalysis = () => {
+  const analysis = [
+    {
+      title: 'Potencial de ROI',
+      content: `${currentTipo?.name || 'Las propiedades'} ${currentDestino ? `en ${currentDestino.name}` : ''} ofrecen ${currentTipo?.financialFeatures[0] || 'retornos atractivos'}. ${currentDestino ? `En ${currentDestino.name}, ${currentDestino.roiExpectation}.` : ''}`
+    },
+    {
+      title: 'Análisis de Mercado',
+      content: `${currentDestino ? `El mercado de ${currentDestino.name} muestra ${currentDestino.marketStrength}. ${currentDestino.marketMaturity}.` : 'El mercado muestra fundamentales sólidos.'}`
+    },
+    {
+      title: 'Perspectivas de Crecimiento',
+      content: `${currentDestino ? `Los factores de crecimiento incluyen ${currentDestino.futureGrowth}.` : ''} ${currentTipo ? `Las ${currentTipo.name.toLowerCase()} ofrecen ${currentTipo.portfolioAdvantages}.` : ''}`
+    },
+    {
+      title: 'Perfil de Comprador',
+      content: `Esta inversión es ideal para ${currentTipo?.targetInvestor || 'inversionistas serios'}. ${currentDestino ? `En ${currentDestino.name}, el perfil típico incluye ${currentDestino.buyerProfile}.` : ''}`
+    }
+  ];
+  
+  return analysis;
+};
+
+const investmentAnalysis = generateInvestmentAnalysis();
+---
+
+<!-- Contenido SEO Profundo para PROPIEDADES EN VENTA -->
+<section class="py-16 bg-white">
+  <div class="container mx-auto px-4">
+    <div class="max-w-4xl mx-auto">
+      
+      <!-- Texto SEO Principal especializado en VENTAS (1000+ palabras) -->
+      <div class="prose prose-lg max-w-none mb-16">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">
+          {currentTipo && currentDestino 
+            ? `Comprar ${currentTipo.name} en ${currentDestino.name}: Análisis de Inversión Inmobiliaria 2024`
+            : currentTipo 
+              ? `${currentTipo.name} en Venta en República Dominicana: Oportunidades de Inversión`
+              : currentDestino
+                ? `Propiedades en Venta en ${currentDestino.name}: Guía de Inversión Inmobiliaria`
+                : 'Inversión Inmobiliaria en República Dominicana: Propiedades en Venta'
+          }
+        </h2>
+        
+        {currentDestino && (
+          <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4">¿Por qué invertir en {currentDestino.name}?</h3>
+            <p class="text-gray-700 mb-4">
+              {currentDestino.name} representa {currentDestino.investmentDescription}, donde {currentDestino.investmentPromise}. 
+              El perfil de inversionista típico incluye {currentDestino.buyerProfile}, atraídos por {currentDestino.marketStrength}.
+              La razón fundamental para invertir en {currentDestino.name} es: {currentDestino.investmentReason}.
+            </p>
+            <p class="text-gray-700 mb-4">
+              Las proyecciones financieras muestran {currentDestino.roiExpectation}, respaldadas por {currentDestino.marketHighlights}. 
+              {currentDestino.marketMaturity}, lo que proporciona {currentDestino.marketStrength} para los inversionistas.
+              Los factores de crecimiento futuro incluyen {currentDestino.futureGrowth}.
+            </p>
+            
+            {marketData && (
+              <div class="bg-blue-50 p-6 rounded-lg mb-6">
+                <h4 class="font-semibold text-blue-900 mb-3">Datos de Mercado - {currentDestino.name}</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-blue-800">
+                  <div>
+                    <strong>Precio Promedio:</strong><br />
+                    {marketData.averagePrice}
+                  </div>
+                  <div>
+                    <strong>Crecimiento Anual:</strong><br />
+                    {marketData.priceGrowth}
+                  </div>
+                  <div>
+                    <strong>ROI Promedio:</strong><br />
+                    {marketData.averageROI}
+                  </div>
+                  <div>
+                    <strong>Yield Rental:</strong><br />
+                    {marketData.rentalYield}
+                  </div>
+                </div>
+                {marketData.futureProjects && (
+                  <div class="mt-4">
+                    <strong class="text-blue-900">Proyectos Futuros:</strong>
+                    <ul class="text-sm text-blue-800 mt-2">
+                      {marketData.futureProjects.map(project => (
+                        <li>• {project}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        
+        {currentTipo && (
+          <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4">Análisis de Inversión: {currentTipo.name}</h3>
+            <p class="text-gray-700 mb-4">
+              Las {currentTipo.name.toLowerCase()} representan {currentTipo.investmentDescription}, 
+              ideales para {currentTipo.targetInvestor}. Ofrecen {currentTipo.investmentBenefits} 
+              con {currentTipo.investmentLevel}, enfocándose en {currentTipo.wealthBuilding}.
+            </p>
+            <p class="text-gray-700 mb-4">
+              Con {currentTipo.marketCapacity}, las {currentTipo.name.toLowerCase()} 
+              proporcionan {currentTipo.portfolioAdvantages}. Los principales indicadores financieros incluyen: 
+              {currentTipo.financialFeatures.join(', ')}.
+            </p>
+            
+            <div class="bg-green-50 p-6 rounded-lg mb-6">
+              <h4 class="font-semibold text-green-900 mb-3">Ventajas Financieras de {currentTipo.name}</h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {currentTipo.financialFeatures.map(feature => (
+                  <div class="flex items-center gap-2 text-sm text-green-800">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                    </svg>
+                    {feature}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div class="mb-8">
+          <h3 class="text-xl font-semibold mb-4">Análisis de Precios y Oportunidades de Mercado</h3>
+          <p class="text-gray-700 mb-4">
+            Actualmente disponemos de {totalProperties} {currentTipo?.name.toLowerCase() || 'propiedades'} 
+            en venta {currentDestino ? `en ${currentDestino.name}` : 'en República Dominicana'} 
+            con precios desde {realAvgPrice}. Esta oferta representa oportunidades cuidadosamente seleccionadas 
+            que cumplen con nuestros criterios de inversión y potencial de rentabilidad.
+          </p>
+          
+          {marketData && (
+            <div class="bg-yellow-50 p-6 rounded-lg mb-4">
+              <h4 class="font-semibold text-yellow-900 mb-3">Tendencias del Mercado</h4>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-yellow-800">
+                <div>
+                  <strong>Tendencia Actual:</strong>
+                  <span class={`ml-2 px-2 py-1 rounded text-xs ${
+                    marketData.marketTrend === 'up' ? 'bg-green-200 text-green-800' :
+                    marketData.marketTrend === 'stable' ? 'bg-blue-200 text-blue-800' :
+                    'bg-red-200 text-red-800'
+                  }`}>
+                    {marketData.marketTrend === 'up' ? '↗️ Alcista' :
+                     marketData.marketTrend === 'stable' ? '→ Estable' : '↘️ Correctivo'}
+                  </span>
+                </div>
+                <div>
+                  <strong>Crecimiento de Precios:</strong><br />
+                  {marketData.priceGrowth} anual
+                </div>
+                <div>
+                  <strong>Rendimiento Rental:</strong><br />
+                  {marketData.rentalYield} promedio
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <p class="text-gray-700 mb-4">
+            El timing actual presenta condiciones favorables para la adquisición, especialmente considerando 
+            {currentDestino ? `las proyecciones de crecimiento para ${currentDestino.name}` : 'las tendencias macroeconómicas positivas'}. 
+            Los factores que respaldan esta oportunidad incluyen estabilidad política, crecimiento del turismo, 
+            infraestructura en desarrollo, y regulaciones favorables para inversionistas extranjeros.
+          </p>
+        </div>
+        
+        <div class="mb-8">
+          <h3 class="text-xl font-semibold mb-4">Estructura Legal y Financiera de la Inversión</h3>
+          <p class="text-gray-700 mb-4">
+            La adquisición de propiedades {currentTipo ? `tipo ${currentTipo.name.toLowerCase()}` : ''} 
+            en República Dominicana ofrece un marco legal sólido para inversionistas extranjeros. 
+            El proceso incluye due diligence completo, verificación de títulos, estructuración legal óptima, 
+            y acompañamiento en todo el proceso de cierre.
+          </p>
+          
+          {investmentData && (
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-gray-900 mb-3">Opciones de Financiamiento</h4>
+                <ul class="text-sm text-gray-700 space-y-1">
+                  {investmentData.financing.map(option => (
+                    <li>• {option}</li>
+                  ))}
+                </ul>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-gray-900 mb-3">Beneficios Fiscales</h4>
+                <ul class="text-sm text-gray-700 space-y-1">
+                  {investmentData.taxBenefits.map(benefit => (
+                    <li>• {benefit}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          
+          <p class="text-gray-700 mb-4">
+            Los inversionistas extranjeros disfrutan de los mismos derechos de propiedad que los nacionales, 
+            incluyendo la posibilidad de obtener título de propiedad pleno, financiamiento local, 
+            y beneficios fiscales específicos. {investmentData?.citizenship ? 'Adicionalmente, inversiones superiores a $200,000 pueden calificar para residencia permanente.' : ''}
+          </p>
+        </div>
+        
+        <div class="mb-8">
+          <h3 class="text-xl font-semibold mb-4">Estrategias de Rentabilización y Gestión</h3>
+          <p class="text-gray-700 mb-4">
+            {currentTipo ? `Las ${currentTipo.name.toLowerCase()} ofrecen múltiples estrategias de monetización: ` : 'Las estrategias de rentabilización incluyen: '}
+            rentas vacacionales de corto plazo con yields de 8-15%, rentas residenciales de largo plazo con yields de 4-8%, 
+            apreciación de capital con proyecciones de 5-10% anual, y desarrollo/mejoras para incrementar valor.
+          </p>
+          <p class="text-gray-700 mb-4">
+            {investmentData?.propertyManagement ? 'Ofrecemos servicios completos de gestión de propiedades incluyendo ' : 'Los servicios de gestión disponibles incluyen '}
+            mantenimiento preventivo, administración de rentas, marketing y promoción, limpieza y preparación, 
+            atención a huéspedes, y reportes financieros mensuales. Esto permite a los inversionistas generar 
+            ingresos pasivos mientras preservan y aumentan el valor de su activo.
+          </p>
+        </div>
+        
+        <div class="mb-8">
+          <h3 class="text-xl font-semibold mb-4">Análisis Comparativo y Debido Diligencia</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {investmentAnalysis.map((analysis, index) => (
+              <div key={index} class="bg-blue-50 p-4 rounded-lg">
+                <h4 class="font-semibold text-blue-900 mb-2">{analysis.title}</h4>
+                <p class="text-sm text-blue-800">{analysis.content}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div class="mb-8">
+          <h3 class="text-xl font-semibold mb-4">Proceso de Adquisición y Siguientes Pasos</h3>
+          <p class="text-gray-700 mb-4">
+            El proceso de adquisición incluye: identificación de oportunidades basada en criterios de inversión, 
+            visita y evaluación de propiedades preseleccionadas, análisis financiero detallado y proyecciones de ROI, 
+            due diligence legal y técnico completo, negociación de términos y condiciones, estructuración legal óptima, 
+            y cierre con acompañamiento especializado.
+          </p>
+          <p class="text-gray-700 mb-4">
+            Nuestro equipo de especialistas en inversión inmobiliaria proporciona análisis independiente, 
+            conexiones con financiamiento local e internacional, gestión de aspectos legales y fiscales, 
+            y estrategias post-adquisición para maximizar retornos. {currentDestino ? `Para invertir en ${currentDestino.name}, ` : ''}
+            recomendamos una visita de prospección de 3-5 días para evaluar múltiples oportunidades y 
+            conocer el mercado de primera mano.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Oportunidades similares en otros mercados -->
+      {currentTipo && !currentDestino && (
+        <div class="mb-16">
+          <h3 class="text-2xl font-bold text-gray-900 mb-8">
+            Oportunidades de {currentTipo.name} en Otros Mercados Estratégicos
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Object.entries(destinoDataSales).slice(0, 6).map(([key, destino]) => (
+              <a 
+                href={`/propiedades/${currentTipo.name.toLowerCase()}/${key}`}
+                class="group bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300 shadow-md hover:shadow-lg border border-blue-100"
+              >
+                <h4 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors mb-2">
+                  {currentTipo.name} en {destino.name}
+                </h4>
+                <p class="text-sm text-gray-600 mb-3 line-clamp-2">{destino.investmentDescription}</p>
+                <p class="text-xs text-gray-500 mb-3 font-medium">{destino.roiExpectation}</p>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-[#f04e00] font-medium">Ver oportunidades</span>
+                  <span class="inline-flex items-center text-[#f04e00] group-hover:gap-2 transition-all">
+                    Analizar
+                    <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <!-- Tipos de inversión en mismo mercado -->
+      {currentDestino && !currentTipo && (
+        <div class="mb-16">
+          <h3 class="text-2xl font-bold text-gray-900 mb-8">
+            Oportunidades de Inversión en {currentDestino.name}
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {Object.entries(tipoDataSales).map(([key, tipo]) => (
+              <a 
+                href={`/propiedades/${key}/${destino}`}
+                class="group bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 hover:from-green-100 hover:to-emerald-100 transition-all duration-300 shadow-md hover:shadow-lg border border-green-100"
+              >
+                <h4 class="font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors mb-2">
+                  {tipo.name} en {currentDestino.name}
+                </h4>
+                <p class="text-sm text-gray-600 mb-3">{tipo.investmentDescription}</p>
+                <p class="text-xs text-gray-500 mb-3">
+                  <strong>Perfil de inversionista:</strong> {tipo.targetInvestor}
+                </p>
+                <p class="text-xs text-gray-500 mb-3">
+                  <strong>Retornos esperados:</strong> {tipo.financialFeatures[0]}
+                </p>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-[#f04e00] font-medium">{tipo.investmentLevel}</span>
+                  <span class="inline-flex items-center text-[#f04e00] group-hover:gap-2 transition-all">
+                    Evaluar
+                    <svg class="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <!-- CTA especializado para inversionistas -->
+      <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-center text-white">
+        <h3 class="text-2xl font-bold mb-4">¿Listo para diversificar tu portafolio?</h3>
+        <p class="text-lg mb-6 opacity-90">
+          Nuestros especialistas en inversión inmobiliaria te ayudan a identificar las mejores oportunidades
+          {currentDestino ? ` en ${currentDestino.name}` : ''} {currentTipo ? ` de ${currentTipo.name.toLowerCase()}` : ''}.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href="/contacto-inversion"
+            class="inline-block px-8 py-3 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+          >
+            Análisis de Inversión Gratuito
+          </a>
+          <a 
+            href="/calculadora-roi"
+            class="inline-block px-8 py-3 bg-blue-500 text-white border border-white/30 rounded-lg hover:bg-blue-400 transition-colors font-semibold"
+          >
+            Calculadora de ROI
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

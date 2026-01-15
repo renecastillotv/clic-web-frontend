@@ -1,0 +1,423 @@
+---
+// src/layouts/Error404Layout.astro - Layout para páginas 404 CORREGIDO
+import Layout from './Layout.astro';
+
+// Importar componentes básicos
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+import PopularLocations from '../components/PopularLocations.astro';
+
+// ===================================================================
+// RECIBIR DATOS DEL ROUTER Y VALIDAR
+// ===================================================================
+
+const { data, language } = Astro.props;
+
+// Fix para datos que pueden estar undefined - NUEVA SECCIÓN
+const safeData = {
+  ...data,
+  originalUrl: data?.originalUrl || Astro.url.pathname,
+  language: language || data?.language || 'es',
+  message: data?.message || 'Página no encontrada',
+  error: data?.error || 'No disponible'
+};
+
+console.log('✅ Error404Layout - Fixed props:', {
+  originalUrl: safeData.originalUrl,
+  language: safeData.language,
+  hasError: !!safeData.error,
+  receivedData: data ? Object.keys(data) : []
+});
+
+// ===================================================================
+// DETECTAR IDIOMA DE LA URL
+// ===================================================================
+
+function detectLanguageFromUrl(pathname) {
+  const segments = pathname.split('/').filter(Boolean);
+  
+  // Detectar prefijo de idioma
+  if (segments.length > 0) {
+    const firstSegment = segments[0].toLowerCase();
+    switch (firstSegment) {
+      case 'en':
+        return { language: 'en', segments: segments.slice(1) };
+      case 'fr':
+        return { language: 'fr', segments: segments.slice(1) };
+      default:
+        return { language: 'es', segments: segments };
+    }
+  }
+  
+  return { language: 'es', segments: [] };
+}
+
+// ===================================================================
+// CONFIGURACIÓN DE TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    title: 'Página no encontrada | CLIC Inmobiliaria',
+    description: 'La página que buscas no existe. Encuentra tu propiedad ideal en República Dominicana.',
+    h1: 'Página no encontrada',
+    subtitle: 'La página que buscas no existe o ha sido movida',
+    searchPlaceholder: 'Buscar propiedades...',
+    homeButton: 'Ir al inicio',
+    exploreButton: 'Explorar propiedades',
+    helpText: 'Te ayudamos a encontrar lo que buscas:',
+    popularSections: 'Secciones populares',
+    routes: {
+      home: '/',
+      buy: '/comprar',
+      rent: '/alquilar', 
+      sell: '/vender',
+      projects: '/proyectos',
+      locations: '/ubicaciones',
+      contact: '/contacto'
+    },
+    edgeRoute: 'comprar' // Ruta para la edge function
+  },
+  en: {
+    title: 'Page not found | CLIC Real Estate',
+    description: 'The page you are looking for does not exist. Find your ideal property in Dominican Republic.',
+    h1: 'Page not found',
+    subtitle: 'The page you are looking for does not exist or has been moved',
+    searchPlaceholder: 'Search properties...',
+    homeButton: 'Go home',
+    exploreButton: 'Explore properties',
+    helpText: 'Let us help you find what you are looking for:',
+    popularSections: 'Popular sections',
+    routes: {
+      home: '/en',
+      buy: '/en/buy',
+      rent: '/en/rent',
+      sell: '/en/sell', 
+      projects: '/en/projects',
+      locations: '/en/locations',
+      contact: '/en/contact'
+    },
+    edgeRoute: 'en/buy'
+  },
+  fr: {
+    title: 'Page non trouvée | CLIC Immobilier',
+    description: 'La page que vous cherchez n\'existe pas. Trouvez votre propriété idéale en République Dominicaine.',
+    h1: 'Page non trouvée',
+    subtitle: 'La page que vous cherchez n\'existe pas ou a été déplacée',
+    searchPlaceholder: 'Rechercher des propriétés...',
+    homeButton: 'Accueil',
+    exploreButton: 'Explorer les propriétés',
+    helpText: 'Nous vous aidons à trouver ce que vous cherchez:',
+    popularSections: 'Sections populaires',
+    routes: {
+      home: '/fr',
+      buy: '/fr/acheter',
+      rent: '/fr/louer',
+      sell: '/fr/vendre',
+      projects: '/fr/projets', 
+      locations: '/fr/emplacements',
+      contact: '/fr/contact'
+    },
+    edgeRoute: 'fr/acheter'
+  }
+};
+
+// ===================================================================
+// LLAMADA BÁSICA A LA EDGE FUNCTION
+// ===================================================================
+
+// API de Neon en Vercel (no requiere autenticación)
+const BASE_URL = 'https://clic-api-neon.vercel.app';
+
+// Detectar idioma - USAR EL IDIOMA DEL ROUTER COMO PRIORIDAD
+const currentPath = safeData.originalUrl;
+const { language: urlLanguage, segments } = detectLanguageFromUrl(currentPath);
+const finalLanguage = safeData.language || urlLanguage; // Priorizar el del router
+const text = TEXTS[finalLanguage];
+
+// Construir URL para la edge function (ruta básica de propiedades)
+const edgeFunctionURL = `${BASE_URL}/${text.edgeRoute}?limit=6`;
+
+console.log('🔗 404 - Calling edge function for navigation:', edgeFunctionURL);
+
+// Llamar a la edge function para obtener datos básicos
+let navigationData = null;
+try {
+  // La API de Neon no requiere autenticación
+  const response = await fetch(edgeFunctionURL, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'User-Agent': `CLIC-404/${Astro.url.hostname}`,
+      'X-Original-Host': Astro.url.hostname,
+    },
+  });
+
+  if (response.ok) {
+    navigationData = await response.json();
+  }
+} catch (error) {
+  console.warn('⚠️ 404 - Error calling edge function for navigation:', error);
+}
+
+// Extraer datos básicos para navegación
+const featuredProperties = navigationData?.properties?.slice(0, 6) || [];
+const hotItems = navigationData?.hotItems || { cities: [], sectors: [] };
+const globalConfig = navigationData?.globalConfig || {};
+
+// ===================================================================
+// SEO PARA 404
+// ===================================================================
+
+const seoTitle = text.title;
+const seoDescription = text.description;
+const canonicalUrl = safeData.originalUrl;
+
+console.log('✅ 404Layout prepared:', {
+  language: finalLanguage,
+  originalPath: currentPath,
+  segments,
+  featuredPropertiesCount: featuredProperties.length,
+  hotItemsCount: (hotItems.cities?.length || 0) + (hotItems.sectors?.length || 0),
+  routerError: safeData.error
+});
+---
+
+<Layout 
+  title={seoTitle}
+  description={seoDescription}
+  canonicalUrl={canonicalUrl}
+  robots="noindex, nofollow"
+  language={finalLanguage}
+  globalConfig={globalConfig}
+>
+  <!-- Font Awesome CDN -->
+  <link 
+    rel="stylesheet" 
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+    integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
+    crossorigin="anonymous" 
+    slot="head"
+  />
+  
+  <div class="min-h-screen bg-gray-50">
+    
+    <!-- 404 Header -->
+    <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-12 lg:py-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        
+        <!-- 404 Number -->
+        <div class="text-6xl lg:text-7xl font-bold opacity-30 mb-3 text-white">
+          404
+        </div>
+        
+        <!-- Title -->
+        <h1 class="text-3xl lg:text-4xl font-bold mb-3 text-white">
+          {text.h1}
+        </h1>
+        
+        <!-- Subtitle -->
+        <p class="text-lg lg:text-xl text-white/90 mb-6 max-w-2xl mx-auto">
+          {text.subtitle}
+        </p>
+        
+        <!-- Original URL info -->
+        <div class="text-sm text-white/80 mb-3">
+          <span class="font-mono bg-white/20 px-3 py-1 rounded">
+            {currentPath}
+          </span>
+        </div>
+        
+        <!-- Error info si hay -->
+        {safeData.error && safeData.error !== 'No disponible' && (
+          <div class="text-sm text-white/90 mb-6">
+            <span class="bg-white/20 px-3 py-1 rounded border border-white/30">
+              Error: {safeData.error}
+            </span>
+          </div>
+        )}
+        
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <a 
+            href={text.routes.home}
+            class="bg-white text-orange-600 px-6 py-2.5 rounded-lg font-semibold hover:bg-orange-50 transition-colors inline-flex items-center gap-2 shadow-lg"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+            {text.homeButton}
+          </a>
+          
+          <a 
+            href={text.routes.buy}
+            class="bg-white/20 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-white/30 transition-colors inline-flex items-center gap-2 border border-white/30"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            {text.exploreButton}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Navigation -->
+    <div class="bg-white py-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold text-gray-900 mb-4">
+            {text.helpText}
+          </h2>
+        </div>
+
+        <!-- Popular Sections Grid -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          
+          <!-- Comprar/Buy -->
+          <a 
+            href={text.routes.buy}
+            class="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:scale-105"
+          >
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fas fa-home text-white text-lg"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">
+                  {finalLanguage === 'es' ? 'Comprar' : finalLanguage === 'en' ? 'Buy' : 'Acheter'}
+                </h3>
+                <p class="text-sm text-gray-600">
+                  {finalLanguage === 'es' ? 'Propiedades en venta' : finalLanguage === 'en' ? 'Properties for sale' : 'Propriétés à vendre'}
+                </p>
+              </div>
+            </div>
+          </a>
+
+          <!-- Rentar/Rent -->
+          <a 
+            href={text.routes.rent}
+            class="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:scale-105"
+          >
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fas fa-key text-white text-lg"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                  {finalLanguage === 'es' ? 'Rentar' : finalLanguage === 'en' ? 'Rent' : 'Louer'}
+                </h3>
+                <p class="text-sm text-gray-600">
+                  {finalLanguage === 'es' ? 'Propiedades en alquiler' : finalLanguage === 'en' ? 'Properties for rent' : 'Propriétés à louer'}
+                </p>
+              </div>
+            </div>
+          </a>
+
+          <!-- Ubicaciones/Locations -->
+          <a 
+            href={text.routes.locations}
+            class="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 hover:scale-105"
+          >
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fas fa-map-marker-alt text-white text-lg"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">
+                  {finalLanguage === 'es' ? 'Ubicaciones' : finalLanguage === 'en' ? 'Locations' : 'Emplacements'}
+                </h3>
+                <p class="text-sm text-gray-600">
+                  {finalLanguage === 'es' ? 'Explora por zona' : finalLanguage === 'en' ? 'Explore by area' : 'Explorer par zone'}
+                </p>
+              </div>
+            </div>
+          </a>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Popular Locations si hay datos -->
+    {(hotItems.cities?.length > 0 || hotItems.sectors?.length > 0) && (
+      <PopularLocations 
+        hotItems={hotItems}
+        showType="mixed"
+        dataSource="edge_function"
+        showBadges={true}
+        language={finalLanguage}
+        context={{
+          location: null,
+          sector: null,
+          country: 'República Dominicana'
+        }}
+      />
+    )}
+
+    <!-- Featured Properties si hay datos -->
+    {featuredProperties.length > 0 && (
+      <PropertyCarousel 
+        title={finalLanguage === 'es' ? 'Propiedades destacadas' : finalLanguage === 'en' ? 'Featured Properties' : 'Propriétés en vedette'}
+        subtitle={finalLanguage === 'es' ? 'Descubre estas increíbles propiedades' : finalLanguage === 'en' ? 'Discover these amazing properties' : 'Découvrez ces propriétés incroyables'}
+        properties={featuredProperties}
+        viewAllLink={text.routes.buy}
+        theme="featured"
+        language={finalLanguage}
+      />
+    )}
+
+    <!-- Final CTA -->
+    <div class="bg-gray-900 text-white py-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold mb-4">
+          {finalLanguage === 'es' ? '¿Necesitas ayuda?' : finalLanguage === 'en' ? 'Need help?' : 'Besoin d\'aide?'}
+        </h2>
+        <p class="text-xl text-gray-300 mb-8">
+          {finalLanguage === 'es' ? 'Nuestro equipo está aquí para ayudarte a encontrar tu propiedad ideal' : 
+           finalLanguage === 'en' ? 'Our team is here to help you find your ideal property' : 
+           'Notre équipe est là pour vous aider à trouver votre propriété idéale'}
+        </p>
+        <a 
+          href={text.routes.contact}
+          class="bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-orange-500 transition-colors inline-flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+          </svg>
+          {finalLanguage === 'es' ? 'Contáctanos' : finalLanguage === 'en' ? 'Contact us' : 'Nous contacter'}
+        </a>
+      </div>
+    </div>
+
+  </div>
+</Layout>
+
+<style>
+  .transform {
+    transition: transform 0.3s ease;
+  }
+  
+  .bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+  }
+  
+  .hover\:scale-105:hover {
+    transform: scale(1.05);
+  }
+  
+  .group:hover .group-hover\:scale-110 {
+    transform: scale(1.1);
+  }
+  
+  .group:hover .group-hover\:text-blue-600 {
+    color: rgb(37 99 235);
+  }
+  
+  .group:hover .group-hover\:text-green-600 {
+    color: rgb(22 163 74);
+  }
+  
+  .group:hover .group-hover\:text-purple-600 {
+    color: rgb(147 51 234);
+  }
+</style>

@@ -1,0 +1,692 @@
+---
+// src/layouts/SellLayout.astro - Layout para página de vender con datos enriquecidos
+import Layout from './Layout.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+function safeNumber(num, defaultValue = 0) {
+  return typeof num === 'number' && !isNaN(num) ? num : defaultValue;
+}
+
+// Función para obtener iniciales
+function getInitials(name = '') {
+  if (!name || typeof name !== 'string') return 'AG';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'AG';
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Función para formatear precios
+function formatPrice(price) {
+  if (typeof price === 'string') return price;
+  if (typeof price === 'number') {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price);
+  }
+  return 'Precio a consultar';
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// ===================================================================
+// PROCESAMIENTO DE DATOS DE LA EDGE FUNCTION
+// ===================================================================
+
+const sellData = safeObject(data);
+
+// Extraer datos del mercado
+const marketHighlights = safeObject(sellData.marketHighlights);
+const marketAnalysis = safeObject(sellData.marketAnalysis);
+
+// Servicios disponibles
+const services = safeArray(sellData.services);
+
+// Proceso de venta
+const process = safeArray(sellData.process);
+
+// Agentes top en ventas
+const topAgents = safeArray(sellData.topAgents).slice(0, 4); // Top 4 agentes
+
+// Historias de éxito recientes
+const successStories = safeArray(sellData.successStories).slice(0, 6); // Últimas 6 ventas
+
+// Testimonios
+const testimonials = safeArray(sellData.testimonials).slice(0, 3); // 3 testimonios
+
+// Garantías
+const guarantees = safeArray(sellData.guarantees);
+
+// SEO Data desde la edge
+const seo = safeObject(sellData.seo);
+
+// Global config y otros datos necesarios para Layout
+const globalConfig = safeObject(sellData.globalConfig);
+const country = safeObject(sellData.country);
+const hotItems = safeObject(sellData.hotItems);
+
+// Información de contacto
+const contactInfo = safeObject(sellData.contactInfo, {
+  phone: '8094872542',
+  whatsapp: '8295148080',
+  email: 'info@clicinmobiliaria.com'
+});
+
+// ===================================================================
+// RUTAS PARA ENLACES
+// ===================================================================
+
+const currentRoutes = {
+  contact: language === 'es' ? '/contacto' :
+           language === 'en' ? '/en/contact' :
+           '/fr/contact',
+  advisors: language === 'es' ? '/asesores' :
+            language === 'en' ? '/en/advisors' :
+            '/fr/conseillers'
+};
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    heroTitle: safeString(seo.h1, 'Vende Tu Propiedad Con Los Expertos'),
+    heroSubtitle: `Expertos en maximizar el valor de tu propiedad • ${marketHighlights.daysOnMarket || 45} días promedio de venta`,
+    statsLabels: {
+      totalVolume: 'Volumen Total Vendido',
+      avgPrice: 'Precio Promedio',
+      daysOnMarket: 'Días en el Mercado',
+      totalSales: 'Ventas Exitosas'
+    },
+    servicesTitle: 'Servicios Premium de Venta',
+    servicesSubtitle: 'Todo lo que necesitas para vender exitosamente',
+    processTitle: 'Nuestro Proceso Probado',
+    processSubtitle: 'De la evaluación al cierre en tiempo récord',
+    marketTitle: 'Análisis del Mercado Actual',
+    marketSubtitle: 'Datos reales que respaldan nuestra estrategia',
+    topAgentsTitle: 'Agentes Líderes en Ventas',
+    topAgentsSubtitle: 'El equipo con más experiencia y resultados',
+    successTitle: 'Ventas Recientes',
+    successSubtitle: 'Propiedades vendidas exitosamente',
+    testimonialsTitle: 'Lo Que Dicen Nuestros Clientes',
+    guaranteesTitle: 'Nuestras Garantías',
+    ctaTitle: '¿Listo para vender tu propiedad?',
+    ctaSubtitle: 'Obtén una evaluación gratuita y comienza hoy mismo',
+    ctaButton1: 'Evaluación Gratuita',
+    ctaButton2: 'WhatsApp Directo',
+    viewProfile: 'Ver perfil',
+    sales: 'ventas',
+    volume: 'en volumen',
+    soldIn: 'Vendida en',
+    topCategory: 'Categoría más vendida',
+    topLocation: 'Zona con más demanda',
+    yearTrend: 'Tendencia anual',
+    projectsShare: 'Ventas en proyectos',
+    categories: 'Categorías',
+    locations: 'Ubicaciones',
+    included: 'Incluido',
+    duration: 'Duración',
+    cost: 'Costo',
+    free: 'Gratis'
+  },
+  en: {
+    heroTitle: safeString(seo.h1, 'Sell Your Property With The Experts'),
+    heroSubtitle: `Experts in maximizing your property value • ${marketHighlights.daysOnMarket || 45} average days on market`,
+    statsLabels: {
+      totalVolume: 'Total Volume Sold',
+      avgPrice: 'Average Price',
+      daysOnMarket: 'Days on Market',
+      totalSales: 'Successful Sales'
+    },
+    servicesTitle: 'Premium Selling Services',
+    servicesSubtitle: 'Everything you need to sell successfully',
+    processTitle: 'Our Proven Process',
+    processSubtitle: 'From evaluation to closing in record time',
+    marketTitle: 'Current Market Analysis',
+    marketSubtitle: 'Real data that backs our strategy',
+    topAgentsTitle: 'Top Sales Agents',
+    topAgentsSubtitle: 'The team with the most experience and results',
+    successTitle: 'Recent Sales',
+    successSubtitle: 'Successfully sold properties',
+    testimonialsTitle: 'What Our Clients Say',
+    guaranteesTitle: 'Our Guarantees',
+    ctaTitle: 'Ready to sell your property?',
+    ctaSubtitle: 'Get a free evaluation and start today',
+    ctaButton1: 'Free Evaluation',
+    ctaButton2: 'Direct WhatsApp',
+    viewProfile: 'View profile',
+    sales: 'sales',
+    volume: 'in volume',
+    soldIn: 'Sold in',
+    topCategory: 'Top selling category',
+    topLocation: 'Most demanded area',
+    yearTrend: 'Annual trend',
+    projectsShare: 'Project sales',
+    categories: 'Categories',
+    locations: 'Locations',
+    included: 'Included',
+    duration: 'Duration',
+    cost: 'Cost',
+    free: 'Free'
+  },
+  fr: {
+    heroTitle: safeString(seo.h1, 'Vendez Votre Propriété Avec Les Experts'),
+    heroSubtitle: `Experts pour maximiser la valeur de votre propriété • ${marketHighlights.daysOnMarket || 45} jours moyens sur le marché`,
+    statsLabels: {
+      totalVolume: 'Volume Total Vendu',
+      avgPrice: 'Prix Moyen',
+      daysOnMarket: 'Jours sur le Marché',
+      totalSales: 'Ventes Réussies'
+    },
+    servicesTitle: 'Services Premium de Vente',
+    servicesSubtitle: 'Tout ce dont vous avez besoin pour vendre avec succès',
+    processTitle: 'Notre Processus Éprouvé',
+    processSubtitle: 'De l\'évaluation à la clôture en temps record',
+    marketTitle: 'Analyse du Marché Actuel',
+    marketSubtitle: 'Données réelles qui soutiennent notre stratégie',
+    topAgentsTitle: 'Top Agents de Vente',
+    topAgentsSubtitle: 'L\'équipe avec le plus d\'expérience et de résultats',
+    successTitle: 'Ventes Récentes',
+    successSubtitle: 'Propriétés vendues avec succès',
+    testimonialsTitle: 'Ce Que Disent Nos Clients',
+    guaranteesTitle: 'Nos Garanties',
+    ctaTitle: 'Prêt à vendre votre propriété?',
+    ctaSubtitle: 'Obtenez une évaluation gratuite et commencez aujourd\'hui',
+    ctaButton1: 'Évaluation Gratuite',
+    ctaButton2: 'WhatsApp Direct',
+    viewProfile: 'Voir le profil',
+    sales: 'ventes',
+    volume: 'en volume',
+    soldIn: 'Vendu en',
+    topCategory: 'Catégorie la plus vendue',
+    topLocation: 'Zone la plus demandée',
+    yearTrend: 'Tendance annuelle',
+    projectsShare: 'Ventes en projets',
+    categories: 'Catégories',
+    locations: 'Emplacements',
+    included: 'Inclus',
+    duration: 'Durée',
+    cost: 'Coût',
+    free: 'Gratuit'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+// Props para el Layout (como en otros layouts)
+const layoutProps = {
+  title: safeString(seo.title, text.heroTitle),
+  description: safeString(seo.description, text.heroSubtitle),
+  ogImage: safeString(seo.ogImage || seo.open_graph?.image, '/og-sell.jpg'),
+  canonical: safeString(seo.canonical_url),
+  keywords: safeString(seo.keywords),
+  hreflangData: safeObject(seo.hreflang),
+  globalConfig: globalConfig,
+  language: language,
+  trackingString: safeString(sellData.trackingString, ''),
+  hotItems: hotItems,
+  country: country,
+  breadcrumbs: safeArray(seo.breadcrumbs),
+  structuredData: safeObject(seo.structured_data),
+  openGraph: safeObject(seo.open_graph),
+  twitterCard: safeObject(seo.twitter_card)
+};
+
+// ===================================================================
+// RENDER
+// ===================================================================
+---
+
+<Layout {...layoutProps}>
+  <!-- Hero Section - Diseño oscuro premium compacto con datos del mercado -->
+  <section class="relative bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+    <!-- Efectos de fondo decorativos -->
+    <div class="absolute inset-0">
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/40"></div>
+      <div class="absolute top-0 left-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+      <div class="absolute bottom-0 right-0 w-72 h-72 bg-[#f04e00] rounded-full filter blur-[120px] opacity-10"></div>
+    </div>
+    
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="text-center">
+        <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+          {text.heroTitle}
+        </h1>
+        <p class="text-base md:text-lg text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+          {text.heroSubtitle}
+        </p>
+        
+        <!-- Estadísticas del mercado en línea -->
+        <div class="flex flex-wrap justify-center items-center gap-6 md:gap-12 mb-10">
+          {marketHighlights.totalVolume && (
+            <div class="flex items-center gap-3">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{marketHighlights.totalVolume}</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.totalVolume}</div>
+            </div>
+          )}
+          <div class="h-8 w-px bg-gray-700 hidden md:block"></div>
+          {marketHighlights.averagePrice && (
+            <div class="flex items-center gap-3">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{marketHighlights.averagePrice}</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.avgPrice}</div>
+            </div>
+          )}
+          <div class="h-8 w-px bg-gray-700 hidden md:block"></div>
+          {marketHighlights.daysOnMarket && (
+            <div class="flex items-center gap-3">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00]">{marketHighlights.daysOnMarket}</div>
+              <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">{text.statsLabels.daysOnMarket}</div>
+            </div>
+          )}
+        </div>
+
+        <!-- CTAs principales -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href={currentRoutes.contact}
+            class="bg-[#f04e00] text-white px-8 py-3 rounded-lg font-bold hover:bg-[#d63e00] transition-colors"
+          >
+            {text.ctaButton1}
+          </a>
+          <a 
+            href={`https://wa.me/${contactInfo.whatsapp}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="bg-transparent text-white px-8 py-3 rounded-lg font-bold border-2 border-white hover:bg-white hover:text-[#f04e00] transition-all"
+          >
+            <i class="fab fa-whatsapp mr-2"></i>
+            {text.ctaButton2}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Análisis del Mercado -->
+  <section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{text.marketTitle}</h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">{text.marketSubtitle}</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <!-- Top Categoría -->
+        <div class="bg-gray-50 rounded-lg p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-[#f04e00] rounded-full flex items-center justify-center text-white">
+              <i class="fas fa-building"></i>
+            </div>
+            <h3 class="font-semibold text-gray-900">{text.topCategory}</h3>
+          </div>
+          <p class="text-2xl font-bold text-[#f04e00] mb-2">{marketHighlights.topCategory || 'Apartamentos'}</p>
+          <p class="text-sm text-gray-600">{marketHighlights.topBedrooms || '3'} habitaciones más demandadas</p>
+        </div>
+
+        <!-- Top Ubicación -->
+        <div class="bg-gray-50 rounded-lg p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-[#f04e00] rounded-full flex items-center justify-center text-white">
+              <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <h3 class="font-semibold text-gray-900">{text.topLocation}</h3>
+          </div>
+          <p class="text-2xl font-bold text-[#f04e00] mb-2">{marketHighlights.topLocation || 'Santo Domingo Norte'}</p>
+          <p class="text-sm text-gray-600">Mayor actividad de ventas</p>
+        </div>
+
+        <!-- Tendencia -->
+        <div class="bg-gray-50 rounded-lg p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-[#f04e00] rounded-full flex items-center justify-center text-white">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="font-semibold text-gray-900">{text.yearTrend}</h3>
+          </div>
+          <p class="text-2xl font-bold text-[#f04e00] mb-2">{marketHighlights.yearTrend || '+5.2%'}</p>
+          <p class="text-sm text-gray-600">{marketHighlights.projectsShare || '80%'} {text.projectsShare}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Servicios Premium -->
+  {services.length > 0 && (
+    <section class="py-20 bg-gradient-to-b from-white to-gray-50">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+          <div class="inline-block mb-4">
+            <span class="bg-[#f04e00]/10 text-[#f04e00] px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider">
+              Todo Incluido
+            </span>
+          </div>
+          <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            {text.servicesTitle}
+          </h2>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            {text.servicesSubtitle}
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          {services.map((service) => (
+            <div class="bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-[#f04e00]/30 hover:-translate-y-1">
+              {/* Icono con gradiente */}
+              <div class="w-16 h-16 bg-gradient-to-br from-[#f04e00] to-[#ff6b35] rounded-xl flex items-center justify-center text-white mb-4 shadow-lg">
+                <i class={`fas fa-${service.icon || 'check'} text-2xl`}></i>
+              </div>
+
+              <h3 class="font-bold text-gray-900 mb-3 text-lg">{service.title}</h3>
+              {service.description && (
+                <p class="text-sm text-gray-600 mb-4 leading-relaxed">{service.description}</p>
+              )}
+
+              {/* Features con diseño mejorado */}
+              {service.features && service.features.length > 0 && (
+                <ul class="space-y-2.5 mb-4">
+                  {service.features.map((feature) => (
+                    <li class="text-xs text-gray-700 flex items-start gap-2">
+                      <i class="fas fa-check-circle text-[#f04e00] text-sm mt-0.5 flex-shrink-0"></i>
+                      <span class="leading-relaxed">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Badge de incluido con colores de marca */}
+              {service.included && (
+                <div class="pt-3 border-t border-gray-100">
+                  <span class="inline-flex items-center gap-1.5 bg-[#f04e00]/10 text-[#f04e00] px-3 py-1.5 rounded-full text-xs font-semibold">
+                    <i class="fas fa-badge-check"></i>
+                    {text.included}
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Proceso de Venta -->
+  {process.length > 0 && (
+    <section class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{text.processTitle}</h2>
+          <p class="text-lg text-gray-600 max-w-2xl mx-auto">{text.processSubtitle}</p>
+        </div>
+
+        <div class="max-w-4xl mx-auto">
+          {process.map((step, index) => (
+            <div class="flex gap-4 mb-8 last:mb-0">
+              <div class="flex-shrink-0">
+                <div class="w-10 h-10 bg-[#f04e00] rounded-full flex items-center justify-center text-white font-bold">
+                  {step.step}
+                </div>
+                {index < process.length - 1 && (
+                  <div class="w-px h-16 bg-gray-300 mx-auto mt-2"></div>
+                )}
+              </div>
+              <div class="flex-1 pb-8">
+                <h3 class="font-semibold text-gray-900 mb-1">{step.title}</h3>
+                <div class="flex gap-4 text-sm text-gray-600">
+                  {step.duration && (
+                    <span>
+                      <i class="far fa-clock mr-1"></i>
+                      {text.duration}: {step.duration}
+                    </span>
+                  )}
+                  {step.cost && (
+                    <span>
+                      <i class="fas fa-tag mr-1"></i>
+                      {text.cost}: {step.cost === 'Gratis' || step.cost === 'Free' ? text.free : step.cost}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Top Agentes en Ventas -->
+  {topAgents.length > 0 && (
+    <section class="py-20 bg-gradient-to-br from-gray-900 to-slate-800 relative overflow-hidden">
+      <!-- Efectos decorativos -->
+      <div class="absolute inset-0 opacity-10">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-[#f04e00] rounded-full filter blur-[150px]"></div>
+        <div class="absolute bottom-0 left-0 w-96 h-96 bg-[#f04e00] rounded-full filter blur-[150px]"></div>
+      </div>
+      <div class="container mx-auto px-4 relative z-10">
+        <div class="text-center mb-16">
+          <div class="inline-block mb-4">
+            <span class="bg-[#f04e00] text-white px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider">
+              Nuestro Equipo
+            </span>
+          </div>
+          <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">{text.topAgentsTitle}</h2>
+          <p class="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">{text.topAgentsSubtitle}</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          {topAgents.map((agent) => (
+            <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 text-center hover:bg-white/20 transition-all duration-300 hover:-translate-y-1">
+              {/* Avatar o Iniciales */}
+              <div class="mb-4">
+                {agent.avatar && agent.avatar !== '/images/team/default-advisor.jpg' ? (
+                  <img 
+                    src={agent.avatar} 
+                    alt={agent.name}
+                    class="w-20 h-20 rounded-full mx-auto object-cover"
+                  />
+                ) : (
+                  <div class="w-20 h-20 rounded-full bg-[#f04e00] text-white flex items-center justify-center text-2xl font-bold mx-auto">
+                    {getInitials(agent.name)}
+                  </div>
+                )}
+              </div>
+              <h3 class="font-bold text-white mb-1 text-lg">{agent.name}</h3>
+              <p class="text-sm text-gray-300 mb-4">{agent.position}</p>
+
+              <div class="space-y-1 mb-4 py-4 border-y border-white/10">
+                <p class="text-3xl font-bold text-[#f04e00]">{agent.totalSales}</p>
+                <p class="text-xs text-gray-400 uppercase tracking-wider">{text.sales}</p>
+                <p class="text-sm font-semibold text-white mt-2">{formatPrice(agent.totalVolume)}</p>
+                <p class="text-xs text-gray-400 uppercase tracking-wider">{text.volume}</p>
+              </div>
+
+              <a
+                href={agent.url}
+                class="text-[#f04e00] hover:text-[#ff6b35] text-sm font-semibold inline-flex items-center gap-2 transition-colors"
+              >
+                {text.viewProfile}
+                <i class="fas fa-arrow-right text-xs"></i>
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Historias de Éxito Recientes - TEMPORALMENTE OCULTO -->
+  {false && successStories.length > 0 && (
+    <section class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{text.successTitle}</h2>
+          <p class="text-lg text-gray-600 max-w-2xl mx-auto">{text.successSubtitle}</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {successStories.map((story) => (
+            <div class="bg-gray-50 rounded-lg p-6">
+              <div class="flex items-start justify-between mb-3">
+                <h3 class="font-semibold text-gray-900 flex-1">{story.propertyName}</h3>
+                <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-medium">
+                  {text.soldIn} {new Date(story.soldDate).toLocaleDateString()}
+                </span>
+              </div>
+              <p class="text-sm text-gray-600 mb-2">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                {story.location}
+              </p>
+              <p class="text-xl font-bold text-[#f04e00]">{story.price}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Testimonios -->
+  {testimonials.length > 0 && (
+    <section class="py-20 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+          <div class="inline-block mb-4">
+            <span class="bg-[#f04e00]/10 text-[#f04e00] px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider">
+              Testimonios
+            </span>
+          </div>
+          <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            {text.testimonialsTitle}
+          </h2>
+          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+            La confianza de nuestros clientes es nuestro mayor logro
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {testimonials.map((testimonial) => (
+            <div class="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <div class="flex items-center gap-1 mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <svg 
+                    key={i} 
+                    class={`w-4 h-4 ${i < Math.floor(testimonial.rating) ? 'text-yellow-400' : 'text-gray-300'}`} 
+                    fill="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                ))}
+              </div>
+              <h3 class="font-semibold text-gray-900 mb-2">{testimonial.title}</h3>
+              {testimonial.excerpt && (
+                <p class="text-sm text-gray-600 italic mb-4">"{testimonial.excerpt}"</p>
+              )}
+              <div class="flex items-center gap-3">
+                {testimonial.clientAvatar ? (
+                  <img 
+                    src={testimonial.clientAvatar} 
+                    alt={testimonial.clientName}
+                    class="w-10 h-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold">
+                    {getInitials(testimonial.clientName)}
+                  </div>
+                )}
+                <div>
+                  <p class="text-sm font-semibold text-gray-900">{testimonial.clientName}</p>
+                  {testimonial.clientProfession && (
+                    <p class="text-xs text-gray-600">{testimonial.clientProfession}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Garantías -->
+  {guarantees.length > 0 && (
+    <section class="py-16 bg-white">
+      <div class="container mx-auto px-4">
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-10 text-center">
+          {text.guaranteesTitle}
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          {guarantees.map((guarantee) => (
+            <div class="text-center">
+              <div class="w-16 h-16 bg-gradient-to-br from-[#f04e00] to-[#ff7a3d] rounded-full flex items-center justify-center text-white mx-auto mb-4">
+                <i class={`fas fa-${guarantee.icon || 'check'} text-xl`}></i>
+              </div>
+              <h3 class="font-semibold text-gray-900 mb-2">{guarantee.title}</h3>
+              <p class="text-sm text-gray-600">{guarantee.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- CTA Final -->
+  <section class="py-16 bg-gradient-to-r from-[#f04e00] to-[#ff7a3d]">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">{text.ctaTitle}</h2>
+      <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto">{text.ctaSubtitle}</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a 
+          href={currentRoutes.contact}
+          class="bg-white text-[#f04e00] px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors"
+        >
+          {text.ctaButton1}
+        </a>
+        <a 
+          href={`https://wa.me/${contactInfo.whatsapp}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="bg-transparent text-white px-8 py-3 rounded-lg font-bold border-2 border-white hover:bg-white hover:text-[#f04e00] transition-all"
+        >
+          <i class="fab fa-whatsapp mr-2"></i>
+          {text.ctaButton2}
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<!-- Font Awesome para iconos -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />

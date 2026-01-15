@@ -1,0 +1,608 @@
+---
+// src/layouts/PropertyListLayout.astro - CLEAN VERSION
+// Este layout USA los datos SEO tal como vienen de la edge function SIN transformaciones
+
+import Layout from './Layout.astro';
+import PropertyList from '../components/PropertyList.astro';
+
+// Importar componentes modulares
+import PropertyListHeader from '../components/propertylist/PropertyListHeader.astro';
+import PropertyListCTA from '../components/propertylist/PropertyListCTA.astro';
+
+// Importar componentes especializados
+import SectorHighlights from '../components/propertylist/SectorHighlights.astro';
+import InteractiveNeighborhoodMap from '../components/propertylist/InteractiveNeighborhoodMap.astro';
+
+// Importar componentes para contenido enriquecido
+import PropertyCarousel from '../components/PropertyCarousel.astro';
+import DynamicFAQs from '../components/DynamicFAQs.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
+import VideoGallery from '../components/VideoGallery.astro';
+import PropertySeoContent from '../components/PropertySeoContent.astro';
+import SEOInsightsSection from '../components/SEOInsightsSection.astro';
+
+// Importar PopularLocations y Testimonials
+import PopularLocations from '../components/PopularLocations.astro';
+import Testimonials from '../components/Testimonials.astro';
+
+// ===================================================================
+// PROCESAMIENTO MÍNIMO - SOLO EXTRACCIÓN, NO TRANSFORMACIÓN SEO
+// ===================================================================
+
+// FUNCIÓN: Procesar aggregatedStats con estructura realista (mantener existente)
+function processRealisticAggregatedStats(aggregatedStats) {
+  if (!aggregatedStats) return null;
+  
+  // Si viene con la estructura antigua, mantener compatibilidad
+  if (aggregatedStats.avgPrice && !aggregatedStats.sale && !aggregatedStats.rental) {
+    return aggregatedStats;
+  }
+  
+  // Procesar nueva estructura realista
+  const processed = {
+    totalCount: aggregatedStats.totalCount || 0,
+    predominantOperation: aggregatedStats.summary?.predominantOperation || 'venta',
+    predominantCurrency: aggregatedStats.summary?.predominantCurrency || 'USD',
+    marketMix: aggregatedStats.summary?.marketMix || { salePercentage: 100, rentalPercentage: 0 }
+  };
+
+  // Extraer datos de la operación predominante y moneda predominante
+  const primaryOperation = processed.predominantOperation === 'venta' ? 'sale' : 'rental';
+  const primaryCurrency = processed.predominantCurrency;
+  
+  if (aggregatedStats[primaryOperation] && aggregatedStats[primaryOperation][primaryCurrency]) {
+    const primaryData = aggregatedStats[primaryOperation][primaryCurrency];
+    
+    processed.avgPrice = primaryData.avgPrice;
+    processed.minPrice = primaryData.minPrice;
+    processed.maxPrice = primaryData.maxPrice;
+    processed.pricePerSqm = primaryData.pricePerSqm;
+    processed.currency = primaryCurrency;
+    processed.count = primaryData.count;
+  }
+
+  // Extraer rangos por categoría (si existen)
+  processed.priceRanges = {};
+  if (aggregatedStats.byCategory) {
+    Object.keys(aggregatedStats.byCategory).forEach(category => {
+      const categoryData = aggregatedStats.byCategory[category];
+      if (categoryData[primaryOperation] && categoryData[primaryOperation][primaryCurrency]) {
+        processed.priceRanges[category] = {
+          min: categoryData[primaryOperation][primaryCurrency].minPrice || 0,
+          max: categoryData[primaryOperation][primaryCurrency].maxPrice || 0,
+          avg: categoryData[primaryOperation][primaryCurrency].avgPrice || 0,
+          count: categoryData[primaryOperation][primaryCurrency].count || 0
+        };
+      }
+    });
+  }
+
+  // Datos adicionales para contexto
+  processed.operationBreakdown = {
+    sale: {
+      USD: aggregatedStats.sale?.USD || null,
+      DOP: aggregatedStats.sale?.DOP || null
+    },
+    rental: {
+      USD: aggregatedStats.rental?.USD || null,
+      DOP: aggregatedStats.rental?.DOP || null
+    }
+  };
+
+  processed.hasMultipleCurrencies = (
+    (aggregatedStats.sale?.USD?.count || 0) + (aggregatedStats.rental?.USD?.count || 0) > 0 &&
+    (aggregatedStats.sale?.DOP?.count || 0) + (aggregatedStats.rental?.DOP?.count || 0) > 0
+  );
+
+  processed.hasMultipleOperations = processed.marketMix.salePercentage > 0 && processed.marketMix.rentalPercentage > 0;
+
+  return processed;
+}
+
+// ===================================================================
+// RECIBIR Y USAR DATA DEL ROUTER SIN TRANSFORMACIONES
+// ===================================================================
+
+const data = Astro.props.data || {};
+const language = Astro.props.language || data.language || 'es';
+
+console.log('PropertyListLayout CLEAN - using SEO data as-is from edge function');
+
+// Usar data recibida con fallbacks
+const finalData = Object.keys(data).length > 0 ? data : {
+  pageType: 'property-list',
+  totalProperties: 0,
+  properties: [],
+  organizedSeoData: null,
+  aggregatedStats: null,
+  contextualHeroImage: null,
+  seo: { title: 'Propiedades', description: 'Encuentra propiedades' },
+  relatedContent: { articles: [], videos: [], faqs: [], carousels: [], testimonials: [] },
+  hotItems: { cities: [], sectors: [], properties: [], agents: [], projects: [], custom: [] },
+  featuredProperties: [],
+  pagination: { page: 1, limit: 32, total_properties: 0, total_pages: 0, has_next_page: false, has_prev_page: false },
+  tags: [],
+  globalConfig: {},
+  trackingString: ''
+};
+
+// Extraer datos principales
+const country = finalData.country || {};
+const properties = finalData.properties || [];
+const totalProperties = finalData.totalProperties || finalData.pagination?.total_properties || 0;
+const pagination = finalData.pagination || {};
+const tags = finalData.tags || [];
+
+// Extraer datos enriquecidos
+const organizedSeoData = finalData.organizedSeoData || null;
+const aggregatedStats = finalData.aggregatedStats || null;
+const contextualHeroImage = finalData.contextualHeroImage || null;
+
+// SEO básico desde edge function - USAR TAL COMO VIENE
+const baseSeo = finalData.seo || {};
+const seoContent = baseSeo.seo_content || finalData.seo_content || null;
+
+// USAR DATOS SEO SIN TRANSFORMACIONES
+const finalTitle = baseSeo.title || 'Propiedades';
+const finalDescription = baseSeo.description || 'Encuentra propiedades';
+const finalKeywords = baseSeo.keywords || '';
+
+// Meta tags, Open Graph y Twitter Card - usar tal como vienen
+const metaTags = baseSeo.meta_tags || {};
+const additionalMetaTags = baseSeo.additional_meta_tags || {};
+const openGraph = baseSeo.open_graph || {};
+const twitterCard = baseSeo.twitter_card || {};
+
+// Otros datos SEO existentes
+const canonicalUrl = baseSeo.canonical_url || Astro.url.pathname;
+const breadcrumbs = baseSeo.breadcrumbs || [];
+const hreflangData = baseSeo.hreflang || {};
+const structuredData = baseSeo.structured_data || [];
+
+// ===================================================================
+// EXTRAER SEARCHINFO DE TAGS (sin transformaciones)
+// ===================================================================
+
+const searchInfo = {
+  location: null,
+  propertyType: null,
+  operation: null,
+  sector: null,
+  features: [],
+  country: null
+};
+
+// Extraer info de búsqueda de tags
+tags.forEach(tag => {
+  switch(tag.category) {
+    case 'pais': searchInfo.country = tag.display_name || tag.name; break;
+    case 'ciudad': searchInfo.location = tag.display_name || tag.name; break;
+    case 'sector': searchInfo.sector = tag.display_name || tag.name; break;
+    case 'categoria': searchInfo.propertyType = tag.display_name || tag.name; break;
+    case 'operacion': searchInfo.operation = tag.display_name || tag.name; break;
+    case 'caracteristica': searchInfo.features.push(tag.display_name || tag.name); break;
+  }
+});
+
+// Configuración global y contenido relacionado
+const globalConfig = finalData.globalConfig || {};
+const relatedContent = finalData.relatedContent || {};
+const hotItems = finalData.hotItems || {
+  cities: [],
+  sectors: [],
+  properties: [],
+  agents: [],
+  projects: [],
+  custom: []
+};
+
+// Propiedades destacadas
+const featuredProperties = finalData.featuredProperties || [];
+
+// Procesar aggregatedStats con nueva estructura
+const processedAggregatedStats = processRealisticAggregatedStats(aggregatedStats);
+
+// Build enhanced context for components
+const enhancedContext = {
+  location: searchInfo.location,
+  sector: searchInfo.sector,
+  propertyType: searchInfo.propertyType,
+  operation: searchInfo.operation,
+  features: searchInfo.features,
+  country: searchInfo.country,
+  
+  // DATOS SEO ORGANIZADOS
+  seoData: {
+    country: organizedSeoData?.country || null,
+    city: organizedSeoData?.city || null,
+    sector: organizedSeoData?.sector || null,
+    operation: organizedSeoData?.operation || null,
+    category: organizedSeoData?.category || null
+  },
+  
+  // ESTADÍSTICAS PROCESADAS
+  statistics: processedAggregatedStats ? {
+    totalCount: processedAggregatedStats.totalCount || 0,
+    avgPrice: processedAggregatedStats.avgPrice || 0,
+    minPrice: processedAggregatedStats.minPrice || 0,
+    maxPrice: processedAggregatedStats.maxPrice || 0,
+    pricePerSqm: processedAggregatedStats.pricePerSqm || 0,
+    currency: processedAggregatedStats.currency || 'USD',
+    count: processedAggregatedStats.count || 0,
+    predominantOperation: processedAggregatedStats.predominantOperation,
+    predominantCurrency: processedAggregatedStats.predominantCurrency,
+    marketMix: processedAggregatedStats.marketMix,
+    priceRanges: processedAggregatedStats.priceRanges || {},
+    operationBreakdown: processedAggregatedStats.operationBreakdown || {},
+    hasMultipleCurrencies: processedAggregatedStats.hasMultipleCurrencies,
+    hasMultipleOperations: processedAggregatedStats.hasMultipleOperations
+  } : {
+    totalCount: 0,
+    avgPrice: 0,
+    minPrice: 0,
+    maxPrice: 0,
+    pricePerSqm: 0,
+    currency: 'USD',
+    count: 0,
+    predominantOperation: 'venta',
+    predominantCurrency: 'USD',
+    marketMix: { salePercentage: 100, rentalPercentage: 0 },
+    priceRanges: {},
+    operationBreakdown: {},
+    hasMultipleCurrencies: false,
+    hasMultipleOperations: false
+  },
+  
+  visuals: {
+    contextualHeroImage: contextualHeroImage,
+    hasCustomHero: !!contextualHeroImage && contextualHeroImage !== '/images/heroes/default-hero.jpg'
+  },
+  
+  insights: {
+    hasMarketInsights: !!(organizedSeoData?.country?.market_insights || organizedSeoData?.city?.market_insights || organizedSeoData?.sector?.market_insights),
+    hasTips: !!(organizedSeoData?.country?.tips || organizedSeoData?.city?.tips || organizedSeoData?.sector?.tips),
+    hasInvestmentData: !!(organizedSeoData?.country?.investment_data || organizedSeoData?.city?.investment_data || organizedSeoData?.sector?.investment_data),
+    hasNeighborhoodInfo: !!(organizedSeoData?.country?.neighborhood_info || organizedSeoData?.city?.neighborhood_info || organizedSeoData?.sector?.neighborhood_info)
+  }
+};
+
+// Configuración de componentes
+function getPopularLocationsShowType(searchInfo, hotItems) {
+  const hasCities = hotItems.cities && hotItems.cities.length > 0;
+  const hasSectors = hotItems.sectors && hotItems.sectors.length > 0;
+  
+  if (searchInfo.location && hasSectors) {
+    return 'sectors';
+  } else if (hasCities && hasSectors) {
+    return 'mixed';
+  } else if (hasCities) {
+    return 'cities';
+  } else if (hasSectors) {
+    return 'sectors';
+  }
+  
+  return 'mixed';
+}
+
+const shouldShowPopularLocations = (hotItems.cities && hotItems.cities.length > 0) || (hotItems.sectors && hotItems.sectors.length > 0);
+const popularLocationsShowType = shouldShowPopularLocations ? getPopularLocationsShowType(searchInfo, hotItems) : 'mixed';
+
+console.log('CLEAN LAYOUT - SEO data used as-is:', {
+  originalTitle: finalTitle,
+  originalDescription: finalDescription,
+  hasKeywords: !!finalKeywords,
+  hasStructuredData: structuredData.length,
+  hasOpenGraph: Object.keys(openGraph).length > 0,
+  hasTwitterCard: Object.keys(twitterCard).length > 0,
+  contextualHero: !!contextualHeroImage,
+  marketDataUsed: !!aggregatedStats,
+  seoDataPillars: organizedSeoData ? Object.keys(organizedSeoData).filter(k => organizedSeoData[k]).length : 0
+});
+---
+
+<Layout 
+  title={finalTitle}
+  description={finalDescription}
+  keywords={finalKeywords}
+  canonicalUrl={canonicalUrl}
+  ogImage={openGraph.image}
+  ogTitle={openGraph.title || finalTitle}
+  ogDescription={openGraph.description || finalDescription}
+  ogUrl={openGraph.url || Astro.url.href}
+  ogType={openGraph.type || 'website'}
+  ogSiteName={openGraph.site_name || 'CLIC Inmobiliaria'}
+  ogLocale={openGraph.locale || (language === 'es' ? 'es_DO' : language === 'en' ? 'en_US' : 'fr_FR')}
+  twitterCard={twitterCard.card || 'summary_large_image'}
+  twitterSite={twitterCard.site || '@clic.do'}
+  twitterCreator={twitterCard.creator || '@renecastillotv'}
+  twitterTitle={twitterCard.title || finalTitle}
+  twitterDescription={twitterCard.description || finalDescription}
+  twitterImage={twitterCard.image || openGraph.image}
+  twitterImageAlt={twitterCard.imageAlt}
+  breadcrumbs={breadcrumbs}
+  hreflangData={hreflangData}
+  robots={metaTags.robots || additionalMetaTags.robots}
+  author={metaTags.author || additionalMetaTags.author}
+  publisher={metaTags.publisher || additionalMetaTags.publisher}
+  geoRegion={metaTags.geoRegion || additionalMetaTags.geoRegion}
+  geoPlacename={metaTags.geoPlacename || additionalMetaTags.geoPlacename}
+  geoPosition={metaTags.geoPosition || additionalMetaTags.geoPosition}
+  rating={metaTags.rating || additionalMetaTags.rating}
+  distribution={metaTags.distribution || additionalMetaTags.distribution}
+  revisitAfter={metaTags.revisitAfter || additionalMetaTags.revisitAfter}
+  expires={metaTags.expires || additionalMetaTags.expires}
+  priceRange={metaTags.priceRange || additionalMetaTags.priceRange}
+  mobileWebAppCapable={metaTags.mobileWebAppCapable || additionalMetaTags.mobileWebAppCapable}
+  appleMobileWebAppCapable={metaTags.appleMobileWebAppCapable || additionalMetaTags.appleMobileWebAppCapable}
+  appleMobileWebAppStatusBarStyle={metaTags.appleMobileWebAppStatusBarStyle || additionalMetaTags.appleMobileWebAppStatusBarStyle}
+  formatDetection={metaTags.formatDetection || additionalMetaTags.formatDetection}
+  businessContactEmail={metaTags.businessContactEmail || additionalMetaTags.businessContactEmail}
+  businessContactTelephone={metaTags.businessContactTelephone || additionalMetaTags.businessContactTelephone}
+  businessContactWhatsapp={metaTags.businessContactWhatsapp || additionalMetaTags.businessContactWhatsapp}
+  globalConfig={globalConfig}
+  country={country}
+  language={language}
+  trackingString={finalData.trackingString || ''}
+>
+  <!-- HEAD: Meta Tags adicionales tal como vienen de la edge function -->
+  {additionalMetaTags['property:price:range'] && (
+    <meta name="property:price:range" content={additionalMetaTags['property:price:range']} slot="head" />
+  )}
+  {additionalMetaTags['property:price:average'] && (
+    <meta name="property:price:average" content={additionalMetaTags['property:price:average']} slot="head" />
+  )}
+  {additionalMetaTags['property:area:average'] && (
+    <meta name="property:area:average" content={additionalMetaTags['property:area:average']} slot="head" />
+  )}
+  {additionalMetaTags['property:count'] && (
+    <meta name="property:count" content={additionalMetaTags['property:count']} slot="head" />
+  )}
+  {additionalMetaTags['market:currency'] && (
+    <meta name="market:currency" content={additionalMetaTags['market:currency']} slot="head" />
+  )}
+  {additionalMetaTags['market:pricePerSqm'] && (
+    <meta name="market:pricePerSqm" content={additionalMetaTags['market:pricePerSqm']} slot="head" />
+  )}
+
+  <div class="min-h-screen bg-gray-50">
+    
+    <!-- ============================================ -->
+    <!-- ABOVE THE FOLD - CRÍTICO (Carga inmediata) -->
+    <!-- ============================================ -->
+    
+    <!-- Header con datos de inventario -->
+    <PropertyListHeader 
+      seoH1={baseSeo.h1 || finalTitle}
+      seoH2={baseSeo.h2 || 'El inmueble que buscas, a un CLIC de distancia!'}
+      seoTitle={finalTitle}
+      seoDescription={finalDescription}
+      totalProperties={totalProperties}
+      seoContent={seoContent}
+      language={language}
+      country={country}
+      tags={tags}
+      searchInfo={searchInfo}
+      breadcrumbs={breadcrumbs}
+      aggregatedStats={aggregatedStats}
+      heroImage={contextualHeroImage}
+       searchTags={finalData.searchTags || null}
+       currencies={finalData.currencies || null} 
+  locationHierarchy={finalData.locationHierarchy || null}
+  preselectedFilters={finalData.preselectedFilters || null}
+  trackingString={finalData.trackingString || ''}
+    />
+
+    <!-- 1. CONTENIDO PRINCIPAL - PropertyList -->
+    <PropertyList 
+      listings={properties} 
+      meta={{
+        title: finalTitle,
+        description: finalDescription,
+        keywords: finalKeywords
+      }}
+      totalCount={totalProperties}
+      currentPage={pagination.page || 1}
+      totalPages={pagination.total_pages || 1}
+      itemsPerPage={pagination.limit || 32}
+      hasNextPage={pagination.has_next_page || false}
+      hasPreviousPage={pagination.has_prev_page || false}
+      language={language}
+      country={country}
+      globalConfig={globalConfig}
+      aggregatedStats={aggregatedStats}
+      searchContext={enhancedContext}
+      loadingStrategy="eager"
+    />
+
+    <!-- ===================================================== -->
+    <!-- HIGH PRIORITY SEO CONTENT -->
+    <!-- ===================================================== -->
+
+    <!-- 2. FAQs - RICH SNIPPETS -->
+    {relatedContent?.faqs?.length > 0 && (
+      <section class="py-8 bg-white">
+        <DynamicFAQs 
+          faqs={relatedContent.faqs}
+          context={enhancedContext}
+          language={language}
+          organizedSeoData={organizedSeoData}
+          maxInitialVisible={4}
+          expandable={true}
+        />
+      </section>
+    )}
+
+    <!-- 3. SEO INSIGHTS - Visión del mercado -->
+    <SEOInsightsSection 
+      seoContent={seoContent}
+      searchInfo={searchInfo}
+      language={language}
+      country={country}
+      organizedSeoData={organizedSeoData}
+      aggregatedStats={aggregatedStats}
+      enhancedContext={enhancedContext}
+    />
+
+    <!-- 4. TESTIMONIALS -->
+    {relatedContent?.testimonials && relatedContent.testimonials.length > 0 && (
+      <section class="py-8 bg-white">
+        <Testimonials 
+          testimonials={relatedContent.testimonials}
+          showTitle={true}
+          layout={relatedContent.testimonials.length <= 2 ? "minimal" : "default"}
+          maxItems={relatedContent.testimonials.length <= 2 ? 2 : 6}
+          language={language}
+          context={enhancedContext}
+        />
+      </section>
+    )}
+
+    <!-- ============================================ -->
+    <!-- MEDIUM PRIORITY - LAZY LOADING -->
+    <!-- ============================================ -->
+
+    <!-- 5. ARTÍCULOS -->
+    {relatedContent?.articles?.length > 0 && (
+      <section class="py-8 bg-gray-50" data-lazy-section="articles">
+        <RelatedArticles 
+          articles={relatedContent.articles}
+          layout="hybrid"
+          maxExpanded={2}
+          maxShowcases={6}
+          articlesStats={{
+            total_articles: relatedContent.articles.length
+          }}
+          language={language}
+          country={country}
+          context={enhancedContext}
+          loadingStrategy="lazy"
+        />
+      </section>
+    )}
+
+    <!-- 6. PRIMER CAROUSEL -->
+    {relatedContent?.carousels?.length > 0 && relatedContent.carousels[0] && (
+      <section class="py-8 bg-white" data-lazy-section="carousel-primary">
+        <PropertyCarousel 
+          title={relatedContent.carousels[0].title}
+          subtitle={relatedContent.carousels[0].description || relatedContent.carousels[0].subtitle}
+          properties={relatedContent.carousels[0].properties || []}
+          viewAllLink={relatedContent.carousels[0].carousel_url || relatedContent.carousels[0].viewAllLink || '#'}
+          theme="default"
+          language={language}
+          country={country}
+          context={enhancedContext}
+          loadingStrategy="lazy"
+          maxVisible={6}
+        />
+      </section>
+    )}
+
+    <!-- 7. POPULAR LOCATIONS -->
+    {shouldShowPopularLocations && (
+      <section class="py-8 bg-gray-50" data-lazy-section="popular-locations">
+        <PopularLocations 
+          hotItems={hotItems}
+          showType={popularLocationsShowType}
+          dataSource="edge_function"
+          showBadges={true}
+          language={language}
+          context={enhancedContext}
+          layout="grid"
+          maxItems={8}
+          loadingStrategy="lazy"
+        />
+      </section>
+    )}
+
+    <!-- ============================================ -->
+    <!-- LOW PRIORITY - LAZY LOADING + PROGRESSIVE -->
+    <!-- ============================================ -->
+
+    <!-- 8. VIDEOS -->
+    {relatedContent?.videos?.length > 0 && (
+      <section class="py-8 bg-white" data-lazy-section="videos">
+        <VideoGallery 
+          videos={relatedContent.videos}
+          layout="hybrid"
+          propertyRelated={true}
+          language={language}
+          country={country}
+          context={enhancedContext}
+          maxInitialVisible={3}
+          showDescriptions={true}
+          loadingStrategy="progressive"
+        />
+      </section>
+    )}
+
+    <!-- 9. PROPIEDADES DESTACADAS -->
+    {featuredProperties?.length > 0 && (
+      <section class="py-8 bg-gray-50" data-lazy-section="featured">
+        <PropertyCarousel 
+          properties={featuredProperties}
+          viewAllLink="/destacadas"
+          theme="featured"
+          language={language}
+          country={country}
+          context={enhancedContext}
+          loadingStrategy="lazy"
+          maxVisible={4}
+        />
+      </section>
+    )}
+
+    <!-- 10. CAROUSELES ADICIONALES -->
+    {relatedContent?.carousels?.length > 1 && relatedContent.carousels.slice(1).map((carousel, index) => (
+      <section class="py-8 bg-white" data-lazy-section={`carousel-${index + 2}`}>
+        <PropertyCarousel 
+          title={carousel.title}
+          subtitle={carousel.description || carousel.subtitle}
+          properties={carousel.properties || []}
+          viewAllLink={carousel.carousel_url || carousel.viewAllLink || '#'}
+          theme="default"
+          language={language}
+          country={country}
+          context={enhancedContext}
+          loadingStrategy="progressive"
+          maxVisible={4}
+          intersectionThreshold={0.3}
+        />
+      </section>
+    ))}
+
+    <!-- ============================================ -->
+    <!-- FOOTER CONTENT -->
+    <!-- ============================================ -->
+
+    <!-- Contenido SEO adicional -->
+    <section class="py-8 bg-gray-50" data-lazy-section="seo-additional">
+      <PropertySeoContent 
+        data={finalData}
+        language={language}
+        country={country}
+        seoContent={seoContent}
+        organizedSeoData={organizedSeoData}
+        aggregatedStats={aggregatedStats}
+        contextualHeroImage={contextualHeroImage}
+        loadingStrategy="lazy"
+      />
+    </section>
+
+    <!-- CTA Final -->
+    <PropertyListCTA
+      searchInfo={searchInfo}
+      language={language}
+      globalConfig={globalConfig}
+      country={country}
+      enhancedContext={enhancedContext}
+      aggregatedStats={aggregatedStats}
+    />
+
+  </div>
+
+  <!-- Structured Data tal como viene de la edge function -->
+  {structuredData && structuredData.length > 0 && structuredData.map((schema) => (
+    <script type="application/ld+json" set:html={JSON.stringify(schema)}></script>
+  ))}
+</Layout>

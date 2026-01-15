@@ -1,0 +1,41 @@
+{
+  "name": "CLIC Inmobiliaria",
+  "short_name": "CLIC",
+  "description": "Encuentra tu propiedad ideal en República Dominicana",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f04e00",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "lifestyle"],
+  "lang": "es",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}

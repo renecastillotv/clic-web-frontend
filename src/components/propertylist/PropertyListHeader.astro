@@ -1,0 +1,379 @@
+---
+import MiniSearchBar from '../MiniSearchBar.astro';
+
+export interface Props {
+  seoH1: string;
+  seoH2?: string;
+  seoTitle: string;
+  seoDescription: string;
+  totalProperties: number;
+  seoContent?: any;
+  language?: string;
+  country?: any;
+  tags?: any[];
+  searchInfo?: any;
+  breadcrumbs?: Array<{
+    name: string;
+    url?: string;
+    is_active?: boolean;
+    current?: boolean;
+  }>;
+  aggregatedStats?: any;
+  heroImage?: string;
+  searchTags?: any;
+  locationHierarchy?: any;
+  preselectedFilters?: any;
+  trackingString?: string;
+  currencies?: any;
+}
+
+const { 
+  seoH1, 
+  seoH2, 
+  seoTitle,
+  seoDescription,
+  totalProperties, 
+  seoContent,
+  language = 'es',
+  country,
+  tags = [],
+  searchInfo,
+  breadcrumbs = [],
+  aggregatedStats,
+  heroImage,
+  searchTags,
+  locationHierarchy,
+  preselectedFilters,
+  trackingString = '',
+  currencies
+} = Astro.props;
+
+// Traducciones para stats de inventario
+const translations = {
+  es: {
+    inventoryData: "Nuestro inventario",
+    averagePrice: "Precio promedio",
+    priceRange: "Rango disponible", 
+    pricePerSqm: "Precio por m²",
+    available: "disponibles",
+    forSale: "En venta",
+    forRent: "En alquiler",
+    properties: "propiedades",
+    apartments: "Apartamentos",
+    houses: "Casas",
+    marketComposition: "Composición"
+  },
+  en: {
+    inventoryData: "Our inventory",
+    averagePrice: "Average price",
+    priceRange: "Available range",
+    pricePerSqm: "Price per sqm",
+    available: "available",
+    forSale: "For sale", 
+    forRent: "For rent",
+    properties: "properties",
+    apartments: "Apartments",
+    houses: "Houses",
+    marketComposition: "Composition"
+  },
+  fr: {
+    inventoryData: "Notre inventaire",
+    averagePrice: "Prix moyen",
+    priceRange: "Gamme disponible",
+    pricePerSqm: "Prix par m²",
+    available: "disponibles",
+    forSale: "À vendre",
+    forRent: "À louer", 
+    properties: "propriétés",
+    apartments: "Appartements",
+    houses: "Maisons",
+    marketComposition: "Composition"
+  }
+};
+
+const t = translations[language] || translations.es;
+
+function formatPrice(price, currency) {
+  const currencySymbol = currency === 'USD' ? '$' : currency === 'DOP' ? 'RD$' : currency;
+  
+  if (price >= 1000000) {
+    return `${currencySymbol}${(price/1000000).toFixed(1)}M`;
+  } else if (price >= 1000) {
+    return `${currencySymbol}${(price/1000).toFixed(0)}K`;
+  } else {
+    return `${currencySymbol}${price.toLocaleString()}`;
+  }
+}
+
+function extractInventoryStats(aggregatedStats: any) {
+  if (!aggregatedStats) return [];
+  
+  const stats = [];
+  const { summary } = aggregatedStats;
+  
+  if (!summary) return [];
+  
+  const { predominantOperation, predominantCurrency, marketMix } = summary;
+  const operationKey = predominantOperation === 'venta' ? 'sale' : 'rental';
+  const operationData = aggregatedStats[operationKey]?.[predominantCurrency];
+  
+  if (operationData) {
+    if (operationData.avgPrice > 0) {
+      const avgPriceFormatted = formatPrice(operationData.avgPrice, predominantCurrency);
+      const operationText = operationKey === 'sale' ? t.forSale : t.forRent;
+      
+      stats.push({
+        value: avgPriceFormatted,
+        label: `${t.averagePrice} ${operationText.toLowerCase()}`
+      });
+    }
+
+    if (operationData.pricePerSqm > 0) {
+      const pricePerSqmFormatted = formatPrice(operationData.pricePerSqm, predominantCurrency);
+      
+      stats.push({
+        value: `${pricePerSqmFormatted}/m²`,
+        label: t.pricePerSqm
+      });
+    }
+
+    if (operationData.minPrice && operationData.maxPrice && operationData.minPrice !== operationData.maxPrice) {
+      const minFormatted = formatPrice(operationData.minPrice, predominantCurrency);
+      const maxFormatted = formatPrice(operationData.maxPrice, predominantCurrency);
+      
+      stats.push({
+        value: `${minFormatted} - ${maxFormatted}`,
+        label: t.priceRange
+      });
+    }
+
+    if (stats.length < 3) {
+      if (marketMix?.salePercentage && marketMix?.rentalPercentage) {
+        const predominantPercentage = operationKey === 'sale' ? marketMix.salePercentage : marketMix.rentalPercentage;
+        const operationText = operationKey === 'sale' ? t.forSale : t.forRent;
+        
+        stats.push({
+          value: `${predominantPercentage}%`,
+          label: `${t.marketComposition} ${operationText.toLowerCase()}`
+        });
+      } else if (aggregatedStats.totalCount > 0) {
+        stats.push({
+          value: `${aggregatedStats.totalCount}+`,
+          label: `${t.properties} ${t.available}`
+        });
+      }
+    }
+  }
+
+  if (stats.length === 0 && aggregatedStats.totalCount > 0) {
+    stats.push({
+      value: `${aggregatedStats.totalCount}+`,
+      label: `${t.properties} ${t.available}`
+    });
+  }
+  
+  return stats.slice(0, 3);
+}
+
+function extractMarketStats(seoContent: any) {
+  if (!seoContent) return [];
+  
+  const stats = [];
+  const marketInsights = seoContent.market_insights || [];
+  const operationInsights = marketInsights.filter(insight => insight.content_type === 'operacion');
+  
+  operationInsights.forEach(insight => {
+    if (insight.market_growth) {
+      const growthMatch = insight.market_growth.match(/(\d+\.?\d*)%/);
+      if (growthMatch) {
+        stats.push({
+          value: growthMatch[1] + '%',
+          label: language === 'es' ? 'Crecimiento del mercado' : 
+                 language === 'en' ? 'Market growth' : 
+                 'Croissance du marché'
+        });
+      }
+    }
+    
+    if (insight.average_appreciation) {
+      const appreciationMatch = insight.average_appreciation.match(/(\d+-?\d*)%/);
+      if (appreciationMatch) {
+        stats.push({
+          value: appreciationMatch[1] + '%',
+          label: language === 'es' ? 'Apreciación anual' : 
+                 language === 'en' ? 'Annual appreciation' : 
+                 'Appréciation annuelle'
+        });
+      }
+    }
+    
+    if (insight.foreign_investment) {
+      const foreignMatch = insight.foreign_investment.match(/(\d+)%/);
+      if (foreignMatch) {
+        stats.push({
+          value: foreignMatch[1] + '%',
+          label: language === 'es' ? 'Compradores extranjeros' : 
+                 language === 'en' ? 'Foreign buyers' : 
+                 'Acheteurs étrangers'
+        });
+      }
+    }
+  });
+  
+  return stats.slice(0, 3);
+}
+
+const displayStats = aggregatedStats ? extractInventoryStats(aggregatedStats) : extractMarketStats(seoContent);
+
+const defaultHeroImage = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80';
+
+const finalHeroImage = heroImage && typeof heroImage === 'string' && heroImage.trim() !== '' 
+  ? heroImage 
+  : defaultHeroImage;
+
+console.log('PropertyListHeader - Data received:', {
+  heroImageProvided: !!heroImage,
+  heroImageValue: heroImage,
+  finalHeroUsed: finalHeroImage,
+  isFromEdgeFunction: finalHeroImage === heroImage,
+  statsExtracted: displayStats.length,
+  searchTagsReceived: !!searchTags,
+  locationHierarchyReceived: !!locationHierarchy,
+  preselectedFiltersReceived: !!preselectedFilters,
+  trackingStringReceived: !!trackingString,
+  currenciesReceived: !!currencies
+});
+---
+
+<!-- Header Hero compacto con datos de inventario -->
+<section class="relative min-h-[60vh] py-8 flex items-center justify-center">
+  <!-- Background con control profesional -->
+  <div class="absolute inset-0 z-0">
+    <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70 z-10"></div>
+    <img 
+      src={finalHeroImage}
+      alt={`${language === 'es' ? 'Propiedades en' : language === 'en' ? 'Properties in' : 'Propriétés en'} ${searchInfo?.location || country?.name || ''}`}
+      class="w-full h-full object-cover"
+      style="filter: brightness(0.8) contrast(1.1);"
+    />
+  </div>
+  
+  <!-- Contenido -->
+  <div class="relative z-10 h-full flex flex-col justify-center">
+    <div class="container mx-auto px-4">
+      
+      <!-- Título y descripción SEO enriquecidos -->
+      <div class="text-center mb-8">
+        <h1 class="text-xl md:text-2xl lg:text-3xl font-bold text-white leading-tight mb-4">
+          {seoTitle}
+        </h1>
+        
+        <h2 class="text-sm md:text-base text-gray-200 max-w-3xl mx-auto leading-relaxed">
+          {seoDescription}
+        </h2>
+      </div>
+
+      <!-- Barra de búsqueda con datos del handler - CONTENEDOR MÁS ANCHO -->
+      <div class="w-full max-w-7xl mx-auto px-2 mb-8">
+        <div class="bg-white rounded-lg shadow-lg py-4 px-3 overflow-hidden">
+          <MiniSearchBar 
+            searchTags={searchTags}
+            locationHierarchy={locationHierarchy}
+            preselectedFilters={preselectedFilters}
+            currencies={currencies}
+            language={language}
+            country={country}
+            trackingString={trackingString}
+            isSticky={true}
+          />
+        </div>
+      </div>
+
+      <!-- Stats de NUESTRO INVENTARIO (prioridad) o mercado general (fallback) -->
+      {displayStats.length > 0 && (
+        <div class="flex flex-wrap justify-center gap-8 text-center mb-4">
+          {displayStats.map((stat) => (
+            <div class="text-white">
+              <div class="text-2xl font-bold">{stat.value}</div>
+              <div class="text-sm text-gray-200">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      <!-- Breadcrumb SEO completo -->
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <nav aria-label="Breadcrumb" class="mt-2 px-2 md:px-0">
+          <ol class="flex items-center justify-center flex-wrap gap-1 text-xs opacity-80 max-w-full overflow-hidden">
+            {breadcrumbs.map((crumb, index) => (
+              <li class="flex items-center shrink-0 max-w-[150px] md:max-w-none">
+                {index > 0 && (
+                  <span class="mx-1 md:mx-2 text-gray-400">›</span>
+                )}
+                {crumb.is_active || crumb.current ? (
+                  <span class="text-gray-300 font-medium truncate">
+                    {crumb.name}
+                  </span>
+                ) : (
+                  <a
+                    href={crumb.url}
+                    class="text-gray-400 hover:text-white transition-colors duration-200 truncate"
+                    aria-label={`Ir a ${crumb.name}`}
+                  >
+                    {crumb.name}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ol>
+        </nav>
+      )}
+      
+      <!-- Microdata Schema para Breadcrumb (invisible pero SEO) -->
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <div class="hidden" itemscope itemtype="https://schema.org/BreadcrumbList">
+          {breadcrumbs.map((crumb, index) => (
+            <div itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+              <a itemprop="item" href={crumb.url || '#'}>
+                <span itemprop="name">{crumb.name}</span>
+              </a>
+              <meta itemprop="position" content={(index + 1).toString()} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  nav ol li a {
+    position: relative;
+  }
+  
+  nav ol li a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.6);
+    transition: width 0.3s ease;
+  }
+  
+  nav ol li a:hover::after {
+    width: 100%;
+  }
+  
+  @media (max-width: 640px) {
+    nav ol {
+      font-size: 0.625rem;
+    }
+    
+    nav ol li span.mx-2 {
+      margin-left: 0.375rem;
+      margin-right: 0.375rem;
+    }
+  }
+</style>

@@ -1,0 +1,956 @@
+---
+// src/layouts/ContactLayout.astro - Layout para página de contacto con validación defensiva
+import Layout from './Layout.astro';
+
+// ===================================================================
+// FUNCIONES HELPER PARA VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+function safeGet(obj, path, defaultValue = null) {
+  try {
+    return path.split('.').reduce((current, key) => current && current[key], obj) || defaultValue;
+  } catch (error) {
+    console.warn('safeGet error:', error, 'path:', path);
+    return defaultValue;
+  }
+}
+
+function safeArray(arr, defaultValue = []) {
+  return Array.isArray(arr) ? arr : defaultValue;
+}
+
+function safeString(str, defaultValue = '') {
+  return typeof str === 'string' ? str : defaultValue;
+}
+
+function safeObject(obj, defaultValue = {}) {
+  return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : defaultValue;
+}
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP CON VALIDACIÓN DEFENSIVA
+// ===================================================================
+
+const { data } = Astro.props;
+const language = safeString(data?.language, 'es');
+
+// ===================================================================
+// PROCESAMIENTO DEFENSIVO DE DATOS
+// ===================================================================
+
+let contactData = safeObject(data);
+
+// Crear contactInfo seguro combinando múltiples fuentes
+const rawContactInfo = safeObject(contactData.contactInfo);
+const globalContact = safeGet(contactData, 'globalConfig.contact', {});
+const globalOffice = safeGet(contactData, 'globalConfig.office', {});
+
+// Obtener coordenadas de la oficina principal
+const offices = safeArray(safeGet(contactData, 'contactInfo.offices'));
+const mainOffice = offices.length > 0 ? offices[0] : null;
+
+const safeContactInfo = {
+  phone: rawContactInfo.phone || safeGet(rawContactInfo, 'main.phone') || globalContact.phone || '+1 809 555 0100',
+  whatsapp: rawContactInfo.whatsapp || safeGet(rawContactInfo, 'main.whatsapp') || globalContact.whatsapp || '18095550100',
+  email: rawContactInfo.email || safeGet(rawContactInfo, 'main.email') || globalContact.email || 'info@clic.do',
+  address: mainOffice?.address || rawContactInfo.address || safeGet(rawContactInfo, 'main.address') || globalContact.address ||
+           (language === 'es' ? 'Av. Winston Churchill, Plaza de la Salud, Torre 2, Piso 8' :
+            language === 'en' ? 'Winston Churchill Ave, Plaza de la Salud, Tower 2, Floor 8' :
+            'Av. Winston Churchill, Plaza de la Salud, Tour 2, Étage 8'),
+  city: rawContactInfo.city ||
+        (language === 'es' ? 'Santo Domingo, República Dominicana' :
+         language === 'en' ? 'Santo Domingo, Dominican Republic' :
+         'Santo Domingo, République dominicaine'),
+  coordinates: mainOffice?.coordinates || {
+    lat: 18.4861,  // Coordenadas de Santo Domingo por defecto
+    lng: -69.9312
+  },
+  hours: rawContactInfo.hours || globalOffice.hours || {
+    weekdays: language === 'es' ? 'Lunes - Viernes: 8:00 AM - 6:00 PM' :
+              language === 'en' ? 'Monday - Friday: 8:00 AM - 6:00 PM' :
+              'Lundi - Vendredi: 8:00 AM - 6:00 PM',
+    saturday: language === 'es' ? 'Sábado: 9:00 AM - 2:00 PM' :
+              language === 'en' ? 'Saturday: 9:00 AM - 2:00 PM' :
+              'Samedi: 9:00 AM - 2:00 PM',
+    sunday: language === 'es' ? 'Domingo: Cerrado' :
+            language === 'en' ? 'Sunday: Closed' :
+            'Dimanche: Fermé'
+  }
+};
+
+// Servicios - SIEMPRE usar definición local (no del backend)
+const services = [
+  {
+    value: 'asesor',
+    label: language === 'es' ? 'Quiero ser parte de CLIC como asesor' :
+           language === 'en' ? 'I want to be part of CLIC as an advisor' :
+           'Je veux faire partie de CLIC en tant que conseiller'
+  },
+  {
+    value: 'vender',
+    label: language === 'es' ? 'Quiero vender mi propiedad' :
+           language === 'en' ? 'I want to sell my property' :
+           'Je veux vendre ma propriété'
+  },
+  {
+    value: 'desarrollo',
+    label: language === 'es' ? 'Quiero que vendan mi proyecto' :
+           language === 'en' ? 'I want you to sell my project' :
+           'Je veux que vous vendiez mon projet'
+  },
+  {
+    value: 'comprar',
+    label: language === 'es' ? 'Quiero comprar' :
+           language === 'en' ? 'I want to buy' :
+           'Je veux acheter'
+  },
+  {
+    value: 'otro',
+    label: language === 'es' ? 'Quiero otro servicio' :
+           language === 'en' ? 'I want another service' :
+           'Je veux un autre service'
+  }
+];
+
+// Team con fallback
+const team = safeArray(safeGet(contactData, 'team.advisors') || contactData.team, [
+  {
+    name: 'María González',
+    title: language === 'es' ? 'Directora Comercial' :
+           language === 'en' ? 'Commercial Director' :
+           'Directrice Commerciale',
+    phone: '+1 809 555 0101',
+    email: 'maria@clic.do',
+    specialties: [
+      language === 'es' ? 'Ventas' : language === 'en' ? 'Sales' : 'Ventes',
+      language === 'es' ? 'Propiedades de lujo' : language === 'en' ? 'Luxury properties' : 'Propriétés de luxe'
+    ],
+    avatar: 'https://i.pravatar.cc/150?img=5'
+  },
+  {
+    name: 'Carlos Rodríguez',
+    title: language === 'es' ? 'Especialista en Proyectos' :
+           language === 'en' ? 'Projects Specialist' :
+           'Spécialiste des Projets',
+    phone: '+1 809 555 0102',
+    email: 'carlos@clic.do',
+    specialties: [
+      language === 'es' ? 'Desarrollos' : language === 'en' ? 'Developments' : 'Développements',
+      language === 'es' ? 'Comercialización' : language === 'en' ? 'Marketing' : 'Commercialisation'
+    ],
+    avatar: 'https://i.pravatar.cc/150?img=8'
+  },
+  {
+    name: 'Ana Martínez',
+    title: language === 'es' ? 'Asesora de Ventas' :
+           language === 'en' ? 'Sales Advisor' :
+           'Conseillère de Ventes',
+    phone: '+1 809 555 0103',
+    email: 'ana@clic.do',
+    specialties: [
+      language === 'es' ? 'Primeros compradores' : language === 'en' ? 'First-time buyers' : 'Premiers acheteurs',
+      language === 'es' ? 'Asesoría' : language === 'en' ? 'Advisory' : 'Conseil'
+    ],
+    avatar: 'https://i.pravatar.cc/150?img=16'
+  }
+]);
+
+// SEO con fallback
+const seo = safeObject(contactData.seo, {
+  title: language === 'es' ? 'Contacto - CLIC Inmobiliaria' :
+         language === 'en' ? 'Contact - CLIC Real Estate' :
+         'Contact - CLIC Immobilier',
+  description: language === 'es' ? 'Contáctanos para vender tu propiedad, desarrollar tu proyecto o encontrar tu hogar ideal. Estamos aquí para ayudarte.' :
+               language === 'en' ? 'Contact us to sell your property, develop your project or find your ideal home. We are here to help you.' :
+               'Contactez-nous pour vendre votre propriété, développer votre projet ou trouver votre maison idéale. Nous sommes là pour vous aider.'
+});
+
+// ===================================================================
+// TEXTOS POR IDIOMA
+// ===================================================================
+
+const TEXTS = {
+  es: {
+    heroTitle: 'Hablemos de tu proyecto',
+    heroSubtitle: 'Estamos aquí para ayudarte. Conversemos sin compromiso sobre cómo podemos trabajar juntos.',
+    formTitle: 'Envíanos un mensaje',
+    directContactTitle: '¿Prefieres contacto directo?',
+    officeTitle: 'Nuestra oficina',
+    teamTitle: 'Nuestro equipo',
+    mapTitle: 'Encuéntranos',
+    workWithUsTitle: '¿Quieres trabajar con nosotros?',
+    workWithUsSubtitle: 'Estamos creciendo y buscamos asesores inmobiliarios comprometidos',
+    formFields: {
+      name: 'Nombre',
+      phone: 'Teléfono',
+      email: 'Email',
+      service: '¿En qué te podemos ayudar?',
+      message: 'Cuéntanos más detalles',
+      messagePlaceholder: 'Cuéntanos sobre tu propiedad, proyecto o lo que necesitas...',
+      contact: '¿Cuándo te gustaría que te contactemos?',
+      submit: 'Enviar mensaje',
+      required: '*',
+      selectOption: 'Selecciona una opción'
+    },
+    contactOptions: {
+      asap: 'Lo antes posible',
+      tomorrow: 'Mañana',
+      thisWeek: 'Esta semana',
+      nextWeek: 'Próxima semana',
+      notUrgent: 'No es urgente'
+    },
+    quickActions: {
+      callNow: 'Llamar ahora',
+      whatsapp: 'WhatsApp',
+      quickResponse: 'Respuesta rápida',
+      email: 'Email'
+    },
+    workOffer: {
+      title: 'Lo que ofrecemos:',
+      items: [
+        'Comisiones competitivas',
+        'Capacitación continua',
+        'Leads de calidad',
+        'Soporte de marketing',
+        'Ambiente de trabajo positivo'
+      ]
+    },
+    workLooking: {
+      title: 'Lo que buscamos:',
+      items: [
+        'Personas comprometidas',
+        'Ganas de aprender y crecer',
+        'Enfoque en servicio al cliente',
+        'Disponibilidad para trabajar fines de semana',
+        'Experiencia en ventas (no necesariamente inmobiliaria)'
+      ]
+    },
+    workCta: '¿Te interesa? Completa el formulario arriba seleccionando "Quiero ser asesor inmobiliario"',
+    applyNow: 'Aplicar ahora',
+    responseTime: '* Te contactaremos en menos de 24 horas'
+  },
+  en: {
+    heroTitle: 'Let\'s talk about your project',
+    heroSubtitle: 'We are here to help you. Let\'s talk without commitment about how we can work together.',
+    formTitle: 'Send us a message',
+    directContactTitle: 'Prefer direct contact?',
+    officeTitle: 'Our office',
+    teamTitle: 'Our team',
+    mapTitle: 'Find us',
+    workWithUsTitle: 'Want to work with us?',
+    workWithUsSubtitle: 'We are growing and looking for committed real estate advisors',
+    formFields: {
+      name: 'Name',
+      phone: 'Phone',
+      email: 'Email',
+      service: 'How can we help you?',
+      message: 'Tell us more details',
+      messagePlaceholder: 'Tell us about your property, project or what you need...',
+      contact: 'When would you like us to contact you?',
+      submit: 'Send message',
+      required: '*',
+      selectOption: 'Select an option'
+    },
+    contactOptions: {
+      asap: 'As soon as possible',
+      tomorrow: 'Tomorrow',
+      thisWeek: 'This week',
+      nextWeek: 'Next week',
+      notUrgent: 'Not urgent'
+    },
+    quickActions: {
+      callNow: 'Call now',
+      whatsapp: 'WhatsApp',
+      quickResponse: 'Quick response',
+      email: 'Email'
+    },
+    workOffer: {
+      title: 'What we offer:',
+      items: [
+        'Competitive commissions',
+        'Continuous training',
+        'Quality leads',
+        'Marketing support',
+        'Positive work environment'
+      ]
+    },
+    workLooking: {
+      title: 'What we\'re looking for:',
+      items: [
+        'Committed people',
+        'Desire to learn and grow',
+        'Focus on customer service',
+        'Availability to work weekends',
+        'Sales experience (not necessarily real estate)'
+      ]
+    },
+    workCta: 'Interested? Complete the form above by selecting "I want to be a real estate advisor"',
+    applyNow: 'Apply now',
+    responseTime: '* We will contact you within 24 hours'
+  },
+  fr: {
+    heroTitle: 'Parlons de votre projet',
+    heroSubtitle: 'Nous sommes là pour vous aider. Parlons sans engagement de la façon dont nous pouvons travailler ensemble.',
+    formTitle: 'Envoyez-nous un message',
+    directContactTitle: 'Préférez-vous un contact direct?',
+    officeTitle: 'Notre bureau',
+    teamTitle: 'Notre équipe',
+    mapTitle: 'Trouvez-nous',
+    workWithUsTitle: 'Vous voulez travailler avec nous?',
+    workWithUsSubtitle: 'Nous grandissons et cherchons des conseillers immobiliers engagés',
+    formFields: {
+      name: 'Nom',
+      phone: 'Téléphone',
+      email: 'Email',
+      service: 'Comment pouvons-nous vous aider?',
+      message: 'Donnez-nous plus de détails',
+      messagePlaceholder: 'Parlez-nous de votre propriété, projet ou de ce dont vous avez besoin...',
+      contact: 'Quand aimeriez-vous que nous vous contactions?',
+      submit: 'Envoyer le message',
+      required: '*',
+      selectOption: 'Sélectionnez une option'
+    },
+    contactOptions: {
+      asap: 'Le plus tôt possible',
+      tomorrow: 'Demain',
+      thisWeek: 'Cette semaine',
+      nextWeek: 'La semaine prochaine',
+      notUrgent: 'Pas urgent'
+    },
+    quickActions: {
+      callNow: 'Appeler maintenant',
+      whatsapp: 'WhatsApp',
+      quickResponse: 'Réponse rapide',
+      email: 'Email'
+    },
+    workOffer: {
+      title: 'Ce que nous offrons:',
+      items: [
+        'Commissions compétitives',
+        'Formation continue',
+        'Prospects de qualité',
+        'Support marketing',
+        'Environnement de travail positif'
+      ]
+    },
+    workLooking: {
+      title: 'Ce que nous recherchons:',
+      items: [
+        'Personnes engagées',
+        'Désir d\'apprendre et de grandir',
+        'Focus sur le service client',
+        'Disponibilité pour travailler les week-ends',
+        'Expérience en vente (pas nécessairement immobilière)'
+      ]
+    },
+    workCta: 'Intéressé? Remplissez le formulaire ci-dessus en sélectionnant "Je veux être conseiller immobilier"',
+    applyNow: 'Postuler maintenant',
+    responseTime: '* Nous vous contacterons dans les 24 heures'
+  }
+};
+
+const text = TEXTS[language] || TEXTS.es;
+
+console.log('✅ ContactLayout preparado con validación defensiva:', {
+  language,
+  servicesCount: services.length,
+  teamCount: team.length,
+  hasContactInfo: !!safeContactInfo.phone,
+  hasHours: !!safeContactInfo.hours.weekdays
+});
+---
+
+<Layout
+  title={seo.title || text.heroTitle}
+  description={seo.description || text.heroSubtitle}
+  language={language}
+  hreflangData={safeObject(data?.seo?.hreflang, {})}
+  globalConfig={safeObject(data?.globalConfig, {})}
+  trackingString={safeString(data?.trackingString, '')}
+  hotItems={safeObject(data?.hotItems, {})}
+  country={safeObject(data?.country, {})}
+  breadcrumbs={safeArray(data?.seo?.breadcrumbs, [])}
+  structuredData={safeObject(data?.seo?.structured_data, {})}
+  openGraph={safeObject(data?.seo?.open_graph, {})}
+  twitterCard={safeObject(data?.seo?.twitter_card, {})}
+>
+  <!-- Hero Section - Compact & Professional -->
+  <section class="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 md:py-16 overflow-hidden">
+    <!-- Background pattern -->
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
+    </div>
+
+    <!-- Decorative elements -->
+    <div class="absolute top-10 right-10 w-48 h-48 bg-[#f04e00] rounded-full filter blur-3xl opacity-20"></div>
+    <div class="absolute bottom-10 left-10 w-64 h-64 bg-blue-500 rounded-full filter blur-3xl opacity-10"></div>
+
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-6xl mx-auto">
+
+        <!-- Breadcrumbs a la izquierda -->
+        {safeArray(data?.seo?.breadcrumbs).length > 0 && (
+          <nav class="mb-6">
+            <ol class="flex items-center gap-2 text-sm text-gray-400">
+              {data.seo.breadcrumbs.map((crumb, index) => (
+                <li class="flex items-center gap-2">
+                  {index > 0 && <span>/</span>}
+                  <a href={crumb.url} class="hover:text-white transition-colors">
+                    {crumb.name}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
+
+        <!-- Layout: Título a la izquierda, stats a la derecha -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+
+          <!-- Título y subtítulo -->
+          <div>
+            <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 leading-tight">
+              {safeString(data?.seo?.h1, text.heroTitle)}
+            </h1>
+            <p class="text-lg md:text-xl text-gray-300 leading-relaxed font-light">
+              {safeString(data?.seo?.h2, text.heroSubtitle)}
+            </p>
+          </div>
+
+          <!-- Quick Stats -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00] mb-1">10+</div>
+              <div class="text-xs md:text-sm text-gray-300">{language === 'es' ? 'Años' : language === 'en' ? 'Years' : 'Années'}</div>
+            </div>
+            <div class="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00] mb-1">{safeArray(team).length > 0 ? safeArray(team).length : '15'}+</div>
+              <div class="text-xs md:text-sm text-gray-300">{language === 'es' ? 'Expertos' : language === 'en' ? 'Experts' : 'Experts'}</div>
+            </div>
+            <div class="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00] mb-1">&lt;24h</div>
+              <div class="text-xs md:text-sm text-gray-300">{language === 'es' ? 'Respuesta' : language === 'en' ? 'Response' : 'Réponse'}</div>
+            </div>
+            <div class="text-center p-4 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+              <div class="text-2xl md:text-3xl font-bold text-[#f04e00] mb-1">3</div>
+              <div class="text-xs md:text-sm text-gray-300">{language === 'es' ? 'Idiomas' : language === 'en' ? 'Languages' : 'Langues'}</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Contact Section -->
+  <section class="py-12">
+    <div class="container mx-auto px-4">
+      <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
+        
+        <!-- Contact Form -->
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-6">{text.formTitle}</h2>
+          
+          <form class="space-y-6" id="contactForm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">{text.formFields.name} {text.formFields.required}</label>
+                <input 
+                  type="text" 
+                  name="nombre"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent"
+                  placeholder={text.formFields.name}
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">{text.formFields.phone} {text.formFields.required}</label>
+                <input 
+                  type="tel" 
+                  name="telefono"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent"
+                  placeholder="+1 809 555 0000"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{text.formFields.email} {text.formFields.required}</label>
+              <input 
+                type="email" 
+                name="email"
+                required
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent"
+                placeholder="tu@email.com"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{text.formFields.service} {text.formFields.required}</label>
+              <select 
+                name="servicio"
+                required
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent"
+                id="servicioSelect"
+              >
+                <option value="">{text.formFields.selectOption}</option>
+                {safeArray(services).map((servicio) => (
+                  <option value={safeString(servicio.value, 'otro')}>{safeString(servicio.label, 'Servicio')}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{text.formFields.message}</label>
+              <textarea 
+                name="mensaje"
+                rows="4"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent resize-none"
+                placeholder={text.formFields.messagePlaceholder}
+              ></textarea>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">{text.formFields.contact}</label>
+              <select 
+                name="contacto_preferido"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent"
+              >
+                <option value="asap">{text.contactOptions.asap}</option>
+                <option value="manana">{text.contactOptions.tomorrow}</option>
+                <option value="esta_semana">{text.contactOptions.thisWeek}</option>
+                <option value="proxima_semana">{text.contactOptions.nextWeek}</option>
+                <option value="no_urgente">{text.contactOptions.notUrgent}</option>
+              </select>
+            </div>
+            
+            <button 
+              type="submit"
+              class="w-full bg-[#f04e00] text-white py-3 px-6 rounded-lg hover:bg-[#d94400] transition-colors font-medium"
+            >
+              {text.formFields.submit}
+            </button>
+            
+            <p class="text-sm text-gray-600 text-center">
+              {text.responseTime}
+            </p>
+          </form>
+        </div>
+        
+        <!-- Contact Info -->
+        <div class="space-y-8">
+          <!-- Quick Contact -->
+          <div class="bg-[#f04e00] rounded-lg p-6 text-white">
+            <h3 class="text-xl font-bold mb-4">{text.directContactTitle}</h3>
+            
+            <div class="space-y-4">
+              <a 
+                href={`tel:${safeContactInfo.phone}`}
+                class="flex items-center gap-3 hover:bg-white/10 p-2 rounded transition-colors"
+              >
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                </svg>
+                <div>
+                  <div class="font-medium">{text.quickActions.callNow}</div>
+                  <div class="text-sm text-white/80">{safeContactInfo.phone}</div>
+                </div>
+              </a>
+              
+              <a 
+                href={`https://wa.me/${safeContactInfo.whatsapp}?text=${encodeURIComponent(language === 'es' ? 'Hola, estoy interesado en sus servicios inmobiliarios' : language === 'en' ? 'Hello, I am interested in your real estate services' : 'Bonjour, je suis intéressé par vos services immobiliers')}`}
+                target="_blank"
+                class="flex items-center gap-3 hover:bg-white/10 p-2 rounded transition-colors"
+              >
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                </svg>
+                <div>
+                  <div class="font-medium">{text.quickActions.whatsapp}</div>
+                  <div class="text-sm text-white/80">{text.quickActions.quickResponse}</div>
+                </div>
+              </a>
+              
+              <a 
+                href={`mailto:${safeContactInfo.email}`}
+                class="flex items-center gap-3 hover:bg-white/10 p-2 rounded transition-colors"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                <div>
+                  <div class="font-medium">{text.quickActions.email}</div>
+                  <div class="text-sm text-white/80">{safeContactInfo.email}</div>
+                </div>
+              </a>
+            </div>
+          </div>
+          
+          <!-- Office Info con Mapa Integrado -->
+          <div class="bg-white rounded-lg shadow-md p-6 space-y-6">
+            <h3 class="text-xl font-bold text-gray-900">{text.officeTitle}</h3>
+
+            <div class="space-y-3 text-gray-600">
+              <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-[#f04e00] mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <div>
+                  <div class="font-medium">{safeContactInfo.address}</div>
+                  <div class="text-sm">{safeContactInfo.city}</div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-[#f04e00] mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div class="text-sm">
+                  <div>{safeContactInfo.hours.weekdays}</div>
+                  <div>{safeContactInfo.hours.saturday}</div>
+                  <div>{safeContactInfo.hours.sunday}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mapa integrado con Google Maps -->
+            <div class="rounded-lg overflow-hidden border border-gray-300">
+              <div id="contact-map" class="w-full h-56"></div>
+            </div>
+          </div>
+          
+          <!-- Team -->
+          {safeArray(team).length > 0 && (
+            <div class="bg-white rounded-lg shadow-md p-6">
+              <h3 class="text-xl font-bold text-gray-900 mb-4">{text.teamTitle}</h3>
+              
+              <div class="space-y-4">
+                {safeArray(team).map((persona, index) => (
+                  <div class="flex items-center gap-3" key={persona.id || index}>
+                    <img 
+                      src={safeString(persona.avatar, 'https://i.pravatar.cc/150?img=1')} 
+                      alt={safeString(persona.name, 'Asesor')}
+                      class="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-900">{safeString(persona.name, 'Asesor')}</div>
+                      <div class="text-sm text-gray-600">{safeString(persona.title, 'Especialista')}</div>
+                      <div class="text-xs text-gray-500">{safeArray(persona.specialties).join(', ')}</div>
+                    </div>
+                    <div class="flex gap-2">
+                      <a 
+                        href={`tel:${safeString(persona.phone, safeContactInfo.phone)}`}
+                        class="p-2 text-[#f04e00] hover:bg-gray-100 rounded"
+                        title={text.quickActions.callNow}
+                      >
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                        </svg>
+                      </a>
+                      <a 
+                        href={`mailto:${safeString(persona.email, safeContactInfo.email)}`}
+                        class="p-2 text-[#f04e00] hover:bg-gray-100 rounded"
+                        title={text.quickActions.email}
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Work With Us Section -->
+  <section class="py-12 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8">
+          <h2 class="text-2xl font-bold text-gray-900 mb-4">{text.workWithUsTitle}</h2>
+          <p class="text-lg text-gray-600">
+            {text.workWithUsSubtitle}
+          </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.workOffer.title}</h3>
+            <ul class="space-y-2">
+              {safeArray(text.workOffer.items).map((item, index) => (
+                <li class="flex items-start gap-2" key={index}>
+                  <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-gray-700">{safeString(item, 'Beneficio')}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">{text.workLooking.title}</h3>
+            <ul class="space-y-2">
+              {safeArray(text.workLooking.items).map((item, index) => (
+                <li class="flex items-start gap-2" key={index}>
+                  <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="text-gray-700">{safeString(item, 'Requisito')}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        
+        <div class="text-center mt-8">
+          <p class="text-gray-600 mb-4">
+            {text.workCta}
+          </p>
+          <a 
+            href="#contactForm"
+            class="inline-block px-6 py-2 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors"
+          >
+            {text.applyNow}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  // Handle URL parameters for pre-selecting service
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const servicio = urlParams.get('servicio');
+    
+    if (servicio) {
+      const selectElement = document.getElementById('servicioSelect');
+      if (selectElement) {
+        selectElement.value = servicio;
+        
+        // If it's asesor, scroll to the work with us section
+        if (servicio === 'asesor') {
+          setTimeout(() => {
+            const workSection = document.querySelector('[href="#contactForm"]')?.closest('section');
+            if (workSection) {
+              workSection.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 100);
+        }
+      }
+    }
+  });
+
+  // Form handling with API submission
+  const contactForm = document.getElementById('contactForm');
+  if (contactForm) {
+    contactForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      const submitButton = this.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton?.textContent;
+
+      const userLang = document.documentElement.lang || 'es';
+      const loadingText = userLang === 'es' ? 'Enviando...' :
+                          userLang === 'en' ? 'Sending...' :
+                          'Envoi en cours...';
+
+      // Disable submit button and show loading state
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = loadingText;
+      }
+
+      // Prepare submission data
+      const submissionData = {
+        nombre: formData.get('nombre'),
+        telefono: formData.get('telefono'),
+        email: formData.get('email'),
+        tipo_servicio: formData.get('servicio'),
+        mensaje: formData.get('mensaje'),
+        preferencia_contacto: formData.get('contacto_preferido') || 'asap'
+      };
+
+      console.log('📋 Form data prepared:', submissionData);
+
+      try {
+        // Get tracking parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const trackingParams = new URLSearchParams();
+
+        // Preserve UTM and tracking parameters
+        ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref', 'fbclid', 'gclid'].forEach(param => {
+          const value = urlParams.get(param);
+          if (value) {
+            trackingParams.set(param, value);
+          }
+        });
+
+        // Build API URL - Use environment variable or fallback
+        const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL || 'https://pacewqgypevfgjmdsorz.supabase.co';
+        const apiUrl = `${supabaseUrl}/functions/v1/contact-submission${trackingParams.toString() ? '?' + trackingParams.toString() : ''}`;
+
+        console.log('📞 Submitting contact form...');
+        console.log('📍 API URL:', apiUrl);
+        console.log('📦 Payload:', submissionData);
+
+        // Submit to API
+        const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey
+          },
+          body: JSON.stringify(submissionData)
+        });
+
+        console.log('📡 Response status:', response.status, response.statusText);
+
+        const result = await response.json();
+        console.log('📄 Response data:', result);
+
+        if (!response.ok || !result.success) {
+          console.error('❌ Submission failed:', result);
+          throw new Error(result.error || 'Failed to submit form');
+        }
+
+        console.log('✅ Contact submission successful:', result.data);
+
+        // Show success message based on service type
+        const servicio = submissionData.tipo_servicio;
+        let message = userLang === 'es' ? '¡Gracias por tu mensaje! Te contactaremos pronto.' :
+                      userLang === 'en' ? 'Thank you for your message! We will contact you soon.' :
+                      'Merci pour votre message! Nous vous contacterons bientôt.';
+
+        if (servicio === 'asesor') {
+          message = userLang === 'es' ? '¡Gracias por tu interés en trabajar con nosotros! Revisaremos tu aplicación y te contactaremos pronto.' :
+                    userLang === 'en' ? 'Thank you for your interest in working with us! We will review your application and contact you soon.' :
+                    'Merci pour votre intérêt à travailler avec nous! Nous examinerons votre candidature et vous contacterons bientôt.';
+        } else if (servicio === 'vender') {
+          message = userLang === 'es' ? '¡Gracias por contactarnos! Te llamaremos pronto para hablar sobre tu propiedad.' :
+                    userLang === 'en' ? 'Thank you for contacting us! We will call you soon to talk about your property.' :
+                    'Merci de nous avoir contactés! Nous vous appellerons bientôt pour parler de votre propriété.';
+        } else if (servicio === 'desarrollo') {
+          message = userLang === 'es' ? '¡Gracias por tu interés! Nos pondremos en contacto contigo para discutir tu proyecto.' :
+                    userLang === 'en' ? 'Thank you for your interest! We will contact you to discuss your project.' :
+                    'Merci pour votre intérêt! Nous vous contacterons pour discuter de votre projet.';
+        }
+
+        alert(message);
+
+        // Reset form
+        this.reset();
+
+      } catch (error) {
+        console.error('❌ Error submitting contact form:', error);
+
+        const errorMessage = userLang === 'es' ? 'Hubo un error al enviar tu mensaje. Por favor intenta nuevamente.' :
+                            userLang === 'en' ? 'There was an error sending your message. Please try again.' :
+                            'Une erreur s\'est produite lors de l\'envoi de votre message. Veuillez réessayer.';
+
+        alert(errorMessage);
+
+      } finally {
+        // Re-enable submit button
+        if (submitButton && originalButtonText) {
+          submitButton.disabled = false;
+          submitButton.textContent = originalButtonText;
+        }
+      }
+    });
+  }
+</script>
+
+<!-- Google Maps Integration -->
+<script define:vars={{ officeCoordinates: safeContactInfo.coordinates, officeName: 'CLIC Inmobiliaria', officeAddress: safeContactInfo.address }}>
+  // Función para inicializar el mapa de contacto
+  window.initContactMap = function() {
+    const mapElement = document.getElementById('contact-map');
+
+    if (!mapElement) {
+      console.log('Elemento del mapa no encontrado');
+      return;
+    }
+
+    if (!window.google || !window.google.maps) {
+      console.log('Google Maps API no disponible');
+      return;
+    }
+
+    try {
+      const officeLocation = {
+        lat: officeCoordinates?.lat || 18.4861,
+        lng: officeCoordinates?.lng || -69.9312
+      };
+
+      const map = new google.maps.Map(mapElement, {
+        zoom: 16,
+        center: officeLocation,
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          }
+        ],
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true
+      });
+
+      const marker = new google.maps.Marker({
+        position: officeLocation,
+        map: map,
+        title: officeName,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 12,
+          fillColor: '#f04e00',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        }
+      });
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div class="p-3">
+            <h4 class="font-bold text-base mb-1">${officeName}</h4>
+            <p class="text-sm text-gray-600">${officeAddress}</p>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${officeLocation.lat},${officeLocation.lng}"
+               target="_blank"
+               class="text-xs text-[#f04e00] hover:underline mt-2 inline-block">
+              Ver direcciones →
+            </a>
+          </div>
+        `
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+      });
+
+    } catch (error) {
+      console.error('Error inicializando mapa de contacto:', error);
+    }
+  };
+</script>
+
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpzGsbg52e2HqFXCXA6_5alq2OYwVjvSU&callback=initContactMap"
+  onerror="console.error('Error cargando Google Maps')">
+</script>

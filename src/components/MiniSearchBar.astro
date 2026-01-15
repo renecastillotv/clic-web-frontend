@@ -1,0 +1,1184 @@
+---
+// MiniSearchBar.astro - Versión con soporte multiidioma completo + variantes visuales
+import { Search, BedDouble, Bath, Car, Home, MapPin, Filter, ChevronDown, X } from "lucide-astro";
+
+export interface Props {
+  searchTags?: any;
+  locationHierarchy?: any;
+  preselectedFilters?: any;
+  language?: string;
+  country?: any;
+  trackingString?: string;
+  currencies?: any;
+  currentFilters?: {
+    accion?: string;
+    tipo?: string;
+    ubicacion?: string;
+    sector?: string;
+    precioMin?: string;
+    precioMax?: string;
+    moneda?: string;
+    habitaciones?: string;
+    banos?: string;
+    parqueos?: string;
+    estado?: string;
+    caracteristicas?: string[];
+  };
+  isSticky?: boolean;
+  variant?: 'compact' | 'hero';
+}
+
+const { 
+  searchTags,
+  locationHierarchy,
+  preselectedFilters,
+  language = 'es',
+  country,
+  trackingString = '',
+  currencies,
+  currentFilters = {},
+  isSticky = false,
+  variant = 'compact'
+} = Astro.props;
+
+// Detectar monedas disponibles desde currencies prop o searchTags (fallback)
+let availableCurrencies = ['USD'];
+let defaultCurrency = 'USD';
+
+if (currencies) {
+  availableCurrencies = currencies.available || ['USD'];
+  defaultCurrency = currencies.default || availableCurrencies[0];
+} else if (searchTags?.currencies) {
+  availableCurrencies = searchTags.currencies.available || ['USD'];
+  defaultCurrency = searchTags.currencies.default || availableCurrencies[0];
+}
+
+// Crear mapeo de acciones con slugs correctos según idioma
+const actionSlugs = {
+  comprar: 'comprar',
+  alquilar: 'alquilar'
+};
+
+if (searchTags?.accion) {
+  const buyTag = searchTags.accion.find(t => 
+    t.slug === 'comprar' || t.slug === 'buy' || t.slug === 'acheter' ||
+    t.display_name.toLowerCase().includes('compr') || 
+    t.display_name.toLowerCase().includes('buy') || 
+    t.display_name.toLowerCase().includes('achet')
+  );
+  const rentTag = searchTags.accion.find(t => 
+    t.slug === 'alquilar' || t.slug === 'rent' || t.slug === 'louer' ||
+    t.display_name.toLowerCase().includes('alquil') || 
+    t.display_name.toLowerCase().includes('rent') || 
+    t.display_name.toLowerCase().includes('louer')
+  );
+  
+  if (buyTag) actionSlugs.comprar = buyTag.slug;
+  if (rentTag) actionSlugs.alquilar = rentTag.slug;
+}
+
+// Fusionar filtros - En modo hero, inicializar todo vacío
+const mergedFilters = variant === 'hero' ? {
+  accion: '',
+  moneda: defaultCurrency,
+  ubicacion: '',
+  sector: '',
+  tipo: '',
+  habitaciones: '',
+  banos: '',
+  parqueos: '',
+  area: '',
+  precio: '',
+  caracteristicas: []
+} : {
+  accion: preselectedFilters?.accion || currentFilters?.accion || 'comprar',
+  moneda: defaultCurrency,
+  ubicacion: '',
+  sector: '',
+  tipo: '',
+  habitaciones: '',
+  banos: '',
+  parqueos: '',
+  area: '',
+  precio: '',
+  caracteristicas: [],
+  ...currentFilters,
+  ...(preselectedFilters || {})
+};
+
+if (preselectedFilters) {
+  if (preselectedFilters.ciudad && !mergedFilters.ubicacion) {
+    mergedFilters.ubicacion = preselectedFilters.ciudad;
+  }
+  mergedFilters.ciudad = preselectedFilters.ciudad || '';
+  mergedFilters.provincia = preselectedFilters.provincia || '';
+}
+
+if (!mergedFilters.moneda || !availableCurrencies.includes(mergedFilters.moneda)) {
+  mergedFilters.moneda = defaultCurrency;
+}
+
+console.log('MiniSearchBar - Inicializando:', {
+  hasSearchTags: !!searchTags,
+  hasCurrencies: !!currencies,
+  mergedFilters,
+  availableCurrencies,
+  defaultCurrency,
+  actionSlugs,
+  precioStructure: searchTags?.precio ? Object.keys(searchTags.precio) : 'N/A',
+  variant
+});
+
+// Clases dinámicas según la variante
+const containerClasses = variant === 'hero' 
+  ? 'w-full max-w-5xl mx-auto bg-white rounded-xl shadow-xl p-4 md:p-5' 
+  : 'w-full';
+
+const layoutClasses = variant === 'hero'
+  ? 'flex flex-col gap-3'
+  : 'flex flex-col lg:flex-row gap-4 lg:gap-2 lg:items-center';
+
+const primaryRowClasses = variant === 'hero'
+  ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2'
+  : 'flex flex-wrap gap-2 lg:flex-nowrap lg:flex-1';
+
+const secondaryRowClasses = variant === 'hero'
+  ? 'grid grid-cols-1 sm:grid-cols-3 gap-2'
+  : 'flex flex-wrap gap-2 lg:flex-nowrap lg:flex-shrink-0';
+
+const tertiaryRowClasses = 'grid grid-cols-2 sm:grid-cols-5 gap-2';
+
+const actionButtonSize = variant === 'hero' 
+  ? 'px-3 py-2 text-xs' 
+  : 'px-3 py-2 text-xs';
+
+const selectSize = variant === 'hero'
+  ? 'py-2.5 text-sm'
+  : 'py-2 text-sm';
+
+const searchButtonClasses = variant === 'hero'
+  ? 'flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold'
+  : 'flex items-center gap-2 px-4 py-2 text-sm font-semibold';
+---
+
+<div class={containerClasses} id="mini-search-container">
+  <div id="search-bar-content">
+    <div class={layoutClasses}>
+      
+      <!-- FILA 1: Acción + Tipo + Ubicación -->
+      <div class={primaryRowClasses}>
+        
+        <!-- 1. ACCIÓN -->
+        <div class={variant === 'hero' ? '' : ''}>
+          <div class="flex bg-gray-100 rounded-lg p-1 w-full">
+            <button 
+              id="action-comprar" 
+              class={`mini-action-btn ${actionButtonSize} font-semibold rounded-md transition-all flex-1`}
+              data-action={actionSlugs.comprar}
+              data-action-key="comprar"
+            >
+              {language === 'en' ? 'BUY' : language === 'fr' ? 'ACHETER' : 'COMPRAR'}
+            </button>
+            <button 
+              id="action-alquilar" 
+              class={`mini-action-btn ${actionButtonSize} font-semibold rounded-md transition-all flex-1`}
+              data-action={actionSlugs.alquilar}
+              data-action-key="alquilar"
+            >
+              {language === 'en' ? 'RENT' : language === 'fr' ? 'LOUER' : 'ALQUILAR'}
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. TIPO -->
+        <div class={variant === 'hero' ? 'relative' : 'relative flex-1 min-w-0 lg:max-w-[180px]'}>
+          <select id="mini-tipo" class={`mini-select-with-icon w-full pl-9 pr-7 ${selectSize} appearance-none`}>
+            <option value="">
+              {language === 'en' ? 'Property Type' : language === 'fr' ? 'Type de Propriété' : 'Tipo de Inmueble'}
+            </option>
+          </select>
+          <Home class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+          <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none z-10" />
+        </div>
+
+        <!-- 3. UBICACIÓN -->
+        <div class={variant === 'hero' ? 'relative' : 'relative flex-[2] min-w-0'}>
+          <select id="mini-ubicacion" class={`mini-select-with-icon w-full pl-9 pr-7 ${selectSize} appearance-none`}>
+            <option value="">
+              {language === 'en' ? 'Location' : language === 'fr' ? 'Localisation' : 'Ubicación'}
+            </option>
+          </select>
+          <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+          <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none z-10" />
+        </div>
+      </div>
+
+      <!-- FILA 2: Sector + Precio + Buscar -->
+      <div class={secondaryRowClasses}>
+        
+        <!-- 4. SECTOR -->
+        <div class={variant === 'hero' ? 'relative' : 'relative min-w-0 flex-1 lg:w-44'}>
+          <select id="mini-sector" class={`mini-select-with-icon w-full pl-3 pr-7 ${selectSize} appearance-none`} disabled>
+            <option value="">
+              {language === 'en' ? 'Sector' : language === 'fr' ? 'Secteur' : 'Sector'}
+            </option>
+          </select>
+          <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none z-10" />
+        </div>
+
+        <!-- 5. PRECIO con toggle moneda -->
+        <div id="price-container" class={variant === 'hero' ? 'relative flex items-center bg-gray-50 rounded-lg border border-gray-200' : 'relative flex items-center bg-gray-50 rounded-lg border border-gray-200 min-w-0 flex-1 lg:max-w-[240px]'}>
+          <div id="currency-toggle" class="flex bg-gray-100 rounded-l-lg" style="display: none;"></div>
+          <select id="mini-precio" class={`appearance-none bg-transparent border-none outline-none ${selectSize} flex-1 min-w-0 px-3`}>
+            <option value="">
+              {language === 'en' ? 'Price' : language === 'fr' ? 'Prix' : 'Precio'}
+            </option>
+          </select>
+          <ChevronDown class="absolute right-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+        </div>
+
+        <!-- BOTÓN: Buscar (solo en hero va aquí) -->
+        {variant === 'hero' ? (
+          <button id="mini-search-btn" class={`${searchButtonClasses} bg-gray-300 cursor-not-allowed text-white rounded-lg transition-all whitespace-nowrap`} disabled>
+            <Search class="w-4 h-4" />
+            <span>
+              {language === 'en' ? 'Search' : language === 'fr' ? 'Rechercher' : 'Buscar'}
+            </span>
+          </button>
+        ) : (
+          <>
+            {/* BOTÓN: Más filtros (compact) */}
+            <button id="more-filters-toggle" class="flex items-center gap-1 px-3 py-2 bg-white border border-gray-200 hover:border-[#f04e00] text-gray-600 hover:text-[#f04e00] rounded-lg transition-all group text-sm font-medium whitespace-nowrap">
+              <span class="text-xs">
+                {language === 'en' ? 'More filters' : language === 'fr' ? 'Plus de filtres' : 'Más filtros'}
+              </span>
+              <svg class="w-3 h-3 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </button>
+
+            {/* BOTÓN: Buscar (compact) */}
+            <button id="mini-search-btn" class={`${searchButtonClasses} bg-gray-300 cursor-not-allowed text-white rounded-lg transition-all whitespace-nowrap`} disabled>
+              <Search class="w-4 h-4" />
+              <span class="hidden sm:inline">
+                {language === 'en' ? 'Select filters' : language === 'fr' ? 'Sélectionner filtres' : 'Selecciona filtros'}
+              </span>
+            </button>
+          </>
+        )}
+      </div>
+
+      <!-- FILA 3: Habitaciones + Baños + Parqueos + Área + Más Filtros (solo hero) -->
+      {variant === 'hero' && (
+        <div class={tertiaryRowClasses}>
+          <div class="relative">
+            <i class="fas fa-bed absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+            <select id="modal-habitaciones" class={`w-full pl-9 pr-2 ${selectSize} border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent appearance-none text-sm`}>
+              <option value="">
+                {language === 'en' ? 'Bedrooms' : language === 'fr' ? 'Chambres' : 'Habitaciones'}
+              </option>
+            </select>
+          </div>
+          
+          <div class="relative">
+            <i class="fas fa-bath absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+            <select id="modal-banos" class={`w-full pl-9 pr-2 ${selectSize} border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent appearance-none text-sm`}>
+              <option value="">
+                {language === 'en' ? 'Bathrooms' : language === 'fr' ? 'Salles de bain' : 'Baños'}
+              </option>
+            </select>
+          </div>
+          
+          <div class="relative">
+            <i class="fas fa-car absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+            <select id="modal-parqueos" class={`w-full pl-9 pr-2 ${selectSize} border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent appearance-none text-sm`}>
+              <option value="">
+                {language === 'en' ? 'Parking' : language === 'fr' ? 'Parking' : 'Parqueos'}
+              </option>
+            </select>
+          </div>
+
+          <div class="relative">
+            <i class="fas fa-ruler-combined absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+            <select id="modal-area" class={`w-full pl-9 pr-2 ${selectSize} border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent appearance-none text-sm`}>
+              <option value="">
+                {language === 'en' ? 'Area' : language === 'fr' ? 'Surface' : 'Área'}
+              </option>
+            </select>
+          </div>
+
+          <!-- BOTÓN: Más filtros -->
+          <button id="more-filters-toggle" class="flex items-center justify-center gap-1 px-3 py-2 bg-white border border-gray-200 hover:border-[#f04e00] text-gray-600 hover:text-[#f04e00] rounded-lg transition-all group text-sm font-medium whitespace-nowrap">
+            <span class="text-xs">
+              {language === 'en' ? 'More filters' : language === 'fr' ? 'Plus de filtres' : 'Más filtros'}
+            </span>
+            <svg class="w-3 h-3 group-hover:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+        </div>
+      )}
+    </div>
+
+    <!-- MODAL: Filtros Secundarios (accesible en ambos modos) -->
+    <div id="advanced-filters-panel" class="hidden mt-4 p-6 bg-gray-50 rounded-lg border">
+      <h3 class="text-lg font-semibold text-gray-900 mb-6">
+        {language === 'en' ? 'Additional filters' : language === 'fr' ? 'Filtres supplémentaires' : 'Filtros adicionales'}
+      </h3>
+      
+      {/* Solo mostrar estos campos en compact, en hero ya están visibles */}
+      {variant === 'compact' && (
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="relative">
+            <i class="fas fa-bed absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+            <select id="modal-habitaciones-compact" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm appearance-none">
+              <option value="">
+                {language === 'en' ? 'Bedrooms' : language === 'fr' ? 'Chambres' : 'Habitaciones'}
+              </option>
+            </select>
+          </div>
+          
+          <div class="relative">
+            <i class="fas fa-bath absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+            <select id="modal-banos-compact" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm appearance-none">
+              <option value="">
+                {language === 'en' ? 'Bathrooms' : language === 'fr' ? 'Salles de bain' : 'Baños'}
+              </option>
+            </select>
+          </div>
+          
+          <div class="relative">
+            <i class="fas fa-car absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+            <select id="modal-parqueos-compact" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm appearance-none">
+              <option value="">
+                {language === 'en' ? 'Parking' : language === 'fr' ? 'Parking' : 'Parqueos'}
+              </option>
+            </select>
+          </div>
+
+          <div class="relative">
+            <i class="fas fa-ruler-combined absolute left-3 top-1/2 -translate-y-1/2 text-[#f04e00] pointer-events-none z-10"></i>
+            <select id="modal-area-compact" class="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent text-sm appearance-none">
+              <option value="">
+                {language === 'en' ? 'Area' : language === 'fr' ? 'Surface' : 'Área'}
+              </option>
+            </select>
+          </div>
+        </div>
+      )}
+      
+      <div class={variant === 'hero' ? '' : 'mb-6'}>
+        <h4 class="text-sm font-semibold text-gray-700 mb-4">
+          {language === 'en' ? 'Features' : language === 'fr' ? 'Caractéristiques' : 'Características'}
+        </h4>
+        <div id="caracteristicas-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3"></div>
+      </div>
+      
+      <div class="flex justify-between items-center pt-4 border-t border-gray-200 mt-6">
+        <button id="clear-secondary-filters" class="text-sm text-gray-600 hover:text-[#f04e00] font-medium transition-colors flex items-center gap-1">
+          <i class="fas fa-times-circle"></i>
+          {language === 'en' ? 'Clear filters' : language === 'fr' ? 'Effacer' : 'Limpiar'}
+        </button>
+        <div class="flex gap-3">
+          <button id="close-advanced" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 font-medium transition-colors">
+            {language === 'en' ? 'Close' : language === 'fr' ? 'Fermer' : 'Cerrar'}
+          </button>
+          <button id="apply-secondary-filters" class="px-5 py-2 text-sm bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold flex items-center gap-2">
+            <i class="fas fa-check"></i>
+            {language === 'en' ? 'Done' : language === 'fr' ? 'Terminé' : 'Listo'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script define:vars={{ mergedFilters, searchTags, locationHierarchy, language, trackingString, availableCurrencies, defaultCurrency, actionSlugs, isSticky, variant }}>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('MiniSearchBar - Iniciando con estructura de precios:', {
+      precio: searchTags?.precio,
+      availableCurrencies,
+      defaultCurrency,
+      actionSlugs,
+      isSticky,
+      variant
+    });
+    
+    let currentState = {
+      accion: mergedFilters.accion || '',
+      tipo: '',
+      ubicacion: '',
+      sector: '',
+      precio: '',
+      moneda: defaultCurrency,
+      habitaciones: '',
+      banos: '',
+      parqueos: '',
+      area: '',
+      caracteristicas: [],
+      ...mergedFilters
+    };
+
+    if (currentState.caracteristicas && !Array.isArray(currentState.caracteristicas)) {
+      currentState.caracteristicas = [];
+    }
+
+    let isUpdatingFromCode = false;
+    let searchTimeout = null;
+    let currencyBtns = [];
+    let initialSecondaryFilters = {
+      habitaciones: '',
+      banos: '',
+      parqueos: '',
+      area: '',
+      caracteristicas: []
+    };
+
+    const actionBtns = document.querySelectorAll('.mini-action-btn');
+    const currencyToggle = document.getElementById('currency-toggle');
+    const tipoSelect = document.getElementById('mini-tipo');
+    const ubicacionSelect = document.getElementById('mini-ubicacion');
+    const sectorSelect = document.getElementById('mini-sector');
+    const precioSelect = document.getElementById('mini-precio');
+    
+    // En modo compact, usar IDs específicos del modal; en hero, usar los de la fila 3
+    const modalHabitaciones = variant === 'compact' 
+      ? document.getElementById('modal-habitaciones-compact')
+      : document.getElementById('modal-habitaciones');
+    const modalBanos = variant === 'compact'
+      ? document.getElementById('modal-banos-compact') 
+      : document.getElementById('modal-banos');
+    const modalParqueos = variant === 'compact'
+      ? document.getElementById('modal-parqueos-compact')
+      : document.getElementById('modal-parqueos');
+    const modalArea = variant === 'compact'
+      ? document.getElementById('modal-area-compact')
+      : document.getElementById('modal-area');
+    
+    const caracteristicasGrid = document.getElementById('caracteristicas-grid');
+    const moreFiltersToggle = document.getElementById('more-filters-toggle');
+    const advancedPanel = document.getElementById('advanced-filters-panel');
+    const searchBtn = document.getElementById('mini-search-btn');
+
+    console.log('Estado inicial:', currentState);
+
+    initializeUI();
+    
+    if (isSticky) {
+      setupStickyBehavior();
+    }
+
+    function setupStickyBehavior() {
+      const searchContainer = document.getElementById('mini-search-container');
+      
+      if (!searchContainer) return;
+      
+      const header = document.querySelector('header') || document.querySelector('nav');
+      const headerHeight = header ? header.offsetHeight : 72;
+      
+      console.log('Header height detectado:', headerHeight);
+      
+      let initialTop = searchContainer.getBoundingClientRect().top + window.scrollY;
+      
+      let isCurrentlySticky = false;
+      let spacer = null;
+      
+      window.addEventListener('resize', () => {
+        if (!isCurrentlySticky) {
+          initialTop = searchContainer.getBoundingClientRect().top + window.scrollY;
+        }
+      });
+      
+      function handleScroll() {
+        const scrollPosition = window.scrollY;
+        const triggerPoint = initialTop - headerHeight;
+        
+        if (scrollPosition > triggerPoint && !isCurrentlySticky) {
+          isCurrentlySticky = true;
+          
+          spacer = document.createElement('div');
+          spacer.id = 'sticky-spacer';
+          spacer.style.height = `${searchContainer.offsetHeight}px`;
+          searchContainer.parentNode.insertBefore(spacer, searchContainer);
+          
+          searchContainer.style.position = 'fixed';
+          searchContainer.style.top = `${headerHeight}px`;
+          searchContainer.style.left = '0';
+          searchContainer.style.right = '0';
+          searchContainer.style.width = '100%';
+          searchContainer.style.maxWidth = '100%';
+          searchContainer.style.zIndex = '9999';
+          searchContainer.style.backgroundColor = 'white';
+          searchContainer.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+          searchContainer.style.paddingTop = '0.75rem';
+          searchContainer.style.paddingBottom = '0.75rem';
+          searchContainer.style.paddingLeft = '1rem';
+          searchContainer.style.paddingRight = '1rem';
+          searchContainer.style.transition = 'box-shadow 0.3s ease, padding 0.3s ease';
+          searchContainer.style.borderTop = '1px solid rgba(0, 0, 0, 0.05)';
+          searchContainer.style.isolation = 'isolate';
+          searchContainer.style.willChange = 'transform';
+          
+          console.log('Sticky activado - top:', headerHeight);
+        } else if (scrollPosition <= triggerPoint && isCurrentlySticky) {
+          isCurrentlySticky = false;
+          
+          searchContainer.style.position = '';
+          searchContainer.style.top = '';
+          searchContainer.style.left = '';
+          searchContainer.style.right = '';
+          searchContainer.style.width = '';
+          searchContainer.style.maxWidth = '';
+          searchContainer.style.zIndex = '';
+          searchContainer.style.backgroundColor = '';
+          searchContainer.style.boxShadow = '';
+          searchContainer.style.paddingTop = '';
+          searchContainer.style.paddingBottom = '';
+          searchContainer.style.paddingLeft = '';
+          searchContainer.style.paddingRight = '';
+          searchContainer.style.transition = '';
+          searchContainer.style.borderTop = '';
+          
+          if (spacer && spacer.parentNode) {
+            spacer.remove();
+            spacer = null;
+          }
+          
+          console.log('Sticky desactivado');
+        }
+      }
+      
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      
+      handleScroll();
+    }
+
+    function initializeUI() {
+      console.log('Inicializando UI...');
+      setupCurrencyToggle();
+      
+      // En modo hero, NO seleccionar ninguna acción por defecto
+      if (variant === 'hero') {
+        // Dejar todos los botones sin seleccionar
+        actionBtns.forEach(btn => {
+          btn.classList.remove('bg-[#f04e00]', 'text-white', 'shadow-sm');
+          btn.classList.add('text-gray-600');
+        });
+      } else {
+        // En modo compact, determinar qué botón debe estar activo según currentState.accion
+        const actionKey = currentState.accion === actionSlugs.comprar ? 'comprar' : 
+                          currentState.accion === actionSlugs.alquilar ? 'alquilar' : 'comprar';
+        updateActionToggle(actionKey);
+      }
+      
+      updateCurrencyToggle(currentState.moneda);
+      populateSelectsWithData();
+      setupEventListeners();
+      updateSearchButtonState();
+      console.log('UI inicializada');
+    }
+    
+    function setupCurrencyToggle() {
+      if (!currencyToggle) return;
+      
+      console.log('Configurando toggle de moneda:', availableCurrencies);
+      
+      if (availableCurrencies.length <= 1) {
+        currencyToggle.style.display = 'none';
+        const precioInput = document.getElementById('mini-precio');
+        if (precioInput) precioInput.style.paddingLeft = '12px';
+        return;
+      }
+      
+      currencyToggle.style.display = 'flex';
+      currencyToggle.innerHTML = '';
+      
+      availableCurrencies.forEach((currency, index) => {
+        const button = document.createElement('button');
+        button.id = `currency-${currency.toLowerCase()}`;
+        button.className = 'mini-currency-btn px-2 py-2 text-xs font-medium transition-all';
+        button.textContent = currency;
+        button.dataset.currency = currency;
+        
+        if (index < availableCurrencies.length - 1) {
+          button.classList.add('border-r', 'border-gray-200');
+        }
+        if (index === 0) {
+          button.classList.add('rounded-l-lg');
+        }
+        
+        currencyToggle.appendChild(button);
+      });
+      
+      currencyBtns = currencyToggle.querySelectorAll('.mini-currency-btn');
+      
+      const precioInput = document.getElementById('mini-precio');
+      if (precioInput) precioInput.style.paddingLeft = '8px';
+    }
+
+    function getEmptyLabel(type) {
+      const labels = {
+        es: {
+          tipo: 'Tipo de Inmueble',
+          ubicacion: 'Ubicación',
+          habitaciones: 'Cualquiera',
+          banos: 'Cualquiera',
+          parqueos: 'Cualquiera',
+          area: 'Cualquiera',
+          precio: 'Precio'
+        },
+        en: {
+          tipo: 'Property Type',
+          ubicacion: 'Location',
+          habitaciones: 'Any',
+          banos: 'Any',
+          parqueos: 'Any',
+          area: 'Any',
+          precio: 'Price'
+        },
+        fr: {
+          tipo: 'Type de Propriété',
+          ubicacion: 'Localisation',
+          habitaciones: 'Toutes',
+          banos: 'Toutes',
+          parqueos: 'Tous',
+          area: 'Toutes',
+          precio: 'Prix'
+        }
+      };
+      return labels[language]?.[type] || labels.es[type];
+    }
+    
+    function populateSelectsWithData() {
+      console.log('Poblando selects con estado:', currentState);
+      
+      if (tipoSelect && searchTags?.tipo) {
+        updateSelectWithData(tipoSelect, searchTags.tipo, getEmptyLabel('tipo'));
+        if (currentState.tipo) tipoSelect.value = currentState.tipo;
+      }
+      
+      if (ubicacionSelect && searchTags) {
+        const ubicaciones = [
+          ...(searchTags.provincia || []),
+          ...(searchTags.ciudad || [])
+        ].sort((a, b) => a.display_name.localeCompare(b.display_name));
+        
+        updateSelectWithData(ubicacionSelect, ubicaciones, getEmptyLabel('ubicacion'));
+        if (currentState.ubicacion) ubicacionSelect.value = currentState.ubicacion;
+      }
+      
+      if (precioSelect && searchTags?.precio) {
+        updatePrecioOptions();
+        if (currentState.precio) {
+          setTimeout(() => {
+            precioSelect.value = currentState.precio;
+          }, 100);
+        }
+      }
+      
+      populateModalFields();
+      
+      if (caracteristicasGrid && searchTags) {
+        updateCaracteristicasWithData();
+      }
+      
+      updateSectorOptions();
+    }
+
+    function populateModalFields() {
+      if (modalHabitaciones && searchTags?.habitaciones) {
+        updateSelectWithData(modalHabitaciones, searchTags.habitaciones, getEmptyLabel('habitaciones'));
+        if (currentState.habitaciones) {
+          modalHabitaciones.value = currentState.habitaciones;
+        }
+      }
+      
+      if (modalBanos && searchTags?.banos) {
+        updateSelectWithData(modalBanos, searchTags.banos, getEmptyLabel('banos'));
+        if (currentState.banos) {
+          modalBanos.value = currentState.banos;
+        }
+      }
+      
+      if (modalParqueos && searchTags?.parqueos) {
+        updateSelectWithData(modalParqueos, searchTags.parqueos, getEmptyLabel('parqueos'));
+        if (currentState.parqueos) {
+          modalParqueos.value = currentState.parqueos;
+        }
+      }
+
+      if (modalArea && searchTags?.area) {
+        updateSelectWithData(modalArea, searchTags.area, getEmptyLabel('area'));
+        if (currentState.area) {
+          modalArea.value = currentState.area;
+        }
+      }
+    }
+    
+    function updateSelectWithData(selectElement, tags, emptyLabel) {
+      if (!selectElement || !tags) return;
+      
+      const currentValue = selectElement.value;
+      
+      isUpdatingFromCode = true;
+      selectElement.innerHTML = `<option value="">${emptyLabel}</option>`;
+      
+      tags.forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag.slug;
+        option.textContent = tag.display_name;
+        option.dataset.tagId = tag.id;
+        selectElement.appendChild(option);
+      });
+      
+      if (currentValue && [...selectElement.options].some(opt => opt.value === currentValue)) {
+        selectElement.value = currentValue;
+      }
+      
+      setTimeout(() => { isUpdatingFromCode = false; }, 0);
+    }
+
+    function updatePrecioOptions() {
+      if (!precioSelect || !searchTags?.precio) {
+        console.log('No se puede actualizar precios');
+        return;
+      }
+      
+      const operation = currentState.accion === actionSlugs.comprar || currentState.accion === 'comprar' ? 'sale' : 'rent';
+      const currency = currentState.moneda;
+      
+      console.log('Actualizando precios:', { operation, currency, accion: currentState.accion });
+      
+      const preciosDisponibles = searchTags.precio?.[operation]?.[currency] || [];
+      
+      console.log(`Precios disponibles: ${preciosDisponibles.length}`);
+      
+      const currentValue = precioSelect.value;
+      
+      isUpdatingFromCode = true;
+      precioSelect.innerHTML = `<option value="">${getEmptyLabel('precio')}</option>`;
+      
+      preciosDisponibles.forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag.slug;
+        option.textContent = tag.display_name;
+        option.dataset.tagId = tag.id;
+        precioSelect.appendChild(option);
+      });
+      
+      if (currentValue && [...precioSelect.options].some(opt => opt.value === currentValue)) {
+        precioSelect.value = currentValue;
+        console.log('Precio restaurado:', currentValue);
+      }
+      
+      setTimeout(() => { isUpdatingFromCode = false; }, 0);
+    }
+    
+    function updateCaracteristicasWithData() {
+      if (!caracteristicasGrid || !searchTags) return;
+      
+      caracteristicasGrid.innerHTML = '';
+      
+      const allCaracteristicas = [
+        ...(searchTags.amenity || []),
+        ...(searchTags.feature || []),
+        ...(searchTags.custom_list || [])
+      ];
+      
+      allCaracteristicas.sort((a, b) => {
+        if (a.is_featured !== b.is_featured) return b.is_featured - a.is_featured;
+        return (a.priority || 999) - (b.priority || 999);
+      });
+      
+      allCaracteristicas.forEach(carac => {
+        const label = document.createElement('label');
+        label.className = 'flex items-center space-x-2 cursor-pointer group';
+        
+        const isChecked = currentState.caracteristicas && 
+                          Array.isArray(currentState.caracteristicas) && 
+                          currentState.caracteristicas.includes(carac.slug);
+        
+        const icon = carac.icon || 'fas fa-check-circle';
+        const featuredClass = carac.is_featured ? 'font-medium' : '';
+        
+        label.innerHTML = `
+          <input 
+            type="checkbox" 
+            value="${carac.slug}"
+            data-tag-id="${carac.id}"
+            class="modal-checkbox rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]"
+            ${isChecked ? 'checked' : ''}
+          />
+          <span class="text-sm text-gray-700 ${featuredClass} flex items-center gap-1.5">
+            <i class="${icon} text-[#f04e00] text-xs"></i>
+            ${carac.display_name}
+          </span>
+        `;
+        caracteristicasGrid.appendChild(label);
+      });
+    }
+
+    function updateSectorOptions() {
+      if (!searchTags || !locationHierarchy) {
+        if (sectorSelect) sectorSelect.disabled = !currentState.ubicacion;
+        return;
+      }
+      
+      const ubicacionSlug = currentState.ubicacion;
+      
+      if (!ubicacionSlug) {
+        isUpdatingFromCode = true;
+        sectorSelect.disabled = true;
+        const selectorText = language === 'en' ? 'Select location first' : 
+                            language === 'fr' ? 'Sélectionner lieu d\'abord' : 
+                            'Selecciona ubicación primero';
+        sectorSelect.innerHTML = `<option value="">${selectorText}</option>`;
+        currentState.sector = '';
+        setTimeout(() => { isUpdatingFromCode = false; }, 0);
+        return;
+      }
+      
+      const ubicacionSeleccionada = [
+        ...(searchTags.provincia || []),
+        ...(searchTags.ciudad || [])
+      ].find(tag => tag.slug === ubicacionSlug);
+      
+      if (!ubicacionSeleccionada) {
+        sectorSelect.disabled = true;
+        return;
+      }
+      
+      const sectoresDisponibles = (searchTags.sector || []).filter(sector => {
+        return sector.parent_ids && sector.parent_ids.includes(ubicacionSeleccionada.id);
+      });
+      
+      isUpdatingFromCode = true;
+      
+      if (sectoresDisponibles.length > 0) {
+        sectorSelect.disabled = false;
+        const allSectorsText = language === 'en' ? 'All sectors' : 
+                              language === 'fr' ? 'Tous les secteurs' : 
+                              'Todos los sectores';
+        updateSelectWithData(sectorSelect, sectoresDisponibles, allSectorsText);
+        
+        if (currentState.sector) {
+          const sectorExists = sectoresDisponibles.some(s => s.slug === currentState.sector);
+          if (sectorExists) {
+            sectorSelect.value = currentState.sector;
+          } else {
+            currentState.sector = '';
+          }
+        }
+      } else {
+        sectorSelect.disabled = true;
+        const noSectorsText = language === 'en' ? 'No sectors available' : 
+                             language === 'fr' ? 'Aucun secteur disponible' : 
+                             'No hay sectores disponibles';
+        sectorSelect.innerHTML = `<option value="">${noSectorsText}</option>`;
+        currentState.sector = '';
+      }
+      
+      setTimeout(() => { isUpdatingFromCode = false; }, 0);
+    }
+
+    function setupEventListeners() {
+      actionBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const action = btn.dataset.action;
+          const actionKey = btn.dataset.actionKey;
+          
+          if (action !== currentState.accion) {
+            currentState.accion = action;
+            currentState.precio = '';
+            if (precioSelect) precioSelect.value = '';
+            updateActionToggle(actionKey);
+            updatePrecioOptions();
+            updateSearchButtonState();
+          }
+        });
+      });
+
+      setupCurrencyListeners();
+
+      tipoSelect?.addEventListener('change', function() {
+        if (this.value !== currentState.tipo && !isUpdatingFromCode) {
+          currentState.tipo = this.value;
+          updateSearchButtonState();
+        }
+      });
+
+      ubicacionSelect?.addEventListener('change', function() {
+        if (this.value !== currentState.ubicacion && !isUpdatingFromCode) {
+          currentState.ubicacion = this.value;
+          currentState.sector = '';
+          updateSectorOptions();
+          updateSearchButtonState();
+        }
+      });
+
+      sectorSelect?.addEventListener('change', function() {
+        if (this.value !== currentState.sector && !isUpdatingFromCode) {
+          currentState.sector = this.value;
+          updateSearchButtonState();
+        }
+      });
+
+      precioSelect?.addEventListener('change', function() {
+        if (this.value !== currentState.precio && !isUpdatingFromCode) {
+          currentState.precio = this.value;
+          updateSearchButtonState();
+        }
+      });
+
+      moreFiltersToggle?.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        initialSecondaryFilters = {
+          habitaciones: currentState.habitaciones,
+          banos: currentState.banos,
+          parqueos: currentState.parqueos,
+          area: currentState.area,
+          caracteristicas: [...(currentState.caracteristicas || [])]
+        };
+        
+        advancedPanel?.classList.toggle('hidden');
+      });
+
+      document.getElementById('close-advanced')?.addEventListener('click', () => {
+        advancedPanel?.classList.add('hidden');
+      });
+
+      document.getElementById('apply-secondary-filters')?.addEventListener('click', () => {
+        currentState.habitaciones = modalHabitaciones?.value || '';
+        currentState.banos = modalBanos?.value || '';
+        currentState.parqueos = modalParqueos?.value || '';
+        currentState.area = modalArea?.value || '';
+        
+        currentState.caracteristicas = [];
+        document.querySelectorAll('.modal-checkbox:checked').forEach(checkbox => {
+          currentState.caracteristicas.push(checkbox.value);
+        });
+        
+        const hasChanges = 
+          initialSecondaryFilters.habitaciones !== currentState.habitaciones ||
+          initialSecondaryFilters.banos !== currentState.banos ||
+          initialSecondaryFilters.parqueos !== currentState.parqueos ||
+          initialSecondaryFilters.area !== currentState.area ||
+          JSON.stringify(initialSecondaryFilters.caracteristicas.sort()) !== JSON.stringify(currentState.caracteristicas.sort());
+        
+        advancedPanel?.classList.add('hidden');
+        updateSearchButtonState();
+        
+        if (hasChanges) {
+          console.log('Cambios detectados en filtros secundarios, ejecutando búsqueda...');
+          executeSearch();
+        }
+      });
+
+      document.getElementById('clear-secondary-filters')?.addEventListener('click', () => {
+        currentState.habitaciones = '';
+        currentState.banos = '';
+        currentState.parqueos = '';
+        currentState.area = '';
+        currentState.caracteristicas = [];
+        
+        if (modalHabitaciones) modalHabitaciones.value = '';
+        if (modalBanos) modalBanos.value = '';
+        if (modalParqueos) modalParqueos.value = '';
+        if (modalArea) modalArea.value = '';
+        
+        document.querySelectorAll('.modal-checkbox').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+        
+        updateSearchButtonState();
+      });
+
+      searchBtn?.addEventListener('click', executeSearch);
+      
+      if (variant === 'hero' && modalHabitaciones) {
+        modalHabitaciones.addEventListener('change', function() {
+          if (this.value !== currentState.habitaciones && !isUpdatingFromCode) {
+            currentState.habitaciones = this.value;
+            updateSearchButtonState();
+          }
+        });
+      }
+      
+      if (variant === 'hero' && modalBanos) {
+        modalBanos.addEventListener('change', function() {
+          if (this.value !== currentState.banos && !isUpdatingFromCode) {
+            currentState.banos = this.value;
+            updateSearchButtonState();
+          }
+        });
+      }
+      
+      if (variant === 'hero' && modalParqueos) {
+        modalParqueos.addEventListener('change', function() {
+          if (this.value !== currentState.parqueos && !isUpdatingFromCode) {
+            currentState.parqueos = this.value;
+            updateSearchButtonState();
+          }
+        });
+      }
+      
+      if (variant === 'hero' && modalArea) {
+        modalArea.addEventListener('change', function() {
+          if (this.value !== currentState.area && !isUpdatingFromCode) {
+            currentState.area = this.value;
+            updateSearchButtonState();
+          }
+        });
+      }
+    }
+
+    function setupCurrencyListeners() {
+      currencyBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const currency = btn.dataset.currency;
+          if (currency !== currentState.moneda) {
+            currentState.moneda = currency;
+            currentState.precio = '';
+            if (precioSelect) precioSelect.value = '';
+            updateCurrencyToggle(currency);
+            updatePrecioOptions();
+            updateSearchButtonState();
+          }
+        });
+      });
+    }
+
+    function updateActionToggle(actionKey) {
+      actionBtns.forEach(btn => {
+        if (btn.dataset.actionKey === actionKey) {
+          btn.classList.add('bg-[#f04e00]', 'text-white', 'shadow-md');
+          btn.classList.remove('text-gray-600');
+        } else {
+          btn.classList.remove('bg-[#f04e00]', 'text-white', 'shadow-md');
+          btn.classList.add('text-gray-600');
+        }
+      });
+    }
+
+    function updateCurrencyToggle(currency) {
+      currencyBtns.forEach(btn => {
+        if (btn.dataset.currency === currency) {
+          btn.classList.add('bg-white', 'text-[#f04e00]', 'shadow-sm');
+          btn.classList.remove('text-gray-600');
+        } else {
+          btn.classList.remove('bg-white', 'text-[#f04e00]', 'shadow-sm');
+          btn.classList.add('text-gray-600');
+        }
+      });
+    }
+
+    function updateSearchButtonState() {
+      if (!searchBtn) return;
+      
+      const filterCount = getFilterCount();
+      // Permitir búsqueda si tiene acción (sin importar si es el único filtro)
+      const hasFilters = filterCount > 0;
+      
+      if (hasFilters) {
+        searchBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
+        searchBtn.classList.add('bg-[#f04e00]', 'hover:bg-[#d94400]', 'cursor-pointer');
+        searchBtn.disabled = false;
+        
+        const text = searchBtn.querySelector('span');
+        if (text) {
+          const searchText = language === 'en' ? 'Search' : language === 'fr' ? 'Rechercher' : 'Buscar';
+          text.textContent = filterCount > 1 ? `${searchText} (${filterCount})` : searchText;
+        }
+      } else {
+        searchBtn.classList.remove('bg-[#f04e00]', 'hover:bg-[#d94400]', 'cursor-pointer');
+        searchBtn.classList.add('bg-gray-300', 'cursor-not-allowed');
+        searchBtn.disabled = true;
+        
+        const text = searchBtn.querySelector('span');
+        if (text) {
+          text.textContent = language === 'en' ? 'Select filters' : 
+                            language === 'fr' ? 'Sélectionner filtres' : 
+                            'Selecciona filtros';
+        }
+      }
+    }
+    
+    function getFilterCount() {
+      let count = 0;
+      if (currentState.accion) count++;
+      if (currentState.tipo) count++;
+      if (currentState.ubicacion) count++;
+      if (currentState.sector) count++;
+      if (currentState.precio) count++;
+      if (currentState.habitaciones) count++;
+      if (currentState.banos) count++;
+      if (currentState.parqueos) count++;
+      if (currentState.area) count++;
+      if (currentState.caracteristicas?.length > 0) count += currentState.caracteristicas.length;
+      return count;
+    }
+
+    function buildSearchURL() {
+      const urlParts = [];
+      
+      if (language !== 'es') urlParts.push(language);
+      
+      // Solo agregar acción si realmente hay una seleccionada
+      if (currentState.accion) {
+        urlParts.push(currentState.accion);
+      }
+      
+      if (currentState.tipo) urlParts.push(currentState.tipo);
+      if (currentState.ubicacion) {
+        urlParts.push(currentState.ubicacion);
+        if (currentState.sector) urlParts.push(currentState.sector);
+      }
+      if (currentState.precio) urlParts.push(currentState.precio);
+      if (currentState.habitaciones) urlParts.push(currentState.habitaciones);
+      if (currentState.banos) urlParts.push(currentState.banos);
+      if (currentState.parqueos) urlParts.push(currentState.parqueos);
+      if (currentState.area) urlParts.push(currentState.area);
+      
+      if (currentState.caracteristicas?.length > 0) {
+        const sorted = [...currentState.caracteristicas].sort();
+        sorted.forEach(c => { if (c) urlParts.push(c); });
+      }
+      
+      return '/' + urlParts.join('/') + (trackingString || '');
+    }
+
+    function executeSearch() {
+      if (searchTimeout) clearTimeout(searchTimeout);
+      
+      searchTimeout = setTimeout(() => {
+        const url = buildSearchURL();
+        console.log('Navegando a:', url);
+        window.location.href = url;
+      }, 300);
+    }
+  });
+</script>
+
+<style>
+  .mini-select-with-icon {
+    @apply appearance-none bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all;
+  }
+  
+  .mini-select-with-icon:focus {
+    outline: none;
+  }
+  
+  .modal-checkbox:checked {
+    background-color: #f04e00;
+    border-color: #f04e00;
+  }
+  
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+</style>

@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Variables CSS personalizadas */
+:root {
+  --color-primary: #f04e00;
+  --color-primary-dark: #d94400;
+  --color-secondary: #000000;
+  --color-gray-light: #f8f8f8;
+}
+
+/* Reset y estilos base */
+@layer base {
+  html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+  }
+
+  /* Mejora la legibilidad */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Focus styles accesibles */
+  *:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* Mejora para imágenes */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Componentes reutilizables */
+@layer components {
+  /* Contenedor responsive */
+  .container {
+    @apply mx-auto px-4;
+    max-width: 1280px;
+  }
+
+  /* Botón primario */
+  .btn-primary {
+    @apply px-4 py-2 bg-[#f04e00] text-white rounded-md hover:bg-[#d94400] transition-colors duration-200;
+  }
+
+  /* Botón secundario */
+  .btn-secondary {
+    @apply px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200;
+  }
+
+  /* Card base */
+  .card {
+    @apply bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+}
+
+/* Utilidades personalizadas */
+@layer utilities {
+  /* Texto con gradiente */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#f04e00] to-[#ff7a3d];
+  }
+
+  /* Sombra suave personalizada */
+  .shadow-soft {
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Hover scale suave */
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+}
+
+/* Animaciones personalizadas */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Media queries para mejoras específicas */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,383 @@
+---
+// src/components/property/PropertyVideos.astro
+export interface Props {
+  data: any;
+  language?: string;
+}
+
+const { data, language } = Astro.props;
+
+// Try to get language from multiple sources
+const currentLanguage = language || 
+                       data.language || 
+                       data.globalConfig?.language || 
+                       'es';
+
+// Multilingual translations
+const translations = {
+  es: {
+    propertySpecific: 'Videos de Esta Propiedad',
+    suggestedVideos: 'Videos Relacionados',
+    featured: 'Destacado',
+    watchNow: 'Ver Ahora',
+    watchVideo: 'Reproducir',
+    duration: 'Duración',
+    viewGallery: 'Ver Videoteca Completa',
+    scheduleVisit: 'Agenda una visita personalizada para conocer todos los detalles de esta propiedad',
+    scheduleVisitBtn: 'Agendar Visita',
+    callNow: 'Contactar Ahora',
+    moreContent: 'Más Contenido'
+  },
+  en: {
+    propertySpecific: 'Videos of This Property',
+    suggestedVideos: 'Related Videos',
+    featured: 'Featured',
+    watchNow: 'Watch Now',
+    watchVideo: 'Play',
+    duration: 'Duration',
+    viewGallery: 'View Complete Video Gallery',
+    scheduleVisit: 'Schedule a personalized visit to learn all the details about this property',
+    scheduleVisitBtn: 'Schedule Visit',
+    callNow: 'Contact Now',
+    moreContent: 'More Content'
+  },
+  fr: {
+    propertySpecific: 'Vidéos de Cette Propriété',
+    suggestedVideos: 'Vidéos Connexes',
+    featured: 'À la Une',
+    watchNow: 'Regarder Maintenant',
+    watchVideo: 'Lecture',
+    duration: 'Durée',
+    viewGallery: 'Voir la Galerie Vidéo Complète',
+    scheduleVisit: 'Planifiez une visite personnalisée pour connaître tous les détails de cette propriété',
+    scheduleVisitBtn: 'Planifier une Visite',
+    callNow: 'Contacter Maintenant',
+    moreContent: 'Plus de Contenu'
+  }
+};
+
+const t = translations[currentLanguage] || translations.es;
+
+const property = data.property || {};
+
+// Function to get proper video URL
+function getVideoUrl(video, targetLang) {
+  if (video.url) {
+    return video.url;
+  }
+  
+  const baseUrl = targetLang === 'es' ? '' : `/${targetLang}`;
+  
+  if (video.slug_url) {
+    return `${baseUrl}/${video.slug_url}`;
+  }
+  
+  const slugMap = {
+    es: video.slug,
+    en: video.slug_en,
+    fr: video.slug_fr
+  };
+  
+  const slug = slugMap[targetLang] || video.slug;
+  
+  if (slug) {
+    return `${baseUrl}/${slug}`;
+  }
+  
+  return `${baseUrl}/videos/${video.id}`;
+}
+
+// Helper function to format view count
+function formatViews(views, language) {
+  if (!views) return '';
+  
+  const num = parseInt(views);
+  const labels = {
+    es: { thousand: 'K', million: 'M', views: 'visualizaciones' },
+    en: { thousand: 'K', million: 'M', views: 'views' },
+    fr: { thousand: 'K', million: 'M', views: 'vues' }
+  };
+  
+  const lang = labels[language] || labels.es;
+  
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}${lang.million} ${lang.views}`;
+  } else if (num >= 1000) {
+    return `${(num / 1000).toFixed(0)}${lang.thousand} ${lang.views}`;
+  } else {
+    return `${num.toLocaleString()} ${lang.views}`;
+  }
+}
+
+// Helper function to clean HTML from descriptions
+function cleanDescription(description) {
+  if (!description) return '';
+  
+  return description
+    // Remove HTML tags like <b>, </b>, <i>, </i>, <br>, etc.
+    .replace(/<[^>]*>/g, '')
+    // Remove HTML entities like &nbsp;, &amp;, etc.
+    .replace(/&[a-zA-Z0-9#]+;/g, ' ')
+    // Clean up multiple spaces
+    .replace(/\s+/g, ' ')
+    // Trim whitespace
+    .trim();
+}
+
+// Get videos from API
+const videosFromAPI = data.content?.videos || [];
+
+// Filter valid videos - video_id OR video_url is sufficient (some videos don't have video_id)
+const validVideos = videosFromAPI.filter(video =>
+  video.title &&
+  (video.url || video.slug_url || video.slug || video.id) &&
+  (video.video_id || video.video_url || video.thumbnail)
+);
+
+// Process videos with proper URLs FIRST
+const processedVideos = validVideos.map(video => ({
+  ...video,
+  properUrl: getVideoUrl(video, currentLanguage),
+  isFeatured: video.featured === 1 || video.featured === true,
+  categoryName: video.category_name || 'Video'
+}));
+
+// Separate videos by relation type (AFTER processing)
+const directVideos = processedVideos.filter(video => video.relation_type === 'direct');
+const relatedVideos = processedVideos.filter(video => video.relation_type === 'tags');
+
+// Check if we have property-specific videos
+const hasPropertySpecific = directVideos.length > 0;
+
+// Main video logic: prioritize direct videos first, then featured, then any
+const mainVideo = directVideos.find(v => v.isFeatured) ||
+                 directVideos[0] ||
+                 processedVideos.find(v => v.isFeatured) ||
+                 processedVideos[0] ||
+                 null;
+
+// Additional videos (exclude main video)
+const additionalVideos = processedVideos.filter(video => video.id !== mainVideo?.id);
+
+const hasVideos = processedVideos.length > 0;
+---
+
+{hasVideos && mainVideo && (
+  <div class="space-y-8">
+    <div class="space-y-8">
+      <!-- Section Header -->
+      <div class="relative">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">
+          {hasPropertySpecific ? t.propertySpecific : t.suggestedVideos}
+        </h2>
+        <div class="w-16 h-1 bg-gradient-to-r from-orange-500 to-red-600 rounded-full"></div>
+      </div>
+
+      <!-- Main Video - Cinematic Hero -->
+      <div class="relative group">
+        <a href={mainVideo?.properUrl || '#'} class="block relative overflow-hidden rounded-2xl">
+          <div class="relative w-full aspect-[21/9] bg-black shadow-2xl">
+            <!-- Main Video Thumbnail -->
+            <img 
+              src={mainVideo.thumbnail || `https://img.youtube.com/vi/${mainVideo.video_id}/maxresdefault.jpg`}
+              alt={mainVideo.title}
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              loading="lazy"
+            />
+            
+            <!-- Cinematic Dark Gradient Overlay - Inspired by Action/Thriller movies -->
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-70 group-hover:opacity-50 transition-all duration-700 pointer-events-none"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/30 opacity-60 pointer-events-none"></div>
+
+            <!-- Subtle Film Grain Effect -->
+            <div class="absolute inset-0 opacity-10 mix-blend-multiply pointer-events-none" style="background-image: url('data:image/svg+xml,<svg viewBox=\"0 0 256 256\" xmlns=\"http://www.w3.org/2000/svg\"><filter id=\"noiseFilter\"><feTurbulence type=\"fractalNoise\" baseFrequency=\"0.9\" numOctaves=\"1\" stitchTiles=\"stitch\"/></filter><rect width=\"100%\" height=\"100%\" filter=\"url(%23noiseFilter)\" opacity=\"0.4\"/></svg>');"></div>
+            
+            <!-- Elegant Play Button - Responsive Size -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 group-hover:bg-white transition-all duration-500 border border-white/20">
+                <div class="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-1">
+                  <svg viewBox="0 0 24 24" fill="currentColor" class="text-gray-900">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Top Tags -->
+            <div class="absolute top-6 left-6 flex flex-wrap gap-2 pointer-events-none">
+              {mainVideo.isFeatured && (
+                <div class="bg-gradient-to-r from-amber-500 to-yellow-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow-lg flex items-center gap-2">
+                  <i class="fas fa-star"></i>
+                  <span>{t.featured}</span>
+                </div>
+              )}
+
+              {mainVideo.categoryName && (
+                <div class="bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-lg text-sm font-medium border border-white/10">
+                  {mainVideo.categoryName}
+                </div>
+              )}
+            </div>
+
+            <!-- Duration -->
+            <div class="absolute top-6 right-6 pointer-events-none">
+              {mainVideo.duration && (
+                <div class="bg-black/80 backdrop-blur-sm text-white text-sm px-3 py-1.5 rounded-lg font-medium border border-white/10">
+                  {mainVideo.duration}
+                </div>
+              )}
+            </div>
+
+            <!-- Bottom Info - Simplificado (OPTIMIZED) -->
+            <div class="absolute bottom-4 left-4 right-4 pointer-events-none">
+              <h3 class="text-white text-lg md:text-2xl font-bold mb-2 leading-tight drop-shadow-lg line-clamp-2">
+                {mainVideo.title}
+              </h3>
+
+              {mainVideo.views && (
+                <div class="flex items-center gap-1.5 text-xs md:text-sm text-gray-200">
+                  <i class="fas fa-eye"></i>
+                  <span>{formatViews(mainVideo.views, currentLanguage)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Additional Videos Grid -->
+      {additionalVideos.length > 0 && (
+        <div class="space-y-6">
+          <!-- Videos Grid - Compact and Elegant -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {additionalVideos.slice(0, 4).map((video) => (
+              <a 
+                href={video.properUrl} 
+                class="group block bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-xl border border-gray-100 hover:border-gray-200 transition-all duration-300 hover:-translate-y-1"
+              >
+                <div class="relative aspect-video bg-gray-900">
+                  <img 
+                    src={video.thumbnail || `https://img.youtube.com/vi/${video.video_id}/hqdefault.jpg`}
+                    alt={video.title}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  
+                  <!-- Dark Overlay - Subtle film effect -->
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div class="absolute inset-0 flex items-center justify-center">
+                      <div class="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-play text-gray-900 text-sm ml-0.5"></i>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Tags -->
+                  <div class="absolute top-2 left-2">
+                    {video.isFeatured && (
+                      <div class="bg-gradient-to-r from-amber-500 to-yellow-600 text-white text-xs px-2 py-1 rounded-md font-bold flex items-center gap-1">
+                        <i class="fas fa-star text-xs"></i>
+                      </div>
+                    )}
+                  </div>
+
+                  <!-- Duration -->
+                  {video.duration && (
+                    <div class="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-1 rounded-md font-medium">
+                      {video.duration}
+                    </div>
+                  )}
+                </div>
+                
+                <!-- Video Info -->
+                <div class="p-3">
+                  <div class="mb-2">
+                    <div class="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-medium">
+                      {video.categoryName}
+                    </div>
+                  </div>
+                  
+                  <h5 class="font-bold text-gray-900 text-sm group-hover:text-orange-600 transition-colors mb-2 line-clamp-2 leading-tight">
+                    {video.title}
+                  </h5>
+                  
+                  {video.description && (
+                    <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-2">
+                      {(() => {
+                        const cleanDesc = cleanDescription(video.description);
+                        return cleanDesc.length > 80 ? 
+                          `${cleanDesc.substring(0, 80)}...` : 
+                          cleanDesc;
+                      })()}
+                    </p>
+                  )}
+                  
+                  <div class="flex items-center justify-between text-xs text-gray-400">
+                    <div class="flex items-center gap-1">
+                      <i class="fab fa-youtube text-red-500"></i>
+                      <span>HD</span>
+                    </div>
+                    
+                    <span class="text-orange-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      {t.watchNow}
+                    </span>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <!-- Call to Action & Video Gallery Link - Unified Row -->
+      <div class="space-y-4">
+        <!-- Text in one line -->
+        <div class="text-center">
+          <p class="text-gray-600 text-sm">
+            {t.scheduleVisit}
+          </p>
+        </div>
+        
+        <!-- Buttons in another line -->
+        <div class="flex flex-col sm:flex-row gap-3 items-center justify-center">
+          <!-- Video Gallery Link -->
+          <a 
+            href={`/${currentLanguage === 'es' ? '' : currentLanguage + '/'}videos`}
+            class="inline-flex items-center gap-2 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:border-[#f04e00] hover:text-[#f04e00] transition-colors duration-300"
+          >
+            <i class="fas fa-film"></i>
+            <span>{t.viewGallery}</span>
+            <i class="fas fa-arrow-right text-sm"></i>
+          </a>
+          
+          <!-- Schedule Visit Button -->
+          <button 
+            onclick="requestPropertyVisit()"
+            class="inline-flex items-center justify-center gap-2 bg-[#f04e00] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#d94400] transition-colors duration-300 shadow-md hover:shadow-lg"
+          >
+            <i class="fas fa-calendar-check"></i>
+            <span>{t.scheduleVisitBtn}</span>
+          </button>
+          
+          <!-- Contact Button -->
+          <a 
+            href="tel:+18295148080"
+            class="inline-flex items-center justify-center gap-2 border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-[#f04e00] hover:text-[#f04e00] transition-colors duration-300"
+          >
+            <i class="fas fa-phone"></i>
+            <span>{t.callNow}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

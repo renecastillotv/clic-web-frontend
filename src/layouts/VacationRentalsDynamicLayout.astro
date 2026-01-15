@@ -1,0 +1,664 @@
+---
+// src/layouts/VacationRentalsDynamicLayout.astro - Layout dinámico para manejo de subrutas
+import Layout from './Layout.astro';
+import PropertyList from '../components/PropertyList.astro';
+import RentalCarousel from '../components/RentalCarousel.astro';
+import RentalSearchBox from '../components/RentalSearchBox.astro';
+import RentalTypeGrid from '../components/RentalTypeGrid.astro';
+import DestinationGrid from '../components/DestinationGrid.astro';
+import RentalStats from '../components/RentalStats.astro';
+import RentalFeatures from '../components/RentalFeatures.astro';
+import SEODescription from '../components/SEODescription.astro';
+import SEOContentRentals from '../components/SEOContentRentals.astro';
+import PropertySeoContent from '../components/PropertySeoContent.astro';
+import DynamicFAQs from '../components/DynamicFAQs.astro';
+import Testimonials from '../components/Testimonials.astro';
+import RelatedArticles from '../components/RelatedArticles.astro';
+import VideoGallery from '../components/VideoGallery.astro';
+import { Fragment } from 'astro/jsx-runtime';
+
+// ===================================================================
+// EXTRACCIÓN DE DATOS DEL PROP
+// ===================================================================
+
+const { data } = Astro.props;
+const language = data?.language || 'es';
+
+// ===================================================================
+// DATOS ESTÁTICOS DE FALLBACK 
+// ===================================================================
+
+let rentalData = data;
+
+// Si no hay datos, usar fallback estático completo
+if (!rentalData) {
+  console.log('🏖️ VacationRentalsDynamicLayout: Usando datos estáticos de fallback');
+  
+  // Mock de propiedades vacacionales individuales
+  const mockRentalProperties = {
+    'villa-paradiso': {
+      slug: 'villa-paradiso',
+      titulo: language === 'es' ? 'Villa Paradiso - Punta Cana' :
+              language === 'en' ? 'Villa Paradiso - Punta Cana' :
+              'Villa Paradiso - Punta Cana',
+      precio: '$320/noche',
+      precioSemanal: '$2,100/semana',
+      descripcion: language === 'es' ? 'Espectacular villa de 4 habitaciones con piscina privada, ubicada a solo 5 minutos de la playa de Punta Cana. Perfecta para familias y grupos que buscan lujo y comodidad.' :
+                   language === 'en' ? 'Spectacular 4-bedroom villa with private pool, located just 5 minutes from Punta Cana beach. Perfect for families and groups seeking luxury and comfort.' :
+                   'Villa spectaculaire de 4 chambres avec piscine privée, située à seulement 5 minutes de la plage de Punta Cana. Parfaite pour les familles et les groupes recherchant luxe et confort.',
+      imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
+      imagenes: [
+        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=800&fit=crop',
+        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=800&fit=crop'
+      ],
+      destino: 'Punta Cana',
+      habitaciones: 4,
+      banos: 4,
+      capacidad: 8,
+      metros: 300,
+      tipo: 'Villa',
+      rating: 4.9,
+      reviews: 127,
+      amenidades: [
+        language === 'es' ? 'Piscina privada' : language === 'en' ? 'Private pool' : 'Piscine privée', 
+        language === 'es' ? 'WiFi gratuito' : language === 'en' ? 'Free WiFi' : 'WiFi gratuit', 
+        language === 'es' ? 'Aire acondicionado' : language === 'en' ? 'Air conditioning' : 'Climatisation', 
+        language === 'es' ? 'Cocina completa' : language === 'en' ? 'Full kitchen' : 'Cuisine complète', 
+        'BBQ', 
+        language === 'es' ? 'Jardín tropical' : language === 'en' ? 'Tropical garden' : 'Jardin tropical', 
+        language === 'es' ? 'Parking gratuito' : language === 'en' ? 'Free parking' : 'Parking gratuit', 
+        language === 'es' ? 'Servicio de limpieza' : language === 'en' ? 'Cleaning service' : 'Service de nettoyage'
+      ]
+    }
+  };
+
+  rentalData = {
+    type: 'rental-list',
+    language: language,
+    searchParams: {},
+    listings: [
+      {
+        slug: 'villa-paradiso',
+        titulo: language === 'es' ? 'Villa Paradiso - Punta Cana' :
+                language === 'en' ? 'Villa Paradiso - Punta Cana' :
+                'Villa Paradiso - Punta Cana',
+        precio: '$320/noche',
+        imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+        destino: 'Punta Cana',
+        habitaciones: 4,
+        banos: 4,
+        capacidad: 8,
+        tipo: 'Villa',
+        rating: 4.9,
+        reviews: 127,
+        destacado: true
+      },
+      {
+        slug: 'penthouse-bavaro',
+        titulo: language === 'es' ? 'Penthouse Bávaro Beach' :
+                language === 'en' ? 'Penthouse Bavaro Beach' :
+                'Penthouse Bavaro Beach',
+        precio: '$180/noche',
+        imagen: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        destino: 'Bávaro',
+        habitaciones: 3,
+        banos: 2,
+        capacidad: 6,
+        tipo: 'Apartamento',
+        rating: 4.7,
+        reviews: 89,
+        nuevo: true
+      }
+    ],
+    totalProperties: 2,
+    meta: {
+      title: language === 'es' ? 'Rentas Vacacionales - CLIC' :
+             language === 'en' ? 'Vacation Rentals - CLIC' :
+             'Locations de Vacances - CLIC',
+      description: language === 'es' ? 'Encuentra la propiedad vacacional perfecta en República Dominicana' :
+                   language === 'en' ? 'Find the perfect vacation property in Dominican Republic' :
+                   'Trouvez la propriété de vacances parfaite en République Dominicaine'
+    }
+  };
+}
+
+// ===================================================================
+// FUNCIONES AUXILIARES
+// ===================================================================
+
+// Función para capitalizar texto
+function capitalize(str) {
+  if (!str) return '';
+  return str.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+// Función para generar breadcrumb dinámico
+function generateBreadcrumb(segments, language) {
+  const breadcrumb = [
+    { 
+      path: language === 'en' ? '/en/vacation-rentals' : language === 'fr' ? '/fr/locations-vacances' : '/rentas-vacacionales', 
+      label: language === 'es' ? 'Rentas Vacacionales' : language === 'en' ? 'Vacation Rentals' : 'Locations de Vacances'
+    }
+  ];
+
+  if (segments && segments.length > 0) {
+    let currentPath = language === 'en' ? '/en/vacation-rentals' : language === 'fr' ? '/fr/locations-vacances' : '/rentas-vacacionales';
+    
+    segments.forEach((segment, index) => {
+      currentPath += `/${segment}`;
+      breadcrumb.push({
+        path: currentPath,
+        label: capitalize(segment)
+      });
+    });
+  }
+
+  return breadcrumb;
+}
+
+// Función para generar FAQs contextuales
+function generateContextualFAQs(searchParams, language, totalProperties) {
+  const texts = {
+    es: {
+      title: 'Preguntas Frecuentes',
+      faqs: [
+        {
+          id: 'costo-renta',
+          question: '¿Cuánto cuesta rentar una propiedad vacacional?',
+          answer: `El costo varía según la temporada, ubicación exacta y amenidades. En promedio, los precios van desde $150 hasta $600 por noche. Tenemos ${totalProperties} opciones disponibles que se ajustan a diferentes presupuestos.`,
+          category: 'precios'
+        },
+        {
+          id: 'que-incluye',
+          question: '¿Qué incluye la renta vacacional?',
+          answer: 'Nuestras propiedades incluyen WiFi gratuito, ropa de cama, toallas, limpieza inicial, y soporte 24/7. Dependiendo del tipo de propiedad, también pueden incluir piscina, cocina completa, parking, y servicios adicionales.',
+          category: 'servicios'
+        }
+      ]
+    },
+    en: {
+      title: 'Frequently Asked Questions',
+      faqs: [
+        {
+          id: 'rental-cost',
+          question: 'How much does it cost to rent a vacation property?',
+          answer: `The cost varies according to season, exact location and amenities. On average, prices range from $150 to $600 per night. We have ${totalProperties} options available that fit different budgets.`,
+          category: 'prices'
+        },
+        {
+          id: 'what-includes',
+          question: 'What does the vacation rental include?',
+          answer: 'Our properties include free WiFi, bedding, towels, initial cleaning, and 24/7 support. Depending on the type of property, they may also include pool, full kitchen, parking, and additional services.',
+          category: 'services'
+        }
+      ]
+    },
+    fr: {
+      title: 'Questions Fréquemment Posées',
+      faqs: [
+        {
+          id: 'cout-location',
+          question: 'Combien coûte la location d\'une propriété de vacances?',
+          answer: `Le coût varie selon la saison, l\'emplacement exact et les équipements. En moyenne, les prix vont de 150$ à 600$ par nuit. Nous avons ${totalProperties} options disponibles qui s\'adaptent à différents budgets.`,
+          category: 'prix'
+        },
+        {
+          id: 'que-inclut',
+          question: 'Qu\'est-ce qui est inclus dans la location de vacances?',
+          answer: 'Nos propriétés incluent WiFi gratuit, literie, serviettes, nettoyage initial, et support 24/7. Selon le type de propriété, elles peuvent aussi inclure piscine, cuisine complète, parking, et services additionnels.',
+          category: 'services'
+        }
+      ]
+    }
+  };
+
+  return texts[language] || texts.es;
+}
+
+// ===================================================================
+// PROCESAR DATOS FINALES
+// ===================================================================
+
+const pageType = rentalData.type || 'rental-list';
+const searchParams = rentalData.searchParams || {};
+const segments = rentalData.segments || [];
+const breadcrumbNavegacion = generateBreadcrumb(segments, language);
+
+// URLs según idioma
+const routes = {
+  es: {
+    allRentals: '/rentas-vacacionales',
+    contact: '/contacto'
+  },
+  en: {
+    allRentals: '/en/vacation-rentals',
+    contact: '/en/contact'
+  },
+  fr: {
+    allRentals: '/fr/locations-vacances',
+    contact: '/fr/contact'
+  }
+};
+
+const currentRoutes = routes[language] || routes.es;
+
+console.log('✅ VacationRentalsDynamicLayout preparado:', {
+  language,
+  pageType,
+  searchParams,
+  totalProperties: rentalData.totalProperties || 0
+});
+---
+
+<Layout 
+  title={rentalData.meta?.title || (language === 'es' ? 'Rentas Vacacionales - CLIC' : language === 'en' ? 'Vacation Rentals - CLIC' : 'Locations de Vacances - CLIC')}
+  description={rentalData.meta?.description || (language === 'es' ? 'Encuentra la propiedad vacacional perfecta en República Dominicana' : language === 'en' ? 'Find the perfect vacation property in Dominican Republic' : 'Trouvez la propriété de vacances parfaite en République Dominicaine')}
+  language={language}
+>
+  <!-- Breadcrumbs -->
+  {breadcrumbNavegacion.length > 1 && (
+    <nav class="container mx-auto px-4 py-3" aria-label="Breadcrumb">
+      <ol class="flex items-center space-x-2 text-sm">
+        <li>
+          <a href="/" class="text-gray-500 hover:text-[#f04e00] transition-colors">
+            {language === 'es' ? 'Inicio' : language === 'en' ? 'Home' : 'Accueil'}
+          </a>
+        </li>
+        {breadcrumbNavegacion.map((crumb, index) => (
+          <Fragment key={index}>
+            <li class="text-gray-400">/</li>
+            <li>
+              {index === breadcrumbNavegacion.length - 1 ? (
+                <span class="text-gray-700">{crumb.label}</span>
+              ) : (
+                <a href={crumb.path} class="text-gray-500 hover:text-[#f04e00] transition-colors">
+                  {crumb.label}
+                </a>
+              )}
+            </li>
+          </Fragment>
+        ))}
+      </ol>
+    </nav>
+  )}
+
+  {pageType === 'rental-list' && (
+    <>
+      <!-- Header con buscador compacto -->
+      <div class="bg-gray-50 py-8">
+        <div class="container mx-auto px-4">          
+          <!-- Buscador compacto prellenado -->
+          <RentalSearchBox 
+            style="compact" 
+            showTitle={false}
+            currentDestination={searchParams?.destino || ''}
+            currentCategory={searchParams?.tipo || ''}
+            currentBudget={searchParams?.presupuesto || ''}
+            currentGuests={searchParams?.huespedes || ''}
+          />
+        </div>
+      </div>
+
+      <!-- SEO Content con información dinámica -->
+      <section class="container mx-auto px-4 py-12">
+        <SEODescription 
+          destino={searchParams?.destino || ''}
+          tipo={searchParams?.tipo || ''}
+          presupuesto={searchParams?.presupuesto || ''}
+          huespedes={searchParams?.huespedes || ''}
+          totalProperties={rentalData.totalProperties || 0}
+        />
+      </section>
+
+      <!-- Resultados o mensaje de no resultados -->
+      {rentalData.totalProperties > 0 ? (
+        <>
+          <!-- Lista de propiedades -->
+          <div class="container mx-auto px-4 pb-12">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {rentalData.listings?.map((property) => (
+                <a 
+                  href={`${currentRoutes.allRentals}/${property.tipo.toLowerCase().replace(/\s+/g, '-')}/${property.destino.toLowerCase().replace(/\s+/g, '-')}/${property.slug}`}
+                  class="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+                >
+                  <div class="aspect-video overflow-hidden rounded-t-xl relative">
+                    <img 
+                      src={property.imagen} 
+                      alt={property.titulo}
+                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {property.destacado && (
+                      <div class="absolute top-3 left-3 bg-[#f04e00] text-white px-2 py-1 rounded-md text-xs font-medium">
+                        {language === 'es' ? 'Destacado' : language === 'en' ? 'Featured' : 'En vedette'}
+                      </div>
+                    )}
+                    {property.nuevo && (
+                      <div class="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                        {language === 'es' ? 'Nuevo' : language === 'en' ? 'New' : 'Nouveau'}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div class="p-6">
+                    <div class="flex items-center justify-between mb-2">
+                      <h3 class="text-lg font-semibold text-gray-900 group-hover:text-[#f04e00] transition-colors line-clamp-1">
+                        {property.titulo}
+                      </h3>
+                      <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
+                        <span class="text-sm text-gray-600">{property.rating}</span>
+                      </div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-600 mb-3 flex items-center gap-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                      {property.destino}
+                    </p>
+                    
+                    <div class="flex items-center justify-between text-sm text-gray-600 mb-4">
+                      <span>{property.habitaciones} {language === 'es' ? 'hab' : language === 'en' ? 'bed' : 'ch'} • {property.banos} {language === 'es' ? 'baños' : language === 'en' ? 'bath' : 'sdb'}</span>
+                      <span class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        {language === 'es' ? `Hasta ${property.capacidad} huéspedes` : language === 'en' ? `Up to ${property.capacidad} guests` : `Jusqu'à ${property.capacidad} invités`}
+                      </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="text-lg font-bold text-gray-900">{property.precio}</span>
+                        <span class="text-sm text-gray-600"> {language === 'es' ? 'por noche' : language === 'en' ? 'per night' : 'par nuit'}</span>
+                      </div>
+                      {property.reviews && (
+                        <span class="text-xs text-gray-500">{property.reviews} {language === 'es' ? 'reseñas' : language === 'en' ? 'reviews' : 'avis'}</span>
+                      )}
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <!-- Estadísticas específicas de la categoría -->
+          <RentalStats 
+            background="light" 
+            animated={true}
+            stats={[
+              { 
+                number: `${rentalData.totalProperties}`, 
+                label: language === 'es' ? 'Precio promedio/noche' : language === 'en' ? 'Average price/night' : 'Prix moyen/nuit',
+                icon: 'price',
+                color: 'text-green-600'
+              },
+              { 
+                number: '24/7', 
+                label: language === 'es' ? 'Soporte incluido' : language === 'en' ? 'Support included' : 'Support inclus',
+                icon: 'support',
+                color: 'text-blue-600'
+              }
+            ]}
+          />
+        </>
+      ) : (
+        <!-- No results message -->
+        <section class="container mx-auto px-4 py-12 text-center">
+          <div class="max-w-2xl mx-auto">
+            <div class="bg-gray-100 rounded-lg p-8">
+              <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                {language === 'es' ? 'No encontramos propiedades' : language === 'en' ? 'No properties found' : 'Aucune propriété trouvée'}
+              </h3>
+              <p class="text-gray-600 mb-6">
+                {language === 'es' ? 'No hay propiedades que coincidan con tus criterios de búsqueda. Intenta ajustar los filtros o explora nuestras opciones disponibles.' :
+                 language === 'en' ? 'There are no properties that match your search criteria. Try adjusting the filters or explore our available options.' :
+                 'Il n\'y a pas de propriétés qui correspondent à vos critères de recherche. Essayez d\'ajuster les filtres ou explorez nos options disponibles.'}
+              </p>
+              <a 
+                href={currentRoutes.allRentals}
+                class="inline-block px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#d94400] transition-colors font-semibold"
+              >
+                {language === 'es' ? 'Ver todas las propiedades' : language === 'en' ? 'View all properties' : 'Voir toutes les propriétés'}
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      <!-- Secciones adicionales para enriquecer el contenido -->
+      {!searchParams.category && !searchParams.destination && (
+        <RentalTypeGrid 
+          title={language === 'es' ? 'Explora otros tipos de propiedades' : language === 'en' ? 'Explore other property types' : 'Explorez d\'autres types de propriétés'}
+          subtitle={language === 'es' ? 'Encuentra la experiencia vacacional perfecta para ti' : language === 'en' ? 'Find the perfect vacation experience for you' : 'Trouvez l\'expérience de vacances parfaite pour vous'}
+        />
+      )}
+
+      {!searchParams.destination && (
+        <DestinationGrid 
+          title={language === 'es' ? 'Otros destinos populares' : language === 'en' ? 'Other popular destinations' : 'Autres destinations populaires'}
+          subtitle={language === 'es' ? 'Descubre más lugares increíbles en República Dominicana' : language === 'en' ? 'Discover more amazing places in Dominican Republic' : 'Découvrez plus d\'endroits incroyables en République Dominicaine'}
+        />
+      )}
+
+      <!-- SEO Content profundo con componente especializado -->
+      <SEOContentRentals 
+        destino={searchParams?.destino || ''}
+        tipo={searchParams?.tipo || ''}
+        presupuesto={searchParams?.presupuesto || ''}
+        huespedes={searchParams?.huespedes || ''}
+        totalProperties={rentalData.totalProperties || 0}
+        listings={rentalData.listings || []}
+        seasonalData={rentalData.seasonalData}
+        experienceData={rentalData.experienceData}
+      />
+
+      <!-- FAQs contextuales -->
+      {(() => {
+        const faqData = generateContextualFAQs(searchParams, language, rentalData.totalProperties || 0);
+        return (
+          <DynamicFAQs 
+            faqs={faqData.faqs}
+            title={faqData.title}
+            context={{
+              location: searchParams?.destino,
+              propertyType: searchParams?.tipo
+            }}
+          />
+        );
+      })()}
+    </>
+  )}
+
+  {pageType === 'rental-property' && rentalData.property && (
+    <div class="container mx-auto px-4 py-8">
+      <div class="max-w-7xl mx-auto">
+        <!-- Galería de imágenes -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div class="aspect-[4/3] overflow-hidden rounded-lg">
+            <img 
+              src={rentalData.property.imagen} 
+              alt={rentalData.property.titulo}
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            {rentalData.property.imagenes?.slice(1, 5).map((img, idx) => (
+              <div key={idx} class="aspect-[4/3] overflow-hidden rounded-lg">
+                <img 
+                  src={img} 
+                  alt={`${rentalData.property.titulo} - Imagen ${idx + 2}`}
+                  class="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Información principal -->
+          <div class="lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h1 class="text-3xl font-bold text-gray-900">{rentalData.property.titulo}</h1>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span class="font-medium">{rentalData.property.rating}</span>
+                <span class="text-gray-600">({rentalData.property.reviews} {language === 'es' ? 'reseñas' : language === 'en' ? 'reviews' : 'avis'})</span>
+              </div>
+            </div>
+            
+            <p class="text-xl text-gray-600 mb-6">{rentalData.property.destino}</p>
+            
+            <div class="flex flex-wrap gap-6 mb-8 text-gray-700">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                </svg>
+                <span>{rentalData.property.habitaciones} {language === 'es' ? 'habitaciones' : language === 'en' ? 'bedrooms' : 'chambres'}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0a2 2 0 012 2v10a2 2 0 01-2 2H8a2 2 0 01-2-2V9a2 2 0 012-2m12 0V5a2 2 0 00-2-2M8 7V5a2 2 0 012-2"></path>
+                </svg>
+                <span>{rentalData.property.banos} {language === 'es' ? 'baños' : language === 'en' ? 'bathrooms' : 'salles de bain'}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <span>{language === 'es' ? `Hasta ${rentalData.property.capacidad} huéspedes` : language === 'en' ? `Up to ${rentalData.property.capacidad} guests` : `Jusqu'à ${rentalData.property.capacidad} invités`}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"/>
+                </svg>
+                <span>{rentalData.property.metros} m²</span>
+              </div>
+            </div>
+
+            <div class="prose max-w-none mb-8">
+              <h2 class="text-2xl font-semibold mb-4">
+                {language === 'es' ? 'Acerca de esta propiedad' : language === 'en' ? 'About this property' : 'À propos de cette propriété'}
+              </h2>
+              <p class="text-gray-700">{rentalData.property.descripcion}</p>
+            </div>
+
+            {rentalData.property.amenidades && (
+              <div class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">
+                  {language === 'es' ? 'Amenidades' : language === 'en' ? 'Amenities' : 'Équipements'}
+                </h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {rentalData.property.amenidades.map((amenidad, idx) => (
+                    <div key={idx} class="flex items-center gap-2 text-gray-700">
+                      <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      <span>{amenidad}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <!-- Sidebar con reserva -->
+          <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-lg p-6 sticky top-24 border">
+              <div class="mb-6">
+                <div class="text-3xl font-bold text-gray-900 mb-2">
+                  {rentalData.property.precio}
+                  <span class="text-lg font-normal text-gray-600"> {language === 'es' ? 'por noche' : language === 'en' ? 'per night' : 'par nuit'}</span>
+                </div>
+                {rentalData.property.precioSemanal && (
+                  <div class="text-lg text-gray-600">
+                    {rentalData.property.precioSemanal} {language === 'es' ? 'por semana' : language === 'en' ? 'per week' : 'par semaine'}
+                  </div>
+                )}
+              </div>
+              
+              <!-- Formulario de reserva -->
+              <div class="space-y-4 mb-6">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
+                    <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
+                    <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    {language === 'es' ? 'Huéspedes' : language === 'en' ? 'Guests' : 'Invités'}
+                  </label>
+                  <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#f04e00] focus:border-transparent">
+                    <option>{language === 'es' ? '1 huésped' : language === 'en' ? '1 guest' : '1 invité'}</option>
+                    <option>{language === 'es' ? '2 huéspedes' : language === 'en' ? '2 guests' : '2 invités'}</option>
+                    <option>{language === 'es' ? '3 huéspedes' : language === 'en' ? '3 guests' : '3 invités'}</option>
+                    <option>{language === 'es' ? '4 huéspedes' : language === 'en' ? '4 guests' : '4 invités'}</option>
+                    <option>{language === 'es' ? '5+ huéspedes' : language === 'en' ? '5+ guests' : '5+ invités'}</option>
+                  </select>
+                </div>
+              </div>
+
+              <button class="w-full bg-[#f04e00] text-white py-3 rounded-md hover:bg-[#d94400] transition-colors mb-3 font-semibold">
+                {language === 'es' ? 'Reservar ahora' : language === 'en' ? 'Book now' : 'Réserver maintenant'}
+              </button>
+              
+              <button class="w-full border border-gray-300 py-3 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 mb-4">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                </svg>
+                {language === 'es' ? 'Consultar por WhatsApp' : language === 'en' ? 'WhatsApp inquiry' : 'Consulter par WhatsApp'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <!-- CTA Section -->
+  <section class="py-16 bg-[#f04e00]">
+    <div class="container mx-auto px-4 text-center">
+      <div class="max-w-3xl mx-auto text-white">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">
+          {language === 'es' ? '¿Listo para unas vacaciones inolvidables?' :
+           language === 'en' ? 'Ready for an unforgettable vacation?' :
+           'Prêt pour des vacances inoubliables?'}
+        </h2>
+        <p class="text-xl mb-8 text-white/90">
+          {language === 'es' ? 'Encuentra y reserva la propiedad vacacional perfecta en República Dominicana' :
+           language === 'en' ? 'Find and book the perfect vacation property in Dominican Republic' :
+           'Trouvez et réservez la propriété de vacances parfaite en République Dominicaine'}
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a 
+            href={currentRoutes.allRentals}
+            class="inline-block px-8 py-3 bg-white text-[#f04e00] rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+          >
+            {language === 'es' ? 'Ver propiedades' : language === 'en' ? 'View properties' : 'Voir les propriétés'}
+          </a>
+          <a 
+            href={`${currentRoutes.contact}?servicio=rentas-huesped`}
+            class="inline-block px-8 py-3 bg-white/20 text-white border border-white/30 rounded-lg hover:bg-white/30 transition-colors font-semibold"
+          >
+            {language === 'es' ? 'Ayuda personalizada' : language === 'en' ? 'Personalized help' : 'Aide personnalisée'}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,630 @@
+---
+// SearchComponent.astro
+export interface Props {
+  class?: string;
+  showTitle?: boolean;
+}
+
+const { class: className = "", showTitle = true } = Astro.props;
+
+// Data para los dropdowns
+const ubicaciones = [
+  { value: "", label: "Todas las ubicaciones" },
+  { value: "distrito-nacional", label: "Distrito Nacional" },
+  { value: "santiago", label: "Santiago" },
+  { value: "punta-cana", label: "Punta Cana" },
+  { value: "puerto-plata", label: "Puerto Plata" },
+  { value: "la-romana", label: "La Romana" },
+  { value: "san-pedro", label: "San Pedro de Macorís" }
+];
+
+const sectoresPorUbicacion = {
+  "distrito-nacional": [
+    { value: "", label: "Todos los sectores" },
+    { value: "piantini", label: "Piantini" },
+    { value: "bella-vista", label: "Bella Vista" },
+    { value: "evaristo-morales", label: "Evaristo Morales" },
+    { value: "naco", label: "Naco" },
+    { value: "gazcue", label: "Gazcue" },
+    { value: "zona-universitaria", label: "Zona Universitaria" }
+  ],
+  "santiago": [
+    { value: "", label: "Todos los sectores" },
+    { value: "cerros-de-gurabo", label: "Cerros de Gurabo" },
+    { value: "jardines-metropolitanos", label: "Jardines Metropolitanos" },
+    { value: "bella-vista-santiago", label: "Bella Vista" },
+    { value: "los-jardines", label: "Los Jardines" }
+  ],
+  "punta-cana": [
+    { value: "", label: "Todos los sectores" },
+    { value: "bavaro", label: "Bávaro" },
+    { value: "cap-cana", label: "Cap Cana" },
+    { value: "uvero-alto", label: "Uvero Alto" },
+    { value: "cortecito", label: "Cortecito" }
+  ]
+};
+
+// 4 rangos de precios: compra USD, compra DOP, alquiler USD, alquiler DOP
+const rangosPrecios = {
+  comprar: {
+    USD: [
+      { value: "", label: "Cualquier precio" },
+      { value: "0-100000", label: "$0 - $100,000" },
+      { value: "100000-250000", label: "$100,000 - $250,000" },
+      { value: "250000-500000", label: "$250,000 - $500,000" },
+      { value: "500000-1000000", label: "$500,000 - $1,000,000" },
+      { value: "1000000-2000000", label: "$1,000,000 - $2,000,000" },
+      { value: "2000000+", label: "$2,000,000+" }
+    ],
+    DOP: [
+      { value: "", label: "Cualquier precio" },
+      { value: "0-5000000", label: "RD$0 - RD$5,000,000" },
+      { value: "5000000-12500000", label: "RD$5,000,000 - RD$12,500,000" },
+      { value: "12500000-25000000", label: "RD$12,500,000 - RD$25,000,000" },
+      { value: "25000000-50000000", label: "RD$25,000,000 - RD$50,000,000" },
+      { value: "50000000-100000000", label: "RD$50,000,000 - RD$100,000,000" },
+      { value: "100000000+", label: "RD$100,000,000+" }
+    ]
+  },
+  alquilar: {
+    USD: [
+      { value: "", label: "Cualquier precio" },
+      { value: "0-500", label: "$0 - $500" },
+      { value: "500-1000", label: "$500 - $1,000" },
+      { value: "1000-2000", label: "$1,000 - $2,000" },
+      { value: "2000-3000", label: "$2,000 - $3,000" },
+      { value: "3000-5000", label: "$3,000 - $5,000" },
+      { value: "5000+", label: "$5,000+" }
+    ],
+    DOP: [
+      { value: "", label: "Cualquier precio" },
+      { value: "0-25000", label: "RD$0 - RD$25,000" },
+      { value: "25000-50000", label: "RD$25,000 - RD$50,000" },
+      { value: "50000-100000", label: "RD$50,000 - RD$100,000" },
+      { value: "100000-150000", label: "RD$100,000 - RD$150,000" },
+      { value: "150000-250000", label: "RD$150,000 - RD$250,000" },
+      { value: "250000+", label: "RD$250,000+" }
+    ]
+  }
+};
+---
+
+<div class={`bg-white rounded-2xl shadow-xl p-6 ${className}`}>
+  {showTitle && (
+    <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">
+      Encuentra tu propiedad ideal
+    </h2>
+  )}
+  
+  <!-- Línea principal de búsqueda -->
+  <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6" style="grid-template-columns: 0.64fr 0.945fr 0.945fr 0.945fr 1fr;">
+    <!-- Tipo de Operación (reducido 40% total) -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-gray-700">Operación</label>
+      <select id="operacion-select" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all text-gray-700 bg-white">
+        <option value="comprar">Comprar</option>
+        <option value="alquilar">Alquilar</option>
+      </select>
+    </div>
+    
+    <!-- Tipo de Propiedad (reducido 5.5% del original) -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-gray-700">Tipo</label>
+      <select id="tipo-select" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all text-gray-700 bg-white">
+        <option value="">Todos los tipos</option>
+        <option value="apartamento">Apartamento</option>
+        <option value="villa">Villa</option>
+        <option value="casa">Casa</option>
+        <option value="penthouse">Penthouse</option>
+        <option value="terreno">Terreno</option>
+        <option value="local-comercial">Local Comercial</option>
+      </select>
+    </div>
+    
+    <!-- Ubicación (reducido 5.5% del original) -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-gray-700">Ubicación</label>
+      <select id="ubicacion-select" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all text-gray-700 bg-white">
+        {ubicaciones.map(ubicacion => (
+          <option value={ubicacion.value}>{ubicacion.label}</option>
+        ))}
+      </select>
+    </div>
+    
+    <!-- Sector (reducido 5.5% del original) -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-gray-700">Sector</label>
+      <select id="sector-select" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all text-gray-700 bg-white" disabled>
+        <option value="">Selecciona ubicación primero</option>
+      </select>
+    </div>
+    
+    <!-- Botón de Búsqueda (ahora con espacio completo) -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-transparent">Buscar</label>
+      <button id="search-btn" class="w-full h-12 bg-[#f04e00] hover:bg-[#d94400] text-white rounded-lg transition-colors font-semibold flex items-center justify-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        Buscar
+      </button>
+    </div>
+  </div>
+  
+  <!-- Línea de filtros adicionales -->
+  <div class="grid grid-cols-2 md:grid-cols-7 gap-3 items-end">
+    <!-- Toggle de Moneda -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-gray-700">Moneda</label>
+      <div class="bg-gray-100 rounded-lg p-1 flex">
+        <button id="currency-usd" class="flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all bg-white text-[#f04e00] shadow-sm">
+          USD
+        </button>
+        <button id="currency-dop" class="flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all text-gray-600 hover:text-gray-800">
+          DOP
+        </button>
+      </div>
+    </div>
+    
+    <!-- Rango de Precio -->
+    <div class="space-y-2 col-span-2 md:col-span-1.5">
+      <label class="text-sm font-semibold text-gray-700">Rango de Precio</label>
+      <select id="precio-select" class="w-full px-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all text-gray-700 bg-white text-sm">
+        {rangosPrecios.comprar.USD.map(rango => (
+          <option value={rango.value}>{rango.label}</option>
+        ))}
+      </select>
+    </div>
+    
+    <!-- Habitaciones -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-gray-700">
+        Habitaciones
+      </label>
+      <select id="habitaciones-select" class="w-full px-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all text-gray-700 bg-white text-sm">
+        <option value="">Cualquiera</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5+">5+</option>
+      </select>
+    </div>
+    
+    <!-- Baños -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-gray-700">
+        Baños
+      </label>
+      <select id="banos-select" class="w-full px-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all text-gray-700 bg-white text-sm">
+        <option value="">Cualquiera</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5+">5+</option>
+      </select>
+    </div>
+    
+    <!-- Parqueos -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-gray-700">
+        Parqueos
+      </label>
+      <select id="parqueos-select" class="w-full px-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#f04e00] focus:border-transparent transition-all text-gray-700 bg-white text-sm">
+        <option value="">Cualquiera</option>
+        <option value="0">0</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4+">4+</option>
+      </select>
+    </div>
+    
+    <!-- Más Filtros -->
+    <div class="space-y-2">
+      <label class="text-sm font-semibold text-transparent">Filtros</label>
+      <button id="more-filters-btn" class="w-full px-3 py-3 border-2 border-gray-200 hover:border-[#f04e00] text-gray-700 hover:text-[#f04e00] rounded-lg transition-all font-medium flex items-center justify-center gap-1 text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"/>
+        </svg>
+        Más filtros
+      </button>
+    </div>
+  </div>
+  
+  <div id="advanced-filters" class="hidden mt-6 p-6 bg-gray-50 rounded-xl border-2 border-gray-100">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Filtros avanzados</h3>
+    
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <!-- Características adicionales -->
+      <div class="space-y-3">
+        <h4 class="text-sm font-semibold text-gray-700">Características</h4>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Amueblado</span>
+        </label>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Planta full</span>
+        </label>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Airbnb friendly</span>
+        </label>
+      </div>
+      
+      <div class="space-y-3">
+        <h4 class="text-sm font-semibold text-gray-700">Políticas</h4>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">No mascotas</span>
+        </label>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">No fumadores</span>
+        </label>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Niños bienvenidos</span>
+        </label>
+      </div>
+      
+      <div class="space-y-3">
+        <h4 class="text-sm font-semibold text-gray-700">Amenidades</h4>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Piscina</span>
+        </label>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Gimnasio</span>
+        </label>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Área social</span>
+        </label>
+      </div>
+      
+      <div class="space-y-3">
+        <h4 class="text-sm font-semibold text-gray-700">Seguridad</h4>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Seguridad 24/7</span>
+        </label>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Portón eléctrico</span>
+        </label>
+        <label class="flex items-center space-x-3">
+          <input type="checkbox" class="rounded border-gray-300 text-[#f04e00] focus:ring-[#f04e00]">
+          <span class="text-sm text-gray-700">Cámaras de seguridad</span>
+        </label>
+      </div>
+    </div>
+    
+    <!-- Botones de acción para filtros avanzados -->
+    <div class="flex justify-between mt-6">
+      <button id="clear-filters-btn" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">
+        Limpiar filtros
+      </button>
+      <button id="apply-filters-btn" class="px-6 py-2 bg-[#f04e00] hover:bg-[#d94400] text-white rounded-lg font-medium transition-colors">
+        Aplicar filtros
+      </button>
+    </div>
+  </div>
+</div>
+
+<script define:vars={{ sectoresPorUbicacion, rangosPrecios }}>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Referencias a elementos del DOM
+    const currencyUSD = document.getElementById('currency-usd');
+    const currencyDOP = document.getElementById('currency-dop');
+    const precioSelect = document.getElementById('precio-select');
+    const operacionSelect = document.getElementById('operacion-select');
+    const ubicacionSelect = document.getElementById('ubicacion-select');
+    const sectorSelect = document.getElementById('sector-select');
+    const moreFiltersBtn = document.getElementById('more-filters-btn');
+    const advancedFilters = document.getElementById('advanced-filters');
+    
+    // Estado actual
+    let currentCurrency = 'USD';
+    let currentOperation = 'comprar';
+    
+    // Función para actualizar los rangos de precio según operación y moneda
+    function updatePriceRanges() {
+      if (!rangosPrecios[currentOperation] || !rangosPrecios[currentOperation][currentCurrency]) {
+        console.error('Rangos de precio no encontrados para:', currentOperation, currentCurrency);
+        return;
+      }
+      
+      const rangos = rangosPrecios[currentOperation][currentCurrency];
+      const currentValue = precioSelect.value; // Guardar valor actual
+      
+      // Limpiar opciones existentes
+      precioSelect.innerHTML = '';
+      
+      // Agregar nuevas opciones
+      rangos.forEach(rango => {
+        const option = document.createElement('option');
+        option.value = rango.value;
+        option.textContent = rango.label;
+        precioSelect.appendChild(option);
+      });
+      
+      // Intentar mantener la selección anterior si existe en los nuevos rangos
+      const hasCurrentValue = rangos.some(rango => rango.value === currentValue);
+      if (hasCurrentValue) {
+        precioSelect.value = currentValue;
+      } else {
+        precioSelect.value = ''; // Resetear a "Cualquier precio"
+      }
+    }
+    
+    // Función para actualizar el toggle de moneda
+    function updateCurrencyToggle(currency) {
+      currentCurrency = currency;
+      
+      // Actualizar estilos del toggle
+      if (currency === 'USD') {
+        currencyUSD.classList.add('bg-white', 'text-[#f04e00]', 'shadow-sm');
+        currencyUSD.classList.remove('text-gray-600', 'hover:text-gray-800');
+        currencyDOP.classList.remove('bg-white', 'text-[#f04e00]', 'shadow-sm');
+        currencyDOP.classList.add('text-gray-600', 'hover:text-gray-800');
+      } else {
+        currencyDOP.classList.add('bg-white', 'text-[#f04e00]', 'shadow-sm');
+        currencyDOP.classList.remove('text-gray-600', 'hover:text-gray-800');
+        currencyUSD.classList.remove('bg-white', 'text-[#f04e00]', 'shadow-sm');
+        currencyUSD.classList.add('text-gray-600', 'hover:text-gray-800');
+      }
+      
+      // Actualizar rangos de precio
+      updatePriceRanges();
+    }
+    
+    // Event listeners para moneda
+    currencyUSD.addEventListener('click', (e) => {
+      e.preventDefault();
+      updateCurrencyToggle('USD');
+    });
+    
+    currencyDOP.addEventListener('click', (e) => {
+      e.preventDefault();
+      updateCurrencyToggle('DOP');
+    });
+    
+    // Event listener para cambio de operación
+    operacionSelect.addEventListener('change', function() {
+      currentOperation = this.value;
+      updatePriceRanges();
+    });
+    
+    // Manejo de ubicación y sector
+    ubicacionSelect.addEventListener('change', function() {
+      const ubicacion = this.value;
+      
+      if (ubicacion && sectoresPorUbicacion[ubicacion]) {
+        sectorSelect.disabled = false;
+        const sectores = sectoresPorUbicacion[ubicacion];
+        
+        // Limpiar opciones existentes
+        sectorSelect.innerHTML = '';
+        
+        // Agregar nuevas opciones
+        sectores.forEach(sector => {
+          const option = document.createElement('option');
+          option.value = sector.value;
+          option.textContent = sector.label;
+          sectorSelect.appendChild(option);
+        });
+      } else {
+        sectorSelect.disabled = true;
+        sectorSelect.innerHTML = '<option value="">Selecciona ubicación primero</option>';
+      }
+    });
+    
+    // Toggle de filtros avanzados
+    moreFiltersBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      advancedFilters.classList.toggle('hidden');
+      
+      // Cambiar el texto del botón
+      const svgElement = this.querySelector('svg');
+      const currentText = advancedFilters.classList.contains('hidden') ? 'Más filtros' : 'Menos filtros';
+      
+      // Limpiar contenido y reconstruir
+      this.innerHTML = '';
+      this.appendChild(svgElement.cloneNode(true));
+      this.appendChild(document.createTextNode(currentText));
+    });
+    
+    // Función para limpiar todos los filtros
+    function clearAllFilters() {
+      // Restablecer operación a comprar
+      operacionSelect.value = 'comprar';
+      currentOperation = 'comprar';
+      
+      // Restablecer moneda a USD
+      currentCurrency = 'USD';
+      updateCurrencyToggle('USD');
+      
+      // Limpiar selects principales
+      document.querySelector('#tipo-select').value = '';
+      ubicacionSelect.value = '';
+      sectorSelect.value = '';
+      sectorSelect.disabled = true;
+      sectorSelect.innerHTML = '<option value="">Selecciona ubicación primero</option>';
+      
+      // Limpiar filtros de la segunda fila
+      precioSelect.value = '';
+      document.querySelector('#habitaciones-select').value = '';
+      document.querySelector('#banos-select').value = '';
+      document.querySelector('#parqueos-select').value = '';
+      
+      // Limpiar checkboxes de filtros avanzados
+      const allCheckboxes = document.querySelectorAll('#advanced-filters input[type="checkbox"]');
+      allCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      
+      // Actualizar rangos de precio
+      updatePriceRanges();
+    }
+    
+    // Event listener para el botón limpiar filtros
+    const clearFiltersBtn = document.getElementById('clear-filters-btn');
+    if (clearFiltersBtn) {
+      clearFiltersBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        clearAllFilters();
+      });
+    }
+    
+    // Función para construir la URL dinámica
+    function buildSearchURL() {
+      const urlParts = [];
+      
+      // 1. Acción (siempre presente)
+      const accion = operacionSelect.value || 'comprar';
+      urlParts.push(accion);
+      
+      // 2. Tipo de propiedad
+      const tipoSelect = document.getElementById('tipo-select');
+      const tipo = tipoSelect.value;
+      if (tipo) {
+        urlParts.push(tipo);
+      }
+      
+      // 3. Ubicación
+      const ubicacion = ubicacionSelect.value;
+      if (ubicacion) {
+        urlParts.push(ubicacion);
+        
+        // 4. Sector (solo si hay ubicación)
+        const sector = sectorSelect.value;
+        if (sector) {
+          urlParts.push(sector);
+        }
+      }
+      
+      // 5. Precio (solo si se seleccionó un rango específico)
+      const precioRange = precioSelect.value;
+      if (precioRange) {
+        const currency = currentCurrency.toLowerCase();
+        
+        if (precioRange.includes('-')) {
+          // Rango específico (ej: "100000-250000")
+          const [min, max] = precioRange.split('-');
+          urlParts.push(`precio-desde-${min}-${max}-${currency}`);
+        } else if (precioRange.includes('+')) {
+          // Rango abierto (ej: "2000000+")
+          const min = precioRange.replace('+', '');
+          urlParts.push(`precio-desde-${min}-${currency}`);
+        }
+      }
+      
+      // 6. Habitaciones
+      const habitacionesSelect = document.getElementById('habitaciones-select');
+      const habitaciones = habitacionesSelect.value;
+      if (habitaciones) {
+        urlParts.push(`${habitaciones}-habitaciones`);
+      }
+      
+      // 7. Baños
+      const banosSelect = document.getElementById('banos-select');
+      const banos = banosSelect.value;
+      if (banos) {
+        urlParts.push(`${banos}-banos`);
+      }
+      
+      // 8. Parqueos
+      const parqueosSelect = document.getElementById('parqueos-select');
+      const parqueos = parqueosSelect.value;
+      if (parqueos) {
+        urlParts.push(`${parqueos}-parqueos`);
+      }
+      
+      // 9. Características extra (checkboxes de filtros avanzados)
+      const caracteristicas = [];
+      const checkboxes = document.querySelectorAll('#advanced-filters input[type="checkbox"]:checked');
+      
+      checkboxes.forEach(checkbox => {
+        const text = checkbox.nextElementSibling.textContent.trim();
+        // Convertir a slug: minúsculas, sin acentos, espacios como guiones
+        const slug = text
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Quitar acentos
+          .replace(/\s+/g, '-') // Espacios a guiones
+          .replace(/[^a-z0-9-]/g, ''); // Solo letras, números y guiones
+        
+        if (slug) {
+          caracteristicas.push(slug);
+        }
+      });
+      
+      // Agregar características a la URL
+      caracteristicas.forEach(caracteristica => {
+        urlParts.push(caracteristica);
+      });
+      
+      // Construir URL final
+      const finalURL = '/' + urlParts.join('/');
+      return finalURL;
+    }
+    
+    // Función para ejecutar la búsqueda (compartida entre ambos botones)
+    function executeSearch() {
+      const searchURL = buildSearchURL();
+      console.log('URL de búsqueda generada:', searchURL);
+      
+      // Redirigir a la nueva URL
+      window.location.href = searchURL;
+    }
+    
+    // Event listener para el botón de búsqueda principal
+    const searchBtn = document.getElementById('search-btn');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        executeSearch();
+      });
+    }
+    
+    // Event listener para el botón "Aplicar filtros" (CORREGIDO)
+    const applyFiltersBtn = document.getElementById('apply-filters-btn');
+    if (applyFiltersBtn) {
+      applyFiltersBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        executeSearch();
+      });
+    }
+    
+    // Inicializar con valores por defecto
+    updatePriceRanges();
+  });
+</script>
+
+<style>
+  /* Estilos adicionales para mejorar la apariencia */
+  select:focus,
+  input:focus {
+    outline: none;
+  }
+  
+  /* Custom checkbox styles */
+  input[type="checkbox"]:checked {
+    background-color: #f04e00;
+    border-color: #f04e00;
+  }
+  
+  /* Smooth transitions */
+  * {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  /* Prevenir selección de texto en botones */
+  button {
+    user-select: none;
+  }
+</style>

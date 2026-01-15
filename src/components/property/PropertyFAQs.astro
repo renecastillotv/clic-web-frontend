@@ -1,0 +1,265 @@
+---
+// src/components/property/PropertyFAQs.astro
+export interface Props {
+  data: any;
+  language?: string;
+}
+
+const { data, language } = Astro.props;
+
+// Try to get language from multiple sources
+const currentLanguage = language || 
+                       data.language || 
+                       data.globalConfig?.language || 
+                       'es';
+
+// Get WhatsApp number - prioritize agent number, fallback to global
+const property = data.property || {};
+const agent = data.agent?.main || {};
+const agentWhatsapp = agent.phone; // Agent phone is used for WhatsApp
+const globalWhatsapp = data.globalConfig?.whatsapp || data.globalConfig?.contact?.whatsapp;
+const whatsappNumber = agentWhatsapp || globalWhatsapp || '18095551234';
+
+// Multilingual translations for UI elements only
+const translations = {
+  es: {
+    title: 'Preguntas Frecuentes',
+    moreQuestions: '¿Tienes más preguntas?',
+    advisorsReady: 'Nuestros asesores están listos para resolver todas tus dudas sobre esta propiedad',
+    consultExpert: 'Consultar con Experto',
+    whatsappMessage: '¡Hola! Tengo preguntas sobre: {propertyTitle}. Me gustaría hablar con un asesor para resolver mis dudas sobre financiamiento, documentación y proceso de compra.',
+    contactSoon: '¡Perfecto! Te contactaremos pronto para resolver tus dudas.'
+  },
+  en: {
+    title: 'Frequently Asked Questions',
+    moreQuestions: 'Have more questions?',
+    advisorsReady: 'Our advisors are ready to resolve all your questions about this property',
+    consultExpert: 'Consult with Expert',
+    whatsappMessage: 'Hello! I have questions about: {propertyTitle}. I would like to speak with an advisor to resolve my doubts about financing, documentation and purchase process.',
+    contactSoon: 'Perfect! We will contact you soon to resolve your questions.'
+  },
+  fr: {
+    title: 'Questions Fréquemment Posées',
+    moreQuestions: 'Avez-vous plus de questions?',
+    advisorsReady: 'Nos conseillers sont prêts à résoudre toutes vos questions sur cette propriété',
+    consultExpert: 'Consulter un Expert',
+    whatsappMessage: 'Bonjour! J\'ai des questions sur: {propertyTitle}. J\'aimerais parler avec un conseiller pour résoudre mes doutes sur le financement, la documentation et le processus d\'achat.',
+    contactSoon: 'Parfait! Nous vous contacterons bientôt pour résoudre vos questions.'
+  }
+};
+
+const t = translations[currentLanguage] || translations.es;
+
+// Function to clean FAQ text
+function cleanFAQText(text) {
+  if (!text) return '';
+  
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/<b>(.*?)<\/b>/gi, '$1')
+    .replace(/<strong>(.*?)<\/strong>/gi, '$1')
+    .replace(/<i>(.*?)<\/i>/gi, '$1')
+    .replace(/<em>(.*?)<\/em>/gi, '$1')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<p>(.*?)<\/p>/gi, '$1 ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Function to get localized FAQ content
+function getLocalizedFAQContent(faq, targetLang) {
+  if (targetLang === 'en' && faq.content_en) {
+    return {
+      question: cleanFAQText(faq.content_en.question || faq.question),
+      answer: cleanFAQText(faq.content_en.answer || faq.answer)
+    };
+  }
+  
+  if (targetLang === 'fr' && faq.content_fr) {
+    return {
+      question: cleanFAQText(faq.content_fr.question || faq.question),
+      answer: cleanFAQText(faq.content_fr.answer || faq.answer)
+    };
+  }
+  
+  return {
+    question: cleanFAQText(faq.question),
+    answer: cleanFAQText(faq.answer)
+  };
+}
+
+// Get FAQs from API sources - prioritize content.faqs, then related_content.faqs
+const contentFaqs = data.content?.faqs || [];
+const relatedFaqs = data.related_content?.faqs || [];
+
+// Use content.faqs if available, otherwise use related_content.faqs
+const selectedFaqs = contentFaqs.length > 0 ? contentFaqs : relatedFaqs;
+
+// Process and localize selected FAQs
+const allFaqs = selectedFaqs.map(faq => getLocalizedFAQContent(faq, currentLanguage))
+  .filter(faq => faq.question && faq.answer);
+
+// Only show if there are actual FAQs
+const showFAQs = allFaqs.length > 0;
+
+console.log('📞 PropertyFAQs loaded:', {
+  language: currentLanguage,
+  faqCount: allFaqs.length,
+  whatsappNumber: whatsappNumber,
+  source: agentWhatsapp ? 'agent' : (globalWhatsapp ? 'global' : 'fallback')
+});
+---
+
+<!-- FAQs Section - Only show if FAQs exist -->
+{showFAQs && (
+  <div class="space-y-6">
+    <h2 class="text-2xl font-bold text-gray-900 border-b-2 border-[#f04e00] pb-2 inline-block">
+      {t.title}
+    </h2>
+    
+    <div class="space-y-4" id="faqs-container">
+      {allFaqs.slice(0, 6).map((faq, index) => (
+        <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+          <button 
+            onclick={`toggleFAQ(${index})`}
+            class="w-full text-left p-4 bg-white hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#f04e00]/20"
+            aria-expanded="false"
+            id={`faq-button-${index}`}
+          >
+            <span class="font-medium text-gray-900 pr-4 leading-snug">
+              {faq.question}
+            </span>
+            <i class="fas fa-chevron-down text-[#f04e00] transform transition-transform duration-200 flex-shrink-0 text-sm" id={`faq-icon-${index}`}></i>
+          </button>
+          
+          <div 
+            class="hidden border-t border-gray-100 p-4 bg-gray-50" 
+            id={`faq-content-${index}`}
+            aria-hidden="true"
+          >
+            <div class="prose prose-sm max-w-none">
+              <p class="text-gray-700 leading-relaxed m-0">
+                {faq.answer}
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Call to Action - Compact version -->
+    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-question-circle text-[#f04e00] text-lg"></i>
+          <span class="font-medium text-gray-900">{t.moreQuestions}</span>
+        </div>
+        <button 
+          onclick="requestPropertyConsultation()"
+          class="inline-flex items-center gap-2 bg-[#f04e00] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#d94400] transition-all duration-300 text-sm"
+        >
+          <i class="fas fa-comments text-sm"></i>
+          {t.consultExpert}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+<script define:vars={{ currentLanguage, t, whatsappNumber }}>
+  // Function for FAQ toggle
+  window.toggleFAQ = function(index) {
+    const content = document.getElementById(`faq-content-${index}`);
+    const button = document.getElementById(`faq-button-${index}`);
+    const icon = document.getElementById(`faq-icon-${index}`);
+    
+    if (!content || !button || !icon) return;
+    
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    
+    if (isExpanded) {
+      // Close
+      content.classList.add('hidden');
+      content.setAttribute('aria-hidden', 'true');
+      button.setAttribute('aria-expanded', 'false');
+      icon.style.transform = 'rotate(0deg)';
+      icon.classList.remove('fa-chevron-up');
+      icon.classList.add('fa-chevron-down');
+    } else {
+      // Open
+      content.classList.remove('hidden');
+      content.setAttribute('aria-hidden', 'false');
+      button.setAttribute('aria-expanded', 'true');
+      icon.style.transform = 'rotate(180deg)';
+      icon.classList.remove('fa-chevron-down');
+      icon.classList.add('fa-chevron-up');
+      
+      // Smooth scroll to question
+      setTimeout(() => {
+        button.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'nearest' 
+        });
+      }, 100);
+    }
+  };
+
+  // Function to request consultation
+  window.requestPropertyConsultation = function() {
+    const propertyTitle = document.querySelector('h1')?.textContent || (currentLanguage === 'en' ? 'Property of interest' : currentLanguage === 'fr' ? 'Propriété d\'intérêt' : 'Propiedad de interés');
+    const message = t.whatsappMessage.replace('{propertyTitle}', propertyTitle);
+    
+    // WhatsApp integration - use the number from data (agent or global)
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Show feedback
+    showCopyFeedback(t.contactSoon);
+  };
+
+  function showCopyFeedback(message) {
+    let notification = document.getElementById('copy-notification');
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'copy-notification';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #22c55e;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      `;
+      document.body.appendChild(notification);
+    }
+    
+    notification.textContent = message;
+    notification.style.background = message.includes('Error') ? '#ef4444' : '#22c55e';
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
+  }
+</script>

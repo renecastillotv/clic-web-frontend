@@ -1,0 +1,337 @@
+---
+// RentalCarousel.astro
+export interface Props {
+  title?: string;
+  subtitle?: string;
+  properties: Array<{
+    slug: string;
+    titulo: string;
+    precio: string;
+    imagen: string;
+    sector: string;
+    habitaciones: number;
+    banos: number;
+    capacidad: number;
+    tipo: string;
+    rating?: number;
+    reviews?: number;
+    destacado?: boolean;
+    nuevo?: boolean;
+    descuento?: string;
+  }>;
+  viewAllLink?: string;
+  theme?: 'default' | 'luxury';
+}
+
+const { 
+  title = "Propiedades Destacadas",
+  subtitle = "Las rentas vacacionales más populares y mejor valoradas",
+  properties,
+  viewAllLink,
+  theme = 'default'
+} = Astro.props;
+
+// Función para generar URL correcta de renta vacacional
+function generateRentalURL(property: any): string {
+  const tipoSlug = property.tipo.toLowerCase().replace(/\s+/g, '-').replace('de-lujo', '');
+  const destinoSlug = property.sector.toLowerCase().replace(/\s+/g, '-').replace(',.*', '');
+  
+  // Mapear destinos comunes
+  const destinoMap: Record<string, string> = {
+    'punta-cana': 'punta-cana',
+    'cap-cana': 'cap-cana', 
+    'bávaro': 'bavaro',
+    'bavaro': 'bavaro',
+    'las-terrenas': 'las-terrenas',
+    'casa-de-campo': 'casa-de-campo',
+    'samaná': 'samana',
+    'samana': 'samana',
+    'bella-vista': 'distrito-nacional',
+    'd.n.': 'distrito-nacional',
+    'distrito-nacional': 'distrito-nacional'
+  };
+  
+  const finalDestino = destinoMap[destinoSlug] || destinoSlug;
+  const finalTipo = tipoSlug === 'villa-de-lujo' ? 'villa' : tipoSlug;
+  
+  return `/rentas-vacacionales/${finalTipo}/${finalDestino}/${property.slug}`;
+}
+---
+
+<section class={`py-16 ${theme === 'luxury' ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-white'}`}>
+  <div class="container mx-auto px-4">
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <h2 class={`text-3xl md:text-4xl font-bold mb-4 ${theme === 'luxury' ? 'text-white' : 'text-gray-900'}`}>
+        {title}
+      </h2>
+      {subtitle && (
+        <p class={`text-xl max-w-3xl mx-auto ${theme === 'luxury' ? 'text-gray-300' : 'text-gray-600'}`}>
+          {subtitle}
+        </p>
+      )}
+    </div>
+
+    <!-- Carousel Container -->
+    <div class="relative">
+      <div class="rental-carousel-container overflow-hidden">
+        <div class="rental-carousel-track flex gap-6 transition-transform duration-300 ease-in-out">
+          {properties.map((property, index) => (
+            <article 
+              class="rental-carousel-item flex-none w-full sm:w-1/2 lg:w-1/3 xl:w-1/4"
+              data-index={index}
+            >
+              <a 
+                href={generateRentalURL(property)}
+                class={`block group rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl ${
+                  theme === 'luxury' ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white shadow-sm hover:shadow-lg'
+                } border ${theme === 'luxury' ? 'border-gray-700' : 'border-gray-100'}`}
+                aria-label={`Ver detalles de ${property.titulo}`}
+              >
+                <!-- Image -->
+                <div class="aspect-video relative overflow-hidden">
+                  <img 
+                    src={property.imagen} 
+                    alt={property.titulo}
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                  
+                  <!-- Badges -->
+                  <div class="absolute top-3 left-3 flex flex-col gap-2">
+                    {property.destacado && (
+                      <span class="bg-[#f04e00] text-white px-2 py-1 rounded-md text-xs font-medium">
+                        Destacado
+                      </span>
+                    )}
+                    {property.nuevo && (
+                      <span class="bg-green-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                        Nuevo
+                      </span>
+                    )}
+                    {property.descuento && (
+                      <span class="bg-blue-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                        {property.descuento}
+                      </span>
+                    )}
+                  </div>
+
+                  <!-- Rating -->
+                  {property.rating && (
+                    <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-gray-900 px-2 py-1 rounded-md text-sm font-medium flex items-center gap-1">
+                      <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                      </svg>
+                      {property.rating}
+                    </div>
+                  )}
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                  <!-- Title & Location -->
+                  <div class="mb-3">
+                    <h3 class={`font-semibold text-lg mb-1 group-hover:text-[#f04e00] transition-colors line-clamp-1 ${
+                      theme === 'luxury' ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {property.titulo}
+                    </h3>
+                    <p class={`text-sm flex items-center gap-1 ${theme === 'luxury' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                      {property.sector}
+                    </p>
+                  </div>
+
+                  <!-- Features -->
+                  <div class={`flex items-center justify-between text-sm mb-4 ${theme === 'luxury' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <span>{property.habitaciones} hab • {property.banos} baños</span>
+                    <span class="flex items-center gap-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                      </svg>
+                      {property.capacidad} huéspedes
+                    </span>
+                  </div>
+
+                  <!-- Price & Reviews -->
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class={`text-lg font-bold ${theme === 'luxury' ? 'text-white' : 'text-gray-900'}`}>
+                        {property.precio}
+                      </span>
+                      <span class={`text-sm ${theme === 'luxury' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {property.precio.includes('/noche') ? '' : ' por noche'}
+                      </span>
+                    </div>
+                    {property.reviews && (
+                      <span class={`text-xs ${theme === 'luxury' ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {property.reviews} reseñas
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <!-- Navigation Arrows -->
+      <button 
+        class="rental-carousel-prev absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-12 h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+        aria-label="Propiedad anterior"
+      >
+        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+
+      <button 
+        class="rental-carousel-next absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-12 h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+        aria-label="Siguiente propiedad"
+      >
+        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- View All Link -->
+    {viewAllLink && (
+      <div class="text-center mt-8">
+        <a 
+          href={viewAllLink}
+          class={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors ${
+            theme === 'luxury' 
+              ? 'bg-white text-gray-900 hover:bg-gray-100' 
+              : 'bg-[#f04e00] text-white hover:bg-[#d94400]'
+          }`}
+        >
+          Ver todas las propiedades
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </a>
+      </div>
+    )}
+  </div>
+
+  <!-- Schema.org structured data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": title,
+    "description": subtitle,
+    "itemListElement": properties.map((property, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "LodgingBusiness",
+        "name": property.titulo,
+        "description": `Renta vacacional ${property.tipo.toLowerCase()} en ${property.sector}`,
+        "image": property.imagen,
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": property.sector,
+          "addressCountry": "DO"
+        },
+        "aggregateRating": property.rating ? {
+          "@type": "AggregateRating",
+          "ratingValue": property.rating,
+          "reviewCount": property.reviews || 50
+        } : undefined,
+        "priceRange": property.precio
+      }
+    }))
+  })} />
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const carousels = document.querySelectorAll('.rental-carousel-container');
+    
+    carousels.forEach(carousel => {
+      const track = carousel.querySelector('.rental-carousel-track');
+      const items = carousel.querySelectorAll('.rental-carousel-item');
+      const prevBtn = carousel.parentElement?.querySelector('.rental-carousel-prev');
+      const nextBtn = carousel.parentElement?.querySelector('.rental-carousel-next');
+      
+      if (!track || !items.length || !prevBtn || !nextBtn) return;
+      
+      let currentIndex = 0;
+      const itemsToShow = getItemsToShow();
+      const maxIndex = Math.max(0, items.length - itemsToShow);
+      
+      function getItemsToShow() {
+        if (window.innerWidth >= 1280) return 4; // xl
+        if (window.innerWidth >= 1024) return 3;  // lg
+        if (window.innerWidth >= 640) return 2;   // sm
+        return 1; // mobile
+      }
+      
+      function updateCarousel() {
+        const itemWidth = items[0].offsetWidth;
+        const gap = 24; // 1.5rem gap
+        const offset = currentIndex * (itemWidth + gap);
+        track.style.transform = `translateX(-${offset}px)`;
+        
+        // Update button states
+        prevBtn.style.opacity = currentIndex === 0 ? '0.5' : '1';
+        nextBtn.style.opacity = currentIndex >= maxIndex ? '0.5' : '1';
+        prevBtn.style.pointerEvents = currentIndex === 0 ? 'none' : 'auto';
+        nextBtn.style.pointerEvents = currentIndex >= maxIndex ? 'none' : 'auto';
+      }
+      
+      function goToPrev() {
+        if (currentIndex > 0) {
+          currentIndex--;
+          updateCarousel();
+        }
+      }
+      
+      function goToNext() {
+        if (currentIndex < maxIndex) {
+          currentIndex++;
+          updateCarousel();
+        }
+      }
+      
+      prevBtn.addEventListener('click', goToPrev);
+      nextBtn.addEventListener('click', goToNext);
+      
+      // Handle resize
+      window.addEventListener('resize', () => {
+        const newItemsToShow = getItemsToShow();
+        const newMaxIndex = Math.max(0, items.length - newItemsToShow);
+        
+        if (currentIndex > newMaxIndex) {
+          currentIndex = newMaxIndex;
+        }
+        
+        updateCarousel();
+      });
+      
+      // Initialize
+      updateCarousel();
+    });
+  });
+</script>
+
+<style>
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .rental-carousel-item {
+    transition: transform 0.3s ease;
+  }
+  
+  .rental-carousel-item:hover {
+    transform: translateY(-2px);
+  }
+</style>

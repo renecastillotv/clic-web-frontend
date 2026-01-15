@@ -1,0 +1,328 @@
+---
+// src/components/property/PropertyDetails.astro
+export interface Props {
+  data: any;
+  language?: string;
+}
+
+const { data, language } = Astro.props;
+
+// Try to get language from multiple sources
+const currentLanguage = language || 
+                       data.language || 
+                       data.globalConfig?.language || 
+                       'es';
+
+// Multilingual translations for hardcoded labels only
+const translations = {
+  es: {
+    consultPrice: 'Consultar precio',
+    reserveWith: 'Reserva con',
+    furnished: 'Amueblado',
+    furnishedSale: 'Venta amueblada',
+    rental: 'Alquiler',
+    furnishedRental: 'Alquiler amueblado',
+    tempRental: 'Alquiler temporal',
+    project: 'Proyecto',
+    delivery: 'Entrega'
+  },
+  en: {
+    consultPrice: 'Price on request',
+    reserveWith: 'Reserve with',
+    furnished: 'Furnished',
+    furnishedSale: 'Furnished sale',
+    rental: 'Rental',
+    furnishedRental: 'Furnished rental',
+    tempRental: 'Short-term rental',
+    project: 'Project',
+    delivery: 'Delivery'
+  },
+  fr: {
+    consultPrice: 'Prix sur demande',
+    reserveWith: 'Réserver avec',
+    furnished: 'Meublé',
+    furnishedSale: 'Vente meublée',
+    rental: 'Location',
+    furnishedRental: 'Location meublée',
+    tempRental: 'Location temporaire',
+    project: 'Projet',
+    delivery: 'Livraison'
+  }
+};
+
+const t = translations[currentLanguage] || translations.es;
+
+const property = data.property || {};
+const seoData = data.seo || {};
+const projectDetails = data.project_details || null;
+const isProject = property?.is_project || false;
+
+// Procesar breadcrumbs desde SEO
+const breadcrumbs = seoData?.breadcrumbs || [];
+
+// Función para formatear precio
+function formatPrice(price, currency) {
+  if (!price) return t.consultPrice;
+  const symbol = currency === 'USD' ? 'US$' : 'RD$';
+  return `${symbol}${price.toLocaleString()}`;
+}
+
+// Lógica de precios corregida y optimizada
+let mainPrice = t.consultPrice;
+let secondaryInfo = [];
+
+if (isProject) {
+  // PROYECTOS: Solo precio de venta y reserva
+  mainPrice = formatPrice(property.sale_price, property.sale_currency);
+  
+  // Agregar información de reserva
+  if (projectDetails?.project_payment_plans?.length > 0) {
+    const defaultPlan = projectDetails.project_payment_plans.find(plan => plan.is_default) || 
+                        projectDetails.project_payment_plans[0];
+    
+    if (defaultPlan?.reservation_amount) {
+      const reservationPrice = formatPrice(defaultPlan.reservation_amount, defaultPlan.reservation_currency);
+      secondaryInfo.push(`${t.reserveWith} ${reservationPrice}`);
+    }
+  } else if (property.separation_price) {
+    const separationPrice = formatPrice(property.separation_price, property.separation_currency);
+    secondaryInfo.push(`${t.reserveWith} ${separationPrice}`);
+  }
+  
+} else {
+  // PROPIEDADES REGULARES - LÓGICA CORREGIDA
+  
+  // 1. VENTA (regular o amueblada como precio principal)
+  if (property.sale_price || property.furnished_sale_price) {
+    if (property.sale_price) {
+      // VENTA REGULAR como precio principal
+      mainPrice = formatPrice(property.sale_price, property.sale_currency);
+      
+      // Manejar venta amueblada
+      if (property.furnished_sale_price) {
+        if (property.furnished_sale_price !== property.sale_price) {
+          // Precio amueblado diferente
+          secondaryInfo.push(`${t.furnished} ${formatPrice(property.furnished_sale_price, property.furnished_sale_currency)}`);
+        } else {
+          // Mismo precio pero viene amueblado
+          secondaryInfo.push(t.furnished);
+        }
+      }
+    } else if (property.furnished_sale_price) {
+      // SOLO VENTA AMUEBLADA (sale_price es null)
+      mainPrice = formatPrice(property.furnished_sale_price, property.furnished_sale_currency);
+      secondaryInfo.push(t.furnishedSale);
+    }
+    
+    // Agregar alquiler si existe (como opción adicional)
+    if (property.rental_price) {
+      secondaryInfo.push(`${t.rental} ${formatPrice(property.rental_price, property.rental_currency)}`);
+      
+      // Alquiler amueblado solo si es diferente al normal
+      if (property.furnished_rental_price && property.furnished_rental_price !== property.rental_price) {
+        secondaryInfo.push(`${t.furnishedRental} ${formatPrice(property.furnished_rental_price, property.furnished_rental_currency)}`);
+      }
+    } else if (property.furnished_rental_price) {
+      // Solo alquiler amueblado disponible
+      secondaryInfo.push(`${t.furnishedRental} ${formatPrice(property.furnished_rental_price, property.furnished_rental_currency)}`);
+    }
+    
+  } else if (property.rental_price || property.furnished_rental_price) {
+    // 2. ALQUILER (regular o amueblado como precio principal - no hay venta)
+    if (property.rental_price) {
+      // ALQUILER REGULAR como precio principal
+      mainPrice = formatPrice(property.rental_price, property.rental_currency);
+      
+      // Manejar alquiler amueblado
+      if (property.furnished_rental_price) {
+        if (property.furnished_rental_price !== property.rental_price) {
+          // Precio amueblado diferente
+          secondaryInfo.push(`${t.furnished} ${formatPrice(property.furnished_rental_price, property.furnished_rental_currency)}`);
+        } else {
+          // Mismo precio pero viene amueblado
+          secondaryInfo.push(t.furnished);
+        }
+      }
+    } else if (property.furnished_rental_price) {
+      // SOLO ALQUILER AMUEBLADO (rental_price es null)
+      mainPrice = formatPrice(property.furnished_rental_price, property.furnished_rental_currency);
+      secondaryInfo.push(t.furnishedRental);
+    }
+  }
+  
+  // Alquiler temporal (siempre como información adicional)
+  if (property.temp_rental_price) {
+    secondaryInfo.push(`${t.tempRental} ${formatPrice(property.temp_rental_price, property.temp_rental_currency)}`);
+  }
+}
+
+// Obtener fecha de entrega si es proyecto
+let deliveryDate = null;
+if (isProject && projectDetails?.project_phases?.length > 0) {
+  const phaseWithDate = projectDetails.project_phases.find(phase => phase.estimated_delivery) || 
+                        projectDetails.project_phases[0];
+  if (phaseWithDate?.estimated_delivery) {
+    deliveryDate = phaseWithDate.estimated_delivery;
+  }
+}
+
+console.log('🏠 PropertyDetails redesigned loaded:', {
+  language: currentLanguage,
+  location: property.location,
+  reference: property.code,
+  price: mainPrice,
+  secondaryInfo,
+  isProject,
+  deliveryDate,
+  breadcrumbsCount: breadcrumbs.length
+});
+
+// Función helper para verificar si un valor es válido
+const isValidValue = (value) => {
+  return value !== null && 
+         value !== undefined && 
+         value !== 'N/A' && 
+         value !== '' && 
+         String(value).trim() !== '';
+};
+---
+
+<!-- Sección de información principal -->
+<div class="bg-white border-b border-gray-100 py-4">
+  <div class="container mx-auto px-3 max-w-none">
+    
+    <div class="flex items-center justify-between flex-wrap gap-4">
+      
+      <!-- Lado izquierdo: Referencia, Breadcrumbs y Ubicación (OPTIMIZED) -->
+      <div class="flex-1 min-w-0 overflow-hidden">
+
+        <!-- Referencia y Breadcrumbs con wrap (OPTIMIZED - No horizontal scroll) -->
+        <div class="flex items-center gap-2 mb-2 flex-wrap">
+
+          <!-- Referencia -->
+          {isValidValue(property.code) && (
+            <>
+              <span class="text-sm text-gray-700 font-medium whitespace-nowrap">ID: #{property.code}</span>
+              <span class="text-gray-300">|</span>
+            </>
+          )}
+
+          <!-- Breadcrumbs integrados con truncate -->
+          {breadcrumbs && breadcrumbs.length > 1 && (
+            <>
+              {breadcrumbs.map((crumb, index) => (
+                <>
+                  {index === breadcrumbs.length - 1 ? (
+                    <span class="text-xs text-gray-400 truncate max-w-[150px]">{crumb.name}</span>
+                  ) : (
+                    <a
+                      href={crumb.url}
+                      class="text-xs text-gray-500 hover:text-[#f04e00] transition-colors truncate max-w-[120px]"
+                      title={crumb.name}
+                    >
+                      {crumb.name}
+                    </a>
+                  )}
+                  {index < breadcrumbs.length - 1 && (
+                    <span class="text-gray-300">|</span>
+                  )}
+                </>
+              ))}
+            </>
+          )}
+
+        </div>
+
+        <!-- Ubicación -->
+        <div class="flex items-center gap-2">
+          <i class="fas fa-map-marker-alt text-gray-400 text-sm"></i>
+          <span class="text-lg font-medium text-gray-700">
+            {property.location}
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Lado derecho: Precio y detalles -->
+      <div class="flex flex-col items-end gap-1">
+        
+        <!-- Precio principal -->
+        <div class="text-2xl font-bold text-[#f04e00]">
+          {mainPrice}
+        </div>
+
+        <!-- Información secundaria -->
+        {secondaryInfo.map(info => (
+          <div class="text-sm text-gray-500">
+            {info}
+          </div>
+        ))}
+
+        <!-- Información adicional en una línea -->
+        <div class="flex items-center gap-3 text-sm text-gray-500">
+          
+          {isProject && (
+            <!-- Para proyectos -->
+            <>
+              <span class="uppercase font-medium tracking-wide">{t.project}</span>
+              {deliveryDate && <span class="text-gray-300">|</span>}
+              {deliveryDate && (
+                <span>
+                  {t.delivery}: {new Date(deliveryDate).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : currentLanguage === 'fr' ? 'fr-FR' : 'es-ES', { 
+                    year: 'numeric', 
+                    month: 'short' 
+                  })}
+                </span>
+              )}
+            </>
+          )}
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<style>
+  /* Estilos responsivos */
+  @media (max-width: 640px) {
+    .container {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+    
+    /* En móviles, apilar verticalmente */
+    .flex.justify-between {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .flex-col.items-end {
+      align-items: flex-start;
+      width: 100%;
+    }
+  }
+
+  @media (min-width: 641px) and (max-width: 1024px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  /* Transiciones suaves */
+  a {
+    transition: color 0.2s ease;
+  }
+</style>
