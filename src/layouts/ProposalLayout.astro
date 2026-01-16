@@ -202,8 +202,8 @@ console.log('✅ ProposalLayout preparado:', {
             <!-- Info Principal (Center) -->
             <div class="flex-1 text-center lg:text-left space-y-3">
               <!-- Greeting with Client Name -->
-              <h1 class="text-2xl lg:text-3xl font-bold">
-                {text.greeting}, <span id="clientName" class="text-[#f04e00]"></span>
+              <h1 id="greetingSection" class="text-2xl lg:text-3xl font-bold">
+                <span id="greetingText">{text.greeting}</span><span id="clientNameSection">, <span id="clientName" class="text-[#f04e00]"></span></span>
               </h1>
 
               <!-- Advisor Introduction -->
@@ -211,20 +211,8 @@ console.log('✅ ProposalLayout preparado:', {
                 <span id="advisorNameIntro" class="font-semibold text-white"></span> {text.hasPrepared}
               </p>
 
-              <!-- Proposal Title -->
-              <div id="proposalMessageSection" class="hidden">
-                <div class="inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg mt-2">
-                  <i class="fas fa-quote-left text-[#f04e00] text-sm"></i>
-                  <span id="proposalTitleDisplay" class="font-medium"></span>
-                </div>
-              </div>
-
-              <!-- Badges -->
+              <!-- Properties Count Badge -->
               <div class="flex flex-wrap gap-2 justify-center lg:justify-start mt-4">
-                <span id="advisorCargoTag" class="hidden inline-flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg text-sm">
-                  <i class="fas fa-briefcase text-[#f04e00] text-xs"></i>
-                  <span id="advisorCargo">Asesor Inmobiliario</span>
-                </span>
                 <span class="inline-flex items-center gap-1.5 bg-[#f04e00]/20 px-3 py-1.5 rounded-lg text-sm font-semibold">
                   <span id="propertiesCount" class="text-[#f04e00]">0</span>
                   <span class="text-white/90">{text.propertiesCount}</span>
@@ -444,19 +432,18 @@ console.log('✅ ProposalLayout preparado:', {
         pageState.advisorCode = advisor.codigo;
       }
 
-      // Update client name - ALWAYS show something
+      // Update client name
       const clientNameEl = document.getElementById('clientName');
+      const clientNameSection = document.getElementById('clientNameSection');
       if (contact?.nombre_completo || contact?.nombre) {
         const clientName = contact.nombre_completo || contact.nombre;
         clientNameEl.textContent = clientName;
       } else {
-        // If no contact, hide the greeting or show generic
-        clientNameEl.textContent = '';
-        // Update the greeting to remove the comma
-        clientNameEl.parentElement.innerHTML = pageState.text.pageTitle;
+        // If no contact, hide the ", [name]" part completely
+        clientNameSection.classList.add('hidden');
       }
 
-      // Update advisor intro - ALWAYS show something
+      // Update advisor intro
       const advisorIntroEl = document.getElementById('advisorNameIntro');
       if (advisor?.nombre_completo || advisor?.nombre) {
         const advisorName = advisor.nombre_completo || advisor.nombre;
@@ -466,18 +453,18 @@ console.log('✅ ProposalLayout preparado:', {
         advisorIntroEl.parentElement.classList.add('hidden');
       }
 
-      // Update proposal title
-      if (proposal.titulo) {
-        const messageSection = document.getElementById('proposalMessageSection');
-        messageSection.classList.remove('hidden');
-        document.getElementById('proposalTitleDisplay').textContent = proposal.titulo;
-      }
+      // Update proposal description box (shows title + description if available)
+      const descBox = document.getElementById('proposalDescriptionBox');
+      const descEl = document.getElementById('proposalDescription');
 
-      // Update proposal description
-      if (proposal.descripcion) {
-        const descBox = document.getElementById('proposalDescriptionBox');
+      if (proposal.titulo || proposal.descripcion) {
         descBox.classList.remove('hidden');
-        document.getElementById('proposalDescription').textContent = proposal.descripcion;
+        // Combine title and description
+        let descText = '';
+        if (proposal.titulo) descText = proposal.titulo;
+        if (proposal.titulo && proposal.descripcion) descText += ': ';
+        if (proposal.descripcion) descText += proposal.descripcion;
+        descEl.textContent = descText;
       }
 
       // Update properties count
@@ -487,7 +474,6 @@ console.log('✅ ProposalLayout preparado:', {
       if (advisor) {
         const advisorCard = document.getElementById('advisorCard');
         const contactButtons = document.getElementById('advisorContactButtons');
-        const advisorCargoTag = document.getElementById('advisorCargoTag');
 
         advisorCard.classList.remove('hidden');
         contactButtons.classList.remove('hidden');
@@ -510,13 +496,6 @@ console.log('✅ ProposalLayout preparado:', {
           placeholderEl.classList.remove('hidden');
           placeholderEl.classList.add('flex');
           placeholderEl.textContent = advisorName.charAt(0).toUpperCase();
-        }
-
-        // Cargo tag
-        if (advisor.cargo) {
-          document.getElementById('advisorCargo').textContent = advisor.cargo;
-          advisorCargoTag.classList.remove('hidden');
-          advisorCargoTag.classList.add('inline-flex');
         }
 
         // Phone
