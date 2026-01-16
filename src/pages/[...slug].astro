@@ -10,6 +10,7 @@ import AdvisorsLayout from '../layouts/AdvisorsLayout.astro';
 import SingleAdvisorLayout from '../layouts/SingleAdvisorLayout.astro';
 import FavoritesLayout from '../layouts/FavoritesLayout.astro';
 import SharedFavoritesLayout from '../layouts/SharedFavoritesLayout.astro';
+import ProposalLayout from '../layouts/ProposalLayout.astro';
 
 import TestimonialsMainLayout from '../layouts/TestimonialsMainLayout.astro';
 import TestimonialsCategoryLayout from '../layouts/TestimonialsCategoryLayout.astro';
@@ -64,13 +65,13 @@ console.log(`✅ Page request: ${p}`);
 // 2) Config
 const LANGUAGES = ['es', 'en', 'fr'];
 const SPECIAL_ROUTES = [
-  'asesores','favoritos','testimonios','videos','articulos','contacto',
+  'asesores','favoritos','propuestas','testimonios','videos','articulos','contacto',
   'rentas-vacacionales','planes-rentas-vacacionales','vender','listados-de',
   'ubicaciones','propiedades','terminos-y-condiciones','politicas-de-privacidad',
-  'advisors','favorites','testimonials','articles','contact',
+  'advisors','favorites','proposals','testimonials','articles','contact',
   'vacation-rentals','vacation-rental-plans','sell','listings-of',
   'locations','property-types','terms-and-conditions','privacy-policy',
-  'conseillers','favoris','temoignages','locations-vacances',
+  'conseillers','favoris','propositions','temoignages','locations-vacances',
   'plans-locations-vacances','vendre','listes-de',
   'emplacements','types-de-proprietes','termes-et-conditions','politique-de-confidentialite'
 ];
@@ -189,6 +190,7 @@ const showAdvisorsList = pageType === 'advisors-list' || pageType === 'advisors-
 const showAdvisorSingle = pageType === 'advisor-single';
 const showFavoritesMain = pageType === 'favorites-main';
 const showFavoritesShared = pageType === 'favorites-shared';
+const showProposal = pageType === 'proposal';
 const showTestimonialsMain = pageType === 'testimonials-main';
 const showTestimonialsCategory = pageType === 'testimonials-category';
 const showTestimonialsSingle = pageType === 'testimonials-single';
@@ -227,6 +229,8 @@ const show404 = pageType === '404' || !pageType;
 {showFavoritesMain && <FavoritesLayout data={pageData} language={pageData.language} />}
 
 {showFavoritesShared && <SharedFavoritesLayout data={pageData} language={pageData.language} />}
+
+{showProposal && <ProposalLayout data={pageData} language={pageData.language} />}
 
 {showTestimonialsMain && <TestimonialsMainLayout data={pageData} language={pageData.language} />}
 
