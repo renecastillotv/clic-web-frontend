@@ -429,15 +429,15 @@ console.log('✅ SharedFavoritesLayout preparado:', {
     const visitorDeviceId = generateVisitorDeviceId();
 
     try {
-      const response = await fetch(`https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/favorites/${pageState.listId}/join`, {
+      const response = await fetch(`https://clic-api-neon.vercel.app/api/favorites/visitor`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs'
+        headers: {
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          visitorAlias: alias,
-          visitorDeviceId: visitorDeviceId
+          list_id: pageState.listId,
+          visitor_device_id: visitorDeviceId,
+          alias: alias
         })
       });
 
@@ -478,29 +478,29 @@ console.log('✅ SharedFavoritesLayout preparado:', {
 
     try {
       // Cargar propiedades
-      const propertiesResponse = await fetch(`https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/favorites/${pageState.listId}/details`, {
+      const propertiesResponse = await fetch(`https://clic-api-neon.vercel.app/api/favorites/details/${pageState.listId}`, {
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs'
+          'Content-Type': 'application/json'
         }
       });
       const propertiesData = await propertiesResponse.json();
 
-      if (!propertiesResponse.ok) {
+      if (!propertiesResponse.ok || !propertiesData.success) {
         throw new Error(propertiesData.error || 'Error loading properties');
       }
 
-      pageState.properties = propertiesData.properties || [];
+      pageState.properties = propertiesData.data?.properties || [];
 
       // Cargar reacciones
-      const reactionsResponse = await fetch(`https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/favorites/${pageState.listId}/reactions`, {
+      const reactionsResponse = await fetch(`https://clic-api-neon.vercel.app/api/favorites/summary/${pageState.listId}`, {
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs'
+          'Content-Type': 'application/json'
         }
       });
       const reactionsData = await reactionsResponse.json();
 
-      if (reactionsResponse.ok) {
-        pageState.reactions = reactionsData.reactions || {};
+      if (reactionsResponse.ok && reactionsData.success) {
+        pageState.reactions = reactionsData.data || {};
       }
 
       showVisitorContent();
@@ -687,22 +687,23 @@ console.log('✅ SharedFavoritesLayout preparado:', {
     if (!pageState.visitorInfo) return;
 
     try {
-      const response = await fetch(`https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/favorites/${pageState.listId}/react`, {
+      const response = await fetch(`https://clic-api-neon.vercel.app/api/favorites/reaction`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs'
+        headers: {
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          propertyId: propertyId,
-          reactionType: reactionType,
-          visitorDeviceId: pageState.visitorInfo.deviceId
+          list_id: pageState.listId,
+          property_id: propertyId,
+          visitor_device_id: pageState.visitorInfo.deviceId,
+          visitor_alias: pageState.visitorInfo.alias,
+          reaction_type: reactionType
         })
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error saving reaction');
       }
 
@@ -711,8 +712,8 @@ console.log('✅ SharedFavoritesLayout preparado:', {
       renderProperties();
 
     } catch (error) {
-      console.error('❌ Error saving reaction:', error);
-      showNotification('Error', 'No se pudo guardar tu reacción. Inténtalo de nuevo.', 'error');
+      console.error('Error saving reaction:', error);
+      showNotification('Error', 'No se pudo guardar tu reaccion. Intentalo de nuevo.', 'error');
     }
   }
 
@@ -742,18 +743,18 @@ console.log('✅ SharedFavoritesLayout preparado:', {
 
   async function loadReactions() {
     try {
-      const response = await fetch(`https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/favorites/${pageState.listId}/reactions`, {
+      const response = await fetch(`https://clic-api-neon.vercel.app/api/favorites/summary/${pageState.listId}`, {
         headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs'
+          'Content-Type': 'application/json'
         }
       });
       const data = await response.json();
 
-      if (response.ok) {
-        pageState.reactions = data.reactions || {};
+      if (response.ok && data.success) {
+        pageState.reactions = data.data || {};
       }
     } catch (error) {
-      console.error('❌ Error loading reactions:', error);
+      console.error('Error loading reactions:', error);
     }
   }
 
@@ -774,28 +775,28 @@ console.log('✅ SharedFavoritesLayout preparado:', {
 
   async function saveComment(event) {
     event.preventDefault();
-    
+
     const commentText = document.getElementById('commentText').value.trim();
     if (!commentText || !pageState.currentPropertyId || !pageState.visitorInfo) return;
 
     try {
-      const response = await fetch(`https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/favorites/${pageState.listId}/react`, {
+      const response = await fetch(`https://clic-api-neon.vercel.app/api/favorites/comment`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs'
+        headers: {
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          propertyId: pageState.currentPropertyId,
-          reactionType: 'comment',
-          commentText: commentText,
-          visitorDeviceId: pageState.visitorInfo.deviceId
+          list_id: pageState.listId,
+          property_id: pageState.currentPropertyId,
+          visitor_device_id: pageState.visitorInfo.deviceId,
+          visitor_alias: pageState.visitorInfo.alias,
+          comment_text: commentText
         })
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error saving comment');
       }
 
