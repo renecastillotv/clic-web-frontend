@@ -21,7 +21,8 @@ const TEXTS = {
     title: 'Propuesta de Propiedades - CLIC Inmobiliaria',
     description: 'Tu selección personalizada de propiedades preparada por tu asesor.',
     pageTitle: 'Propuesta de Propiedades',
-    pageSubtitle: 'Tu asesor ha preparado esta selección especialmente para ti',
+    greeting: 'Hola',
+    hasPrepared: 'ha preparado esta propuesta especialmente para ti',
     loading: 'Cargando propuesta...',
     notFound: 'Propuesta no encontrada',
     notFoundDescription: 'Esta propuesta no existe o ha expirado',
@@ -31,6 +32,7 @@ const TEXTS = {
     contactAdvisor: 'Contactar asesor',
     propertiesCount: 'propiedades seleccionadas',
     yourAdvisor: 'Tu asesor',
+    viewProfile: 'Ver perfil',
     likeIt: 'Me gusta',
     dontLikeIt: 'No me gusta',
     maybe: 'Tal vez',
@@ -44,15 +46,19 @@ const TEXTS = {
     yourReactions: 'Tus opiniones',
     thankYou: '¡Gracias por tu opinión!',
     helpText: 'Marca las propiedades que te gustan para que tu asesor pueda ayudarte mejor',
+    messageFromAdvisor: 'Mensaje de tu asesor',
+    aboutSelection: 'Acerca de esta selección',
     routes: {
-      properties: '/comprar'
+      properties: '/comprar',
+      advisors: '/asesores'
     }
   },
   en: {
     title: 'Property Proposal - CLIC Real Estate',
     description: 'Your personalized property selection prepared by your advisor.',
     pageTitle: 'Property Proposal',
-    pageSubtitle: 'Your advisor has prepared this selection especially for you',
+    greeting: 'Hello',
+    hasPrepared: 'has prepared this proposal especially for you',
     loading: 'Loading proposal...',
     notFound: 'Proposal not found',
     notFoundDescription: 'This proposal does not exist or has expired',
@@ -62,6 +68,7 @@ const TEXTS = {
     contactAdvisor: 'Contact advisor',
     propertiesCount: 'selected properties',
     yourAdvisor: 'Your advisor',
+    viewProfile: 'View profile',
     likeIt: 'I like it',
     dontLikeIt: "Don't like it",
     maybe: 'Maybe',
@@ -75,15 +82,19 @@ const TEXTS = {
     yourReactions: 'Your opinions',
     thankYou: 'Thank you for your feedback!',
     helpText: 'Mark the properties you like so your advisor can help you better',
+    messageFromAdvisor: 'Message from your advisor',
+    aboutSelection: 'About this selection',
     routes: {
-      properties: '/en/buy'
+      properties: '/en/buy',
+      advisors: '/en/advisors'
     }
   },
   fr: {
     title: 'Proposition Immobilière - CLIC Immobilier',
     description: 'Votre sélection personnalisée préparée par votre conseiller.',
     pageTitle: 'Proposition Immobilière',
-    pageSubtitle: 'Votre conseiller a préparé cette sélection spécialement pour vous',
+    greeting: 'Bonjour',
+    hasPrepared: 'a préparé cette proposition spécialement pour vous',
     loading: 'Chargement de la proposition...',
     notFound: 'Proposition non trouvée',
     notFoundDescription: "Cette proposition n'existe pas ou a expiré",
@@ -93,6 +104,7 @@ const TEXTS = {
     contactAdvisor: 'Contacter le conseiller',
     propertiesCount: 'propriétés sélectionnées',
     yourAdvisor: 'Votre conseiller',
+    viewProfile: 'Voir le profil',
     likeIt: "J'aime",
     dontLikeIt: "Je n'aime pas",
     maybe: 'Peut-être',
@@ -106,8 +118,11 @@ const TEXTS = {
     yourReactions: 'Vos opinions',
     thankYou: 'Merci pour votre avis!',
     helpText: 'Marquez les propriétés que vous aimez pour que votre conseiller puisse mieux vous aider',
+    messageFromAdvisor: 'Message de votre conseiller',
+    aboutSelection: 'À propos de cette sélection',
     routes: {
-      properties: '/fr/acheter'
+      properties: '/fr/acheter',
+      advisors: '/fr/conseillers'
     }
   }
 };
@@ -128,38 +143,17 @@ console.log('✅ ProposalLayout preparado:', {
   globalConfig={globalConfig}
   hreflangData={hreflangData}
 >
-  <!-- Hero Section -->
-  <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-12 text-white relative overflow-hidden">
+  <!-- Hero Section - Minimal -->
+  <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-6 text-white relative overflow-hidden">
     <div class="absolute inset-0 opacity-10 z-0">
       <div class="absolute top-0 left-0 w-96 h-96 bg-[#f04e00] rounded-full filter blur-3xl"></div>
       <div class="absolute bottom-0 right-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl"></div>
     </div>
-
     <div class="container mx-auto px-4 relative z-10">
       <div class="max-w-4xl mx-auto text-center">
-        <div class="inline-flex items-center gap-2 bg-[#f04e00]/20 px-4 py-2 rounded-full mb-4">
+        <div class="inline-flex items-center gap-2 bg-[#f04e00]/20 px-4 py-2 rounded-full">
           <i class="fas fa-file-alt text-[#f04e00]"></i>
           <span class="text-sm font-semibold">{text.pageTitle}</span>
-        </div>
-        <h1 id="proposalTitle" class="text-3xl md:text-4xl font-bold mb-3">
-          {text.pageTitle}
-        </h1>
-        <p id="proposalSubtitle" class="text-lg text-white/70 mb-4">
-          {text.pageSubtitle}
-        </p>
-
-        <!-- Advisor Info (hidden until loaded) -->
-        <div id="advisorInfoHero" class="hidden">
-          <div class="inline-flex items-center gap-4 bg-white/10 backdrop-blur-md px-6 py-3 rounded-xl border border-white/20">
-            <img id="advisorPhoto" src="" alt="" class="w-12 h-12 rounded-full object-cover border-2 border-[#f04e00] hidden" />
-            <div class="text-left">
-              <p class="text-xs text-white/60">{text.yourAdvisor}</p>
-              <p id="advisorName" class="font-semibold text-white">-</p>
-            </div>
-            <a id="advisorWhatsapp" href="#" target="_blank" class="hidden ml-2 p-2 bg-green-500 rounded-full hover:bg-green-600 transition-colors">
-              <i class="fab fa-whatsapp text-white text-lg"></i>
-            </a>
-          </div>
         </div>
       </div>
     </div>
@@ -185,7 +179,7 @@ console.log('✅ ProposalLayout preparado:', {
           </p>
           <a
             href={text.routes.properties}
-            class="inline-flex items-center gap-2 px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#e03d00] transition-all font-semibold shadow-lg hover:shadow-xl"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-[#f04e00] text-white rounded-lg hover:bg-[#e03d00] transition-all font-semibold shadow-lg hover:shadow-xl ref-link"
           >
             {text.exploreButton}
             <i class="fas fa-arrow-right"></i>
@@ -195,27 +189,76 @@ console.log('✅ ProposalLayout preparado:', {
         <!-- Proposal Content -->
         <div id="proposalContent" class="hidden">
 
-          <!-- Info Bar -->
-          <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <h2 id="proposalTitleContent" class="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <i class="fas fa-file-alt text-[#f04e00]"></i>
-                  <span>Propuesta</span>
-                </h2>
-                <p id="proposalDescription" class="text-gray-600 mt-1 text-sm"></p>
+          <!-- Personalized Header Card -->
+          <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100">
+            <!-- Greeting and Advisor Section -->
+            <div class="flex flex-col lg:flex-row gap-8">
+
+              <!-- Left: Greeting Message -->
+              <div class="flex-1">
+                <h1 id="greetingText" class="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                  {text.greeting}, <span id="clientName" class="text-[#f04e00]">Cliente</span>
+                </h1>
+                <p id="advisorIntro" class="text-lg text-gray-600 mb-6">
+                  <span id="advisorNameIntro" class="font-semibold text-gray-900">Tu asesor</span> {text.hasPrepared}
+                </p>
+
+                <!-- Proposal Title and Description -->
+                <div id="proposalMessageSection" class="hidden">
+                  <h2 id="proposalTitleDisplay" class="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    <i class="fas fa-quote-left text-[#f04e00]/50 text-sm"></i>
+                    <span></span>
+                  </h2>
+                  <div id="proposalDescriptionBox" class="hidden bg-gray-50 rounded-xl p-4 border-l-4 border-[#f04e00]">
+                    <p class="text-xs text-gray-500 mb-1 font-medium">{text.messageFromAdvisor}</p>
+                    <p id="proposalDescription" class="text-gray-700"></p>
+                  </div>
+                </div>
+
+                <!-- Properties Count -->
+                <div class="mt-6 inline-flex items-center gap-3 bg-[#f04e00]/10 px-5 py-3 rounded-xl">
+                  <span class="text-3xl font-bold text-[#f04e00]" id="propertiesCount">0</span>
+                  <span class="text-gray-700 font-medium">{text.propertiesCount}</span>
+                </div>
               </div>
 
-              <div class="flex items-center gap-4">
-                <div class="text-center">
-                  <p class="text-3xl font-bold text-[#f04e00]" id="propertiesCount">0</p>
-                  <p class="text-xs text-gray-500">{text.propertiesCount}</p>
+              <!-- Right: Advisor Card -->
+              <div id="advisorCard" class="hidden lg:w-80">
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white">
+                  <p class="text-xs text-white/60 mb-4 uppercase tracking-wider">{text.yourAdvisor}</p>
+
+                  <div class="flex items-center gap-4 mb-4">
+                    <img id="advisorPhoto" src="" alt="" class="w-20 h-20 rounded-full object-cover border-3 border-[#f04e00] hidden" />
+                    <div id="advisorPhotoPlaceholder" class="w-20 h-20 rounded-full bg-[#f04e00] flex items-center justify-center text-3xl font-bold">
+                      A
+                    </div>
+                    <div>
+                      <h3 id="advisorName" class="text-xl font-bold">Asesor</h3>
+                      <p id="advisorCargo" class="text-white/70 text-sm">Asesor Inmobiliario</p>
+                    </div>
+                  </div>
+
+                  <!-- Contact buttons -->
+                  <div class="flex flex-col gap-2">
+                    <a id="advisorWhatsapp" href="#" target="_blank" class="hidden w-full px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2">
+                      <i class="fab fa-whatsapp text-lg"></i>
+                      WhatsApp
+                    </a>
+                    <a id="advisorEmail" href="#" class="hidden w-full px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2">
+                      <i class="fas fa-envelope"></i>
+                      Email
+                    </a>
+                    <a id="advisorProfileLink" href="#" class="hidden w-full px-4 py-2.5 border border-white/30 hover:bg-white/10 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 ref-link">
+                      <i class="fas fa-user"></i>
+                      {text.viewProfile}
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- Help text -->
-            <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+            <div class="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
               <p class="text-blue-700 text-sm flex items-center gap-2">
                 <i class="fas fa-info-circle"></i>
                 {text.helpText}
@@ -364,50 +407,119 @@ console.log('✅ ProposalLayout preparado:', {
 
     function updateUI() {
       const proposal = pageState.proposal;
+      const advisor = pageState.advisor;
+      const contact = proposal.contact;
 
-      // Update title
-      if (proposal.titulo) {
-        document.getElementById('proposalTitle').textContent = proposal.titulo;
-        document.getElementById('proposalTitleContent').innerHTML = `
-          <i class="fas fa-file-alt text-[#f04e00]"></i>
-          <span>${proposal.titulo}</span>
-        `;
+      // Store advisor code for ref links
+      if (advisor?.codigo) {
+        pageState.advisorCode = advisor.codigo;
       }
 
-      // Update description
+      // Update client name
+      if (contact?.nombre_completo || contact?.nombre) {
+        const clientName = contact.nombre_completo || contact.nombre;
+        document.getElementById('clientName').textContent = clientName;
+      }
+
+      // Update advisor intro
+      if (advisor?.nombre_completo || advisor?.nombre) {
+        const advisorName = advisor.nombre_completo || advisor.nombre;
+        document.getElementById('advisorNameIntro').textContent = advisorName;
+      }
+
+      // Update proposal title and description
+      if (proposal.titulo) {
+        const messageSection = document.getElementById('proposalMessageSection');
+        messageSection.classList.remove('hidden');
+        document.getElementById('proposalTitleDisplay').querySelector('span').textContent = proposal.titulo;
+      }
+
       if (proposal.descripcion) {
+        const descBox = document.getElementById('proposalDescriptionBox');
+        descBox.classList.remove('hidden');
         document.getElementById('proposalDescription').textContent = proposal.descripcion;
-        document.getElementById('proposalSubtitle').textContent = proposal.descripcion;
       }
 
       // Update properties count
       document.getElementById('propertiesCount').textContent = pageState.properties.length;
 
-      // Update advisor info
-      if (pageState.advisor) {
-        const advisorInfoHero = document.getElementById('advisorInfoHero');
-        advisorInfoHero.classList.remove('hidden');
+      // Update advisor card
+      if (advisor) {
+        const advisorCard = document.getElementById('advisorCard');
+        advisorCard.classList.remove('hidden');
 
-        document.getElementById('advisorName').textContent = pageState.advisor.nombre || '-';
+        const advisorName = advisor.nombre_completo || advisor.nombre || 'Asesor';
+        document.getElementById('advisorName').textContent = advisorName;
+        document.getElementById('advisorCargo').textContent = advisor.cargo || 'Asesor Inmobiliario';
 
-        if (pageState.advisor.foto) {
+        // Photo
+        if (advisor.foto) {
           const photoEl = document.getElementById('advisorPhoto');
-          photoEl.src = pageState.advisor.foto;
-          photoEl.alt = pageState.advisor.nombre;
+          photoEl.src = advisor.foto;
+          photoEl.alt = advisorName;
           photoEl.classList.remove('hidden');
+          document.getElementById('advisorPhotoPlaceholder').classList.add('hidden');
+        } else {
+          // Show initial
+          document.getElementById('advisorPhotoPlaceholder').textContent = advisorName.charAt(0).toUpperCase();
         }
 
-        if (pageState.advisor.whatsapp || pageState.advisor.telefono) {
-          const phone = pageState.advisor.whatsapp || pageState.advisor.telefono;
+        // WhatsApp
+        if (advisor.whatsapp || advisor.telefono) {
+          const phone = advisor.whatsapp || advisor.telefono;
           const cleanPhone = phone.replace(/\D/g, '');
           const whatsappEl = document.getElementById('advisorWhatsapp');
           whatsappEl.href = `https://wa.me/${cleanPhone}`;
           whatsappEl.classList.remove('hidden');
+          whatsappEl.classList.add('flex');
+        }
+
+        // Email
+        if (advisor.email) {
+          const emailEl = document.getElementById('advisorEmail');
+          emailEl.href = `mailto:${advisor.email}`;
+          emailEl.classList.remove('hidden');
+          emailEl.classList.add('flex');
+        }
+
+        // Profile link
+        if (advisor.slug) {
+          const profileEl = document.getElementById('advisorProfileLink');
+          profileEl.href = `${pageState.text.routes.advisors}/${advisor.slug}`;
+          profileEl.classList.remove('hidden');
+          profileEl.classList.add('flex');
         }
       }
 
+      // Apply ref parameter to all links
+      applyRefToLinks();
+
       // Render properties
       renderProperties();
+    }
+
+    // Add ref parameter to all links
+    function applyRefToLinks() {
+      if (!pageState.advisorCode) return;
+
+      const refParam = `ref=${pageState.advisorCode}`;
+
+      // Find all links with ref-link class
+      document.querySelectorAll('.ref-link').forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href !== '#') {
+          const separator = href.includes('?') ? '&' : '?';
+          link.setAttribute('href', `${href}${separator}${refParam}`);
+        }
+      });
+    }
+
+    // Get URL with ref parameter
+    function getRefUrl(url) {
+      if (!url) return '#';
+      if (!pageState.advisorCode) return url;
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}ref=${pageState.advisorCode}`;
     }
 
     function renderProperties() {
@@ -513,7 +625,7 @@ console.log('✅ ProposalLayout preparado:', {
                   <div class="text-xs text-gray-400 font-mono">ref.: ${property.code}</div>
                 ` : '<div></div>'}
                 <a
-                  href="${property.url}"
+                  href="${getRefUrl(property.url)}"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="text-xs text-[#f04e00] hover:text-[#e03d00] font-medium flex items-center gap-1"
