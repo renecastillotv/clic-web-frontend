@@ -12,6 +12,8 @@ export class SimpleFavoritesManager {
     this.deviceId = this.getDeviceId();
     this.favorites = new Set();
     this.ownerName = null;
+    this.ownerEmail = null;
+    this.publicCode = null;
     this.isLoaded = false;
     this._listeners = [];
 
@@ -70,6 +72,8 @@ export class SimpleFavoritesManager {
       if (data.success && data.data) {
         this.favorites = new Set(data.data.property_ids || []);
         this.ownerName = data.data.owner_name;
+        this.ownerEmail = data.data.owner_email;
+        this.publicCode = data.data.public_code;
         this.visitors = data.data.visitors || [];
         this.reactions = data.data.reactions || {};
       }
@@ -381,6 +385,8 @@ export class SimpleFavoritesManager {
       deviceId: this.deviceId,
       count: this.favorites.size,
       ownerName: this.ownerName,
+      ownerEmail: this.ownerEmail,
+      publicCode: this.publicCode,
       favorites: Array.from(this.favorites),
       isSharedView: this.isSharedView,
       sharedListId: this.sharedListId,

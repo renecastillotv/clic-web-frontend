@@ -731,17 +731,18 @@ console.log('✅ FavoritesLayout preparado:', {
         // Guardar deviceId (oculto pero disponible)
         if (deviceIdEl) deviceIdEl.textContent = info.deviceId || '-';
 
-        // Actualizar email
+        // Actualizar email (puede venir como ownerEmail o email)
         const userEmailEl = document.getElementById('userEmail');
         const emailButtonEl = document.getElementById('emailButton');
+        const email = info.ownerEmail || info.email;
 
-        if (userEmailEl && info.email) {
-          userEmailEl.textContent = info.email;
+        if (userEmailEl && email) {
+          userEmailEl.textContent = email;
           userEmailEl.classList.remove('text-white/80');
           userEmailEl.classList.add('text-blue-400');
         }
 
-        if (emailButtonEl && info.email) {
+        if (emailButtonEl && email) {
           // Cambiar botón a "Cambiar email"
           const currentLanguage = document.documentElement.lang || 'es';
           if (currentLanguage === 'en') {
