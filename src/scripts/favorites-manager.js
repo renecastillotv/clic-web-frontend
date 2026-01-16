@@ -179,6 +179,19 @@ export class SimpleFavoritesManager {
     }
   }
 
+  async getFavoritesWithDetails() {
+    try {
+      const data = await this.callAPI(`/details/${this.deviceId}`);
+      if (data.success && data.data) {
+        return data.data.properties || [];
+      }
+      return [];
+    } catch (error) {
+      console.error('Error getting favorites with details:', error);
+      return [];
+    }
+  }
+
   // ========================================================================
   // FUNCIONES PARA LISTAS COMPARTIDAS
   // ========================================================================
