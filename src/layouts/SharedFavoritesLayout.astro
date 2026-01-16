@@ -539,8 +539,9 @@ console.log('✅ SharedFavoritesLayout preparado:', {
 
     grid.innerHTML = pageState.properties.map(property => {
       const reactions = pageState.reactions[property.id] || { likes: [], dislikes: [], comments: [] };
-      const userLiked = reactions.likes.some(r => r.visitor_device_id === pageState.visitorInfo?.deviceId);
-      const userDisliked = reactions.dislikes.some(r => r.visitor_device_id === pageState.visitorInfo?.deviceId);
+      // Ahora likes y dislikes son arrays de objetos con visitor_device_id
+      const userLiked = Array.isArray(reactions.likes) && reactions.likes.some(r => r.visitor_device_id === pageState.visitorInfo?.deviceId);
+      const userDisliked = Array.isArray(reactions.dislikes) && reactions.dislikes.some(r => r.visitor_device_id === pageState.visitorInfo?.deviceId);
 
       return `
         <div class="property-card bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
