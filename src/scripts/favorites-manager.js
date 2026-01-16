@@ -107,6 +107,14 @@ export class SimpleFavoritesManager {
 
       if (data.success && data.data) {
         this.favorites = new Set(data.data.property_ids || []);
+
+        // Si es una lista nueva, disparar evento para mostrar modal de bienvenida
+        if (data.isNewList && data.data.public_code) {
+          console.log('New list created with public code:', data.data.public_code);
+          window.dispatchEvent(new CustomEvent('favoritesNewListCreated', {
+            detail: { publicCode: data.data.public_code }
+          }));
+        }
       }
 
       this.notifyListeners();
