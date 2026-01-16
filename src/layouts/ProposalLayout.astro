@@ -563,34 +563,109 @@ console.log('✅ ProposalLayout preparado:', {
       renderProperties();
     }
 
-    // Add ref parameter to ALL links on the page
-    function applyRefToLinks() {
-      if (!pageState.advisorCode) return;
+    // ===================================================================
+    // TRACKING PARAMETERS
+    // ===================================================================
+    // List of tracking parameters to preserve across all links
+    const TRACKING_PARAMS = ['ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid', 'msclkid'];
 
-      const refParam = `ref=${pageState.advisorCode}`;
+    // Get all tracking params from current URL
+    function getTrackingParams() {
+      const params = new URLSearchParams();
+
+      // Add advisor code as ref if available
+      if (pageState.advisorCode) {
+        params.set('ref', pageState.advisorCode);
+      }
+
+      // Preserve any tracking params from current URL
+      const currentParams = new URLSearchParams(window.location.search);
+      TRACKING_PARAMS.forEach(param => {
+        const value = currentParams.get(param);
+        if (value && param !== 'ref') { // ref is handled by advisorCode
+          params.set(param, value);
+        }
+      });
+
+      return params;
+    }
+
+    // Apply tracking parameters to ALL links on the page
+    function applyTrackingToLinks() {
+      const trackingParams = getTrackingParams();
+      const trackingString = trackingParams.toString();
+
+      if (!trackingString) return;
 
       // Find ALL links on the page (header, footer, property cards, etc.)
       document.querySelectorAll('a').forEach(link => {
         const href = link.getAttribute('href');
-        // Skip empty, anchor-only, mailto, tel, javascript links, and links that already have ref
-        if (href &&
-            href !== '#' &&
-            !href.startsWith('mailto:') &&
-            !href.startsWith('tel:') &&
-            !href.startsWith('javascript:') &&
-            !href.includes('ref=')) {
+
+        // Skip empty, anchor-only, external protocols, and already processed links
+        if (!href ||
+            href === '#' ||
+            href.startsWith('mailto:') ||
+            href.startsWith('tel:') ||
+            href.startsWith('javascript:') ||
+            link.dataset.trackingApplied) {
+          return;
+        }
+
+        try {
+          // Parse the URL to handle existing params properly
+          const url = new URL(href, window.location.origin);
+
+          // Only apply to same-origin links or relative links
+          if (url.origin === window.location.origin || href.startsWith('/')) {
+            // Add tracking params, avoiding duplicates
+            trackingParams.forEach((value, key) => {
+              if (!url.searchParams.has(key)) {
+                url.searchParams.set(key, value);
+              }
+            });
+
+            link.setAttribute('href', url.pathname + url.search + url.hash);
+            link.dataset.trackingApplied = 'true';
+          }
+        } catch (e) {
+          // For invalid URLs, fallback to simple string concat
           const separator = href.includes('?') ? '&' : '?';
-          link.setAttribute('href', `${href}${separator}${refParam}`);
+          link.setAttribute('href', `${href}${separator}${trackingString}`);
+          link.dataset.trackingApplied = 'true';
         }
       });
     }
 
-    // Get URL with ref parameter
-    function getRefUrl(url) {
+    // Get URL with tracking parameters (for dynamic content)
+    function getTrackedUrl(url) {
       if (!url) return '#';
-      if (!pageState.advisorCode) return url;
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}ref=${pageState.advisorCode}`;
+
+      const trackingParams = getTrackingParams();
+      const trackingString = trackingParams.toString();
+
+      if (!trackingString) return url;
+
+      try {
+        const parsedUrl = new URL(url, window.location.origin);
+        trackingParams.forEach((value, key) => {
+          if (!parsedUrl.searchParams.has(key)) {
+            parsedUrl.searchParams.set(key, value);
+          }
+        });
+        return parsedUrl.pathname + parsedUrl.search + parsedUrl.hash;
+      } catch (e) {
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}${trackingString}`;
+      }
+    }
+
+    // Alias for backwards compatibility
+    function applyRefToLinks() {
+      applyTrackingToLinks();
+    }
+
+    function getRefUrl(url) {
+      return getTrackedUrl(url);
     }
 
     function renderProperties() {
@@ -816,6 +891,9 @@ console.log('✅ ProposalLayout preparado:', {
           </div>
         `;
       }).join('');
+
+      // Re-apply tracking to new dynamic links
+      applyTrackingToLinks();
     }
 
     // ===================================================================
