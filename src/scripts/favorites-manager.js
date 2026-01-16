@@ -1,20 +1,28 @@
 /**
  * SimpleFavoritesManager - Sistema de favoritos del cliente
- * Maneja favoritos de propiedades con sincronización en backend
+ * Maneja favoritos de propiedades con sincronización en backend Neon
+ * Incluye soporte para compartir y reacciones
  */
 
 export class SimpleFavoritesManager {
   constructor() {
-    this.API_URL = 'https://pacewqgypevfgjmdsorz.supabase.co/functions/v1/favorites';
-    this.API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2V3cWd5cGV2ZmdqbWRzb3J6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2NjU4OTksImV4cCI6MjA2NDI0MTg5OX0.Qlg-UVy-sikr76GxYmTcfCz1EnAqPHxvFeLrdqnjuWs';
+    // URL de la API de Neon
+    this.API_URL = 'https://clic-api-neon.vercel.app/api/favorites';
 
     this.deviceId = this.getDeviceId();
     this.favorites = new Set();
-    this.email = null;
+    this.ownerName = null;
     this.isLoaded = false;
     this._listeners = [];
 
-    console.log('🔧 SimpleFavoritesManager initialized with deviceId:', this.deviceId);
+    // Para listas compartidas
+    this.isSharedView = false;
+    this.sharedListId = null;
+    this.visitorAlias = null;
+    this.visitors = [];
+    this.reactions = {};
+
+    console.log('SimpleFavoritesManager initialized with deviceId:', this.deviceId);
     this.loadFavorites();
   }
 
@@ -23,18 +31,17 @@ export class SimpleFavoritesManager {
     if (!deviceId) {
       deviceId = 'DEV-' + crypto.randomUUID().slice(0, 12);
       localStorage.setItem('device_id', deviceId);
-      console.log('🆕 Generated new deviceId:', deviceId);
+      console.log('Generated new deviceId:', deviceId);
     }
     return deviceId;
   }
 
   async callAPI(endpoint, method = 'GET', body = null) {
-    const url = `${this.API_URL}/${this.deviceId}${endpoint}`;
+    const url = `${this.API_URL}${endpoint}`;
 
     const config = {
       method,
       headers: {
-        'Authorization': `Bearer ${this.API_KEY}`,
         'Content-Type': 'application/json'
       }
     };
@@ -43,7 +50,7 @@ export class SimpleFavoritesManager {
       config.body = JSON.stringify(body);
     }
 
-    console.log('📡 API Call:', method, url, body);
+    console.log('API Call:', method, url, body);
 
     const response = await fetch(url, config);
 
@@ -52,29 +59,34 @@ export class SimpleFavoritesManager {
     }
 
     const data = await response.json();
-    console.log('✅ API Response:', data);
+    console.log('API Response:', data);
     return data;
   }
 
   async loadFavorites() {
     try {
-      const data = await this.callAPI('');
+      const data = await this.callAPI(`/${this.deviceId}`);
 
-      this.favorites = new Set(data.properties || []);
-      this.email = data.email;
+      if (data.success && data.data) {
+        this.favorites = new Set(data.data.property_ids || []);
+        this.ownerName = data.data.owner_name;
+        this.visitors = data.data.visitors || [];
+        this.reactions = data.data.reactions || {};
+      }
+
       this.isLoaded = true;
 
-      console.log('✅ Favorites loaded:', {
+      console.log('Favorites loaded:', {
         deviceId: this.deviceId,
         count: this.favorites.size,
         properties: Array.from(this.favorites),
-        email: this.email
+        ownerName: this.ownerName
       });
 
       this.notifyListeners();
 
     } catch (error) {
-      console.error('❌ Error loading favorites:', error);
+      console.error('Error loading favorites:', error);
       this.isLoaded = true;
       this.notifyListeners();
     }
@@ -82,48 +94,58 @@ export class SimpleFavoritesManager {
 
   async addFavorite(propertyId) {
     try {
-      console.log('💖 Adding favorite:', propertyId);
+      console.log('Adding favorite:', propertyId);
 
+      // Optimistic update
       this.favorites.add(propertyId);
       this.notifyListeners();
 
-      const data = await this.callAPI('/add', 'POST', { propertyId });
+      const data = await this.callAPI('/add', 'POST', {
+        device_id: this.deviceId,
+        property_id: propertyId
+      });
 
-      this.favorites = new Set(data.properties);
+      if (data.success && data.data) {
+        this.favorites = new Set(data.data.property_ids || []);
+      }
+
       this.notifyListeners();
-
-      console.log('✅ Favorite added successfully');
+      console.log('Favorite added successfully');
 
     } catch (error) {
-      console.error('❌ Error adding favorite:', error);
-
+      console.error('Error adding favorite:', error);
+      // Rollback
       this.favorites.delete(propertyId);
       this.notifyListeners();
-
       throw error;
     }
   }
 
   async removeFavorite(propertyId) {
     try {
-      console.log('💔 Removing favorite:', propertyId);
+      console.log('Removing favorite:', propertyId);
 
+      // Optimistic update
       this.favorites.delete(propertyId);
       this.notifyListeners();
 
-      const data = await this.callAPI('/remove', 'POST', { propertyId });
+      const data = await this.callAPI('/remove', 'POST', {
+        device_id: this.deviceId,
+        property_id: propertyId
+      });
 
-      this.favorites = new Set(data.properties);
+      if (data.success && data.data) {
+        this.favorites = new Set(data.data.property_ids || []);
+      }
+
       this.notifyListeners();
-
-      console.log('✅ Favorite removed successfully');
+      console.log('Favorite removed successfully');
 
     } catch (error) {
-      console.error('❌ Error removing favorite:', error);
-
+      console.error('Error removing favorite:', error);
+      // Rollback
       this.favorites.add(propertyId);
       this.notifyListeners();
-
       throw error;
     }
   }
@@ -136,26 +158,186 @@ export class SimpleFavoritesManager {
     }
   }
 
-  async getFavoritesWithDetails() {
+  async syncFavorites(propertyIds, ownerName = null) {
     try {
-      const data = await this.callAPI('/details');
-      return data.properties || [];
-    } catch (error) {
-      console.error('❌ Error getting favorites details:', error);
-      return [];
-    }
-  }
+      const data = await this.callAPI('/sync', 'POST', {
+        device_id: this.deviceId,
+        property_ids: propertyIds,
+        owner_name: ownerName
+      });
 
-  async updateEmail(email) {
-    try {
-      await this.callAPI('/email', 'PUT', { email });
-      this.email = email;
-      console.log('✅ Email updated:', email);
+      if (data.success && data.data) {
+        this.favorites = new Set(data.data.property_ids || []);
+        this.ownerName = data.data.owner_name;
+      }
+
+      this.notifyListeners();
+      return data;
     } catch (error) {
-      console.error('❌ Error updating email:', error);
+      console.error('Error syncing favorites:', error);
       throw error;
     }
   }
+
+  // ========================================================================
+  // FUNCIONES PARA LISTAS COMPARTIDAS
+  // ========================================================================
+
+  getShareUrl() {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/favoritos/${this.deviceId}`;
+  }
+
+  async loadSharedList(listId) {
+    try {
+      this.isSharedView = true;
+      this.sharedListId = listId;
+
+      const data = await this.callAPI(`/${listId}`);
+
+      if (data.success && data.data) {
+        this.favorites = new Set(data.data.property_ids || []);
+        this.ownerName = data.data.owner_name;
+        this.visitors = data.data.visitors || [];
+        this.reactions = data.data.reactions || {};
+      }
+
+      this.isLoaded = true;
+      this.notifyListeners();
+
+      return data.data;
+    } catch (error) {
+      console.error('Error loading shared list:', error);
+      throw error;
+    }
+  }
+
+  async joinSharedList(listId, alias) {
+    try {
+      const data = await this.callAPI('/visitor', 'POST', {
+        list_id: listId,
+        visitor_device_id: this.deviceId,
+        alias: alias
+      });
+
+      if (data.success) {
+        this.visitorAlias = alias;
+        localStorage.setItem(`visitor_alias_${listId}`, alias);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error joining shared list:', error);
+      throw error;
+    }
+  }
+
+  getVisitorAlias(listId) {
+    return localStorage.getItem(`visitor_alias_${listId}`);
+  }
+
+  async addReaction(listId, propertyId, reactionType) {
+    if (!this.visitorAlias) {
+      throw new Error('Debe unirse a la lista primero');
+    }
+
+    try {
+      const data = await this.callAPI('/reaction', 'POST', {
+        list_id: listId,
+        property_id: propertyId,
+        visitor_device_id: this.deviceId,
+        visitor_alias: this.visitorAlias,
+        reaction_type: reactionType
+      });
+
+      // Refresh reactions
+      await this.refreshReactions(listId);
+
+      return data;
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      throw error;
+    }
+  }
+
+  async removeReaction(listId, propertyId, reactionType) {
+    try {
+      const data = await this.callAPI('/reaction', 'DELETE', {
+        list_id: listId,
+        property_id: propertyId,
+        visitor_device_id: this.deviceId,
+        reaction_type: reactionType
+      });
+
+      // Refresh reactions
+      await this.refreshReactions(listId);
+
+      return data;
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+      throw error;
+    }
+  }
+
+  async addComment(listId, propertyId, commentText) {
+    if (!this.visitorAlias) {
+      throw new Error('Debe unirse a la lista primero');
+    }
+
+    try {
+      const data = await this.callAPI('/comment', 'POST', {
+        list_id: listId,
+        property_id: propertyId,
+        visitor_device_id: this.deviceId,
+        visitor_alias: this.visitorAlias,
+        comment_text: commentText
+      });
+
+      // Refresh reactions
+      await this.refreshReactions(listId);
+
+      return data;
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      throw error;
+    }
+  }
+
+  async deleteComment(commentId) {
+    try {
+      const data = await this.callAPI(`/comment/${commentId}?visitor_device_id=${this.deviceId}`, 'DELETE');
+      return data;
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      throw error;
+    }
+  }
+
+  async refreshReactions(listId) {
+    try {
+      const data = await this.callAPI(`/summary/${listId}`);
+      if (data.success) {
+        this.reactions = data.data || {};
+        this.notifyListeners();
+      }
+    } catch (error) {
+      console.error('Error refreshing reactions:', error);
+    }
+  }
+
+  async getPropertyReactions(listId, propertyId) {
+    try {
+      const data = await this.callAPI(`/reactions/${listId}?property_id=${propertyId}`);
+      return data.success ? data.data : { likes: [], dislikes: [], comments: [] };
+    } catch (error) {
+      console.error('Error getting property reactions:', error);
+      return { likes: [], dislikes: [], comments: [] };
+    }
+  }
+
+  // ========================================================================
+  // FUNCIONES UTILITARIAS
+  // ========================================================================
 
   isFavorite(propertyId) {
     return this.favorites.has(propertyId);
@@ -169,12 +351,21 @@ export class SimpleFavoritesManager {
     return this.favorites.size;
   }
 
+  getFavoritesArray() {
+    return Array.from(this.favorites);
+  }
+
   getDeviceInfo() {
     return {
       deviceId: this.deviceId,
       count: this.favorites.size,
-      email: this.email,
-      favorites: Array.from(this.favorites)
+      ownerName: this.ownerName,
+      favorites: Array.from(this.favorites),
+      isSharedView: this.isSharedView,
+      sharedListId: this.sharedListId,
+      visitorAlias: this.visitorAlias,
+      visitors: this.visitors,
+      reactions: this.reactions
     };
   }
 
@@ -194,17 +385,17 @@ export class SimpleFavoritesManager {
 
   notifyListeners() {
     const info = this.getDeviceInfo();
-    console.log('📢 Notifying listeners:', info);
+    console.log('Notifying listeners:', info);
 
     this._listeners.forEach(callback => {
       try {
         callback(info);
       } catch (error) {
-        console.error('❌ Error in listener:', error);
+        console.error('Error in listener:', error);
       }
     });
   }
 }
 
-// NO auto-inicializar aquí - se hace en Layout.astro
-// Esto permite que Astro procese correctamente el módulo
+// NO auto-inicializar aqui - se hace en Layout.astro
+// Esto permite que Astro procese correctamente el modulo
