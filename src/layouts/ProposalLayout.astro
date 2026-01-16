@@ -275,8 +275,16 @@ console.log('✅ ProposalLayout preparado:', {
       <div class="container mx-auto px-4">
         <div class="max-w-6xl mx-auto">
 
-          <!-- Help text -->
-          <div class="mb-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
+          <!-- Preview Mode Banner (only visible in preview) -->
+          <div id="previewBanner" class="hidden mb-8 p-4 bg-amber-50 rounded-xl border border-amber-200">
+            <p class="text-amber-700 text-sm flex items-center gap-2 font-medium">
+              <i class="fas fa-eye"></i>
+              <span>Modo Vista Previa - Las vistas no se contabilizan y las reacciones están deshabilitadas</span>
+            </p>
+          </div>
+
+          <!-- Help text (hidden in preview) -->
+          <div id="helpTextBox" class="mb-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
             <p class="text-blue-700 text-sm flex items-center gap-2">
               <i class="fas fa-info-circle"></i>
               {text.helpText}
@@ -337,6 +345,10 @@ console.log('✅ ProposalLayout preparado:', {
     // ===================================================================
     // ESTADO GLOBAL
     // ===================================================================
+    // Detectar modo preview desde URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPreviewMode = urlParams.get('preview') === 'true';
+
     const pageState = {
       proposalToken: proposalToken,
       proposal: null,
@@ -344,7 +356,8 @@ console.log('✅ ProposalLayout preparado:', {
       reactions: {},
       advisor: null,
       language: language,
-      text: textData
+      text: textData,
+      isPreview: isPreviewMode
     };
 
     const API_URL = 'https://clic-api-neon.vercel.app/api/proposals';
@@ -353,7 +366,7 @@ console.log('✅ ProposalLayout preparado:', {
     // INICIALIZACIÓN
     // ===================================================================
     async function initializePage() {
-      console.log('🚀 Initializing proposal page with token:', pageState.proposalToken);
+      console.log('🚀 Initializing proposal page with token:', pageState.proposalToken, pageState.isPreview ? '(PREVIEW MODE)' : '');
 
       if (!pageState.proposalToken) {
         showError();
@@ -361,7 +374,11 @@ console.log('✅ ProposalLayout preparado:', {
       }
 
       try {
-        const response = await fetch(`${API_URL}/${pageState.proposalToken}`);
+        // Pasar preview=true a la API si estamos en modo preview
+        const apiUrl = pageState.isPreview
+          ? `${API_URL}/${pageState.proposalToken}?preview=true`
+          : `${API_URL}/${pageState.proposalToken}`;
+        const response = await fetch(apiUrl);
         const result = await response.json();
 
         console.log('📦 API Response:', result);
@@ -420,6 +437,12 @@ console.log('✅ ProposalLayout preparado:', {
       document.getElementById('loadingState').classList.add('hidden');
       document.getElementById('errorState').classList.add('hidden');
       document.getElementById('proposalContent').classList.remove('hidden');
+
+      // Handle preview mode UI
+      if (pageState.isPreview) {
+        document.getElementById('previewBanner').classList.remove('hidden');
+        document.getElementById('helpTextBox').classList.add('hidden');
+      }
     }
 
     function updateUI() {
@@ -731,7 +754,8 @@ console.log('✅ ProposalLayout preparado:', {
                 </div>
               ` : ''}
 
-              <!-- Reactions -->
+              <!-- Reactions (hidden in preview mode) -->
+              ${!pageState.isPreview ? `
               <div class="pt-4">
                 <div class="grid grid-cols-3 gap-2 mb-3">
                   <button
@@ -787,6 +811,7 @@ console.log('✅ ProposalLayout preparado:', {
                   </div>
                 ` : ''}
               </div>
+              ` : ''}
             </div>
           </div>
         `;
