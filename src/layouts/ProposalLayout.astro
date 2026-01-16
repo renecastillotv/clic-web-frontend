@@ -575,16 +575,22 @@ console.log('✅ ProposalLayout preparado:', {
       renderProperties();
     }
 
-    // Add ref parameter to all links
+    // Add ref parameter to ALL links on the page
     function applyRefToLinks() {
       if (!pageState.advisorCode) return;
 
       const refParam = `ref=${pageState.advisorCode}`;
 
-      // Find all links with ref-link class
-      document.querySelectorAll('.ref-link').forEach(link => {
+      // Find ALL links on the page (header, footer, property cards, etc.)
+      document.querySelectorAll('a').forEach(link => {
         const href = link.getAttribute('href');
-        if (href && href !== '#') {
+        // Skip empty, anchor-only, mailto, tel, javascript links, and links that already have ref
+        if (href &&
+            href !== '#' &&
+            !href.startsWith('mailto:') &&
+            !href.startsWith('tel:') &&
+            !href.startsWith('javascript:') &&
+            !href.includes('ref=')) {
           const separator = href.includes('?') ? '&' : '?';
           link.setAttribute('href', `${href}${separator}${refParam}`);
         }
