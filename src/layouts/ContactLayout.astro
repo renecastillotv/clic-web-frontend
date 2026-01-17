@@ -45,27 +45,29 @@ const rawContactInfo = safeObject(contactData.contactInfo);
 const globalContact = safeGet(contactData, 'globalConfig.contact', {});
 const globalOffice = safeGet(contactData, 'globalConfig.office', {});
 
-// Obtener coordenadas de la oficina principal
+// Obtener coordenadas de la oficina principal desde el backend
 const offices = safeArray(safeGet(contactData, 'contactInfo.offices'));
 const mainOffice = offices.length > 0 ? offices[0] : null;
 
+// Coordenadas exactas de "The Box Working Space" - Calle Erik Leonard Ekman #34, Gazcue
+const DEFAULT_COORDINATES = {
+  lat: 18.4671,
+  lng: -69.9167
+};
+
 const safeContactInfo = {
-  phone: rawContactInfo.phone || safeGet(rawContactInfo, 'main.phone') || globalContact.phone || '+1 809 555 0100',
-  whatsapp: rawContactInfo.whatsapp || safeGet(rawContactInfo, 'main.whatsapp') || globalContact.whatsapp || '18095550100',
-  email: rawContactInfo.email || safeGet(rawContactInfo, 'main.email') || globalContact.email || 'info@clic.do',
-  address: mainOffice?.address || rawContactInfo.address || safeGet(rawContactInfo, 'main.address') || globalContact.address ||
-           (language === 'es' ? 'Av. Winston Churchill, Plaza de la Salud, Torre 2, Piso 8' :
-            language === 'en' ? 'Winston Churchill Ave, Plaza de la Salud, Tower 2, Floor 8' :
-            'Av. Winston Churchill, Plaza de la Salud, Tour 2, Étage 8'),
-  city: rawContactInfo.city ||
+  phone: safeGet(rawContactInfo, 'main.phone') || rawContactInfo.phone || globalContact.phone || '+1 809 487 2542',
+  whatsapp: safeGet(rawContactInfo, 'main.whatsapp') || rawContactInfo.whatsapp || globalContact.whatsapp || '8295148080',
+  email: safeGet(rawContactInfo, 'main.email') || rawContactInfo.email || globalContact.email || 'info@clicinmobiliaria.com',
+  address: mainOffice?.address || safeGet(rawContactInfo, 'main.address') || rawContactInfo.address || globalContact.address ||
+           'Calle Erik Leonard Ekman No. 34, Edificio The Box Working Space',
+  city: mainOffice?.city || rawContactInfo.city ||
         (language === 'es' ? 'Santo Domingo, República Dominicana' :
          language === 'en' ? 'Santo Domingo, Dominican Republic' :
          'Santo Domingo, République dominicaine'),
-  coordinates: mainOffice?.coordinates || {
-    lat: 18.4861,  // Coordenadas de Santo Domingo por defecto
-    lng: -69.9312
-  },
-  hours: rawContactInfo.hours || globalOffice.hours || {
+  // Usar coordenadas del backend si están disponibles, si no usar las correctas por defecto
+  coordinates: mainOffice?.coordinates || DEFAULT_COORDINATES,
+  hours: safeGet(rawContactInfo, 'hours') || globalOffice.hours || {
     weekdays: language === 'es' ? 'Lunes - Viernes: 8:00 AM - 6:00 PM' :
               language === 'en' ? 'Monday - Friday: 8:00 AM - 6:00 PM' :
               'Lundi - Vendredi: 8:00 AM - 6:00 PM',
@@ -112,48 +114,11 @@ const services = [
   }
 ];
 
-// Team con fallback
-const team = safeArray(safeGet(contactData, 'team.advisors') || contactData.team, [
-  {
-    name: 'María González',
-    title: language === 'es' ? 'Directora Comercial' :
-           language === 'en' ? 'Commercial Director' :
-           'Directrice Commerciale',
-    phone: '+1 809 555 0101',
-    email: 'maria@clic.do',
-    specialties: [
-      language === 'es' ? 'Ventas' : language === 'en' ? 'Sales' : 'Ventes',
-      language === 'es' ? 'Propiedades de lujo' : language === 'en' ? 'Luxury properties' : 'Propriétés de luxe'
-    ],
-    avatar: 'https://i.pravatar.cc/150?img=5'
-  },
-  {
-    name: 'Carlos Rodríguez',
-    title: language === 'es' ? 'Especialista en Proyectos' :
-           language === 'en' ? 'Projects Specialist' :
-           'Spécialiste des Projets',
-    phone: '+1 809 555 0102',
-    email: 'carlos@clic.do',
-    specialties: [
-      language === 'es' ? 'Desarrollos' : language === 'en' ? 'Developments' : 'Développements',
-      language === 'es' ? 'Comercialización' : language === 'en' ? 'Marketing' : 'Commercialisation'
-    ],
-    avatar: 'https://i.pravatar.cc/150?img=8'
-  },
-  {
-    name: 'Ana Martínez',
-    title: language === 'es' ? 'Asesora de Ventas' :
-           language === 'en' ? 'Sales Advisor' :
-           'Conseillère de Ventes',
-    phone: '+1 809 555 0103',
-    email: 'ana@clic.do',
-    specialties: [
-      language === 'es' ? 'Primeros compradores' : language === 'en' ? 'First-time buyers' : 'Premiers acheteurs',
-      language === 'es' ? 'Asesoría' : language === 'en' ? 'Advisory' : 'Conseil'
-    ],
-    avatar: 'https://i.pravatar.cc/150?img=16'
-  }
-]);
+// Team con datos REALES del backend (sin fallback mock)
+// El handler de contacto ahora devuelve asesores reales desde la BD
+const team: any[] = safeArray(contactData.team);
+
+console.log('📋 Team members from backend:', team.length);
 
 // SEO con fallback
 const seo = safeObject(contactData.seo, {
