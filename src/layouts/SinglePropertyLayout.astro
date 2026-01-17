@@ -159,7 +159,8 @@ const layoutProps = {
   title,
   description,
   ogImage,
-  hreflangData: seoData.hreflang || {},
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: data.hreflangData || seoData.hreflang || {},
   globalConfig: data.globalConfig || {},
   language: language,
   trackingString: trackingString

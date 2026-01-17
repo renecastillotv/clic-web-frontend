@@ -1,4 +1,5 @@
 // Language Selector Script - Handles multi-language switching
+// CENTRALIZADO: Este script usa las URLs de hreflang generadas por el backend
 document.addEventListener('DOMContentLoaded', function() {
   const languageSelector = document.getElementById('language-selector');
   const languageDropdown = document.getElementById('language-dropdown');
@@ -17,7 +18,49 @@ document.addEventListener('DOMContentLoaded', function() {
   const langMap = { 'es': 'ES', 'en': 'EN', 'fr': 'FR' };
   currentLanguageSpan.textContent = langMap[window.currentLanguage] || 'ES';
 
-  // Simple language change function - trust the props
+  /**
+   * Valida que una URL no tenga prefijos de idioma duplicados
+   * y sea relativa (sin dominio externo)
+   */
+  function validateAndCleanUrl(url, targetLang) {
+    if (!url) return null;
+
+    // Si la URL es absoluta con dominio diferente, rechazarla
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      try {
+        const urlObj = new URL(url);
+        // Solo aceptar si es el mismo origen
+        if (urlObj.origin !== window.location.origin) {
+          console.warn('⚠️ Rechazando URL de dominio externo:', url);
+          return null;
+        }
+        // Convertir a relativa
+        url = urlObj.pathname + urlObj.search + urlObj.hash;
+      } catch (e) {
+        console.error('Error parsing URL:', e);
+        return null;
+      }
+    }
+
+    // Limpiar prefijos de idioma duplicados (ej: /en/fr/xxx -> /fr/xxx)
+    const duplicatePrefixMatch = url.match(/^\/(en|fr)\/(en|fr)\//);
+    if (duplicatePrefixMatch) {
+      console.warn('⚠️ Corrigiendo prefijos duplicados en:', url);
+      url = url.replace(/^\/(en|fr)\/(en|fr)\//, `/${targetLang}/`);
+    }
+
+    // Asegurar que empiece con /
+    if (!url.startsWith('/')) {
+      url = '/' + url;
+    }
+
+    return url;
+  }
+
+  /**
+   * Función principal de cambio de idioma
+   * Usa las URLs de hreflang proporcionadas por el backend
+   */
   function changeLanguage(newLang) {
     console.log('🔄 Changing language from', window.currentLanguage, 'to', newLang);
 
@@ -28,15 +71,72 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
-    // Use hreflang data - trust that it's always provided
-    const targetUrl = window.hreflangData[newLang];
+    // Obtener URL del hreflang data (generada por el backend centralizado)
+    let targetUrl = window.hreflangData ? window.hreflangData[newLang] : null;
+
+    // Validar y limpiar la URL
+    targetUrl = validateAndCleanUrl(targetUrl, newLang);
+
     if (targetUrl) {
+      // Preserve tracking parameters when changing language
+      if (typeof window.getTrackingParams === 'function') {
+        const trackingParams = window.getTrackingParams();
+        const trackingString = trackingParams.toString();
+
+        if (trackingString) {
+          try {
+            const url = new URL(targetUrl, window.location.origin);
+            trackingParams.forEach((value, key) => {
+              if (!url.searchParams.has(key)) {
+                url.searchParams.set(key, value);
+              }
+            });
+            targetUrl = url.pathname + url.search + url.hash;
+          } catch (e) {
+            // Fallback: simple concatenation
+            const separator = targetUrl.includes('?') ? '&' : '?';
+            targetUrl = `${targetUrl}${separator}${trackingString}`;
+          }
+          console.log('🔗 Tracking params preserved:', trackingString);
+        }
+      }
+
       console.log('🚀 Redirecting to:', targetUrl);
       window.location.href = targetUrl;
     } else {
-      console.error('❌ No hreflang URL found for language:', newLang);
+      console.error('❌ No valid hreflang URL found for language:', newLang);
       console.error('Available hreflang data:', window.hreflangData);
+
+      // FALLBACK: Construir URL manualmente si no hay hreflang válido
+      const fallbackUrl = buildFallbackUrl(newLang);
+      if (fallbackUrl) {
+        console.log('🔄 Using fallback URL:', fallbackUrl);
+        window.location.href = fallbackUrl;
+      }
     }
+  }
+
+  /**
+   * Construye una URL de fallback cuando no hay hreflang disponible
+   */
+  function buildFallbackUrl(targetLang) {
+    const currentPath = window.location.pathname;
+
+    // Remover prefijo de idioma actual si existe
+    let cleanPath = currentPath
+      .replace(/^\/(en|fr)\//, '/')
+      .replace(/^\/(en|fr)$/, '/');
+
+    // Si quedó vacío, es homepage
+    if (cleanPath === '' || cleanPath === '/') {
+      return targetLang === 'es' ? '/' : `/${targetLang}`;
+    }
+
+    // Agregar prefijo del nuevo idioma
+    if (targetLang === 'es') {
+      return cleanPath;
+    }
+    return `/${targetLang}${cleanPath}`;
   }
 
   function closeDropdown() {

@@ -85,7 +85,10 @@ const generalAdvisors = advisors
 /* Layout props */
 const layoutProps = {
   title: safeSeo.title, description: safeSeo.description, ogImage: safeSeo.ogImage, canonical: safeSeo.canonical_url,
-  keywords: safeSeo.keywords, hreflangData: safeSeo.hreflang || {}, globalConfig: advisorsData?.globalConfig || {},
+  keywords: safeSeo.keywords,
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: advisorsData?.hreflangData || safeSeo.hreflang || {},
+  globalConfig: advisorsData?.globalConfig || {},
   language, trackingString: advisorsData?.trackingString || '', hotItems: advisorsData?.hotItems || {},
   country: advisorsData?.country || {}, breadcrumbs: safeSeo.breadcrumbs,
   structuredData: safeSeo.structured_data, openGraph: safeSeo.open_graph, twitterCard: safeSeo.twitter_card

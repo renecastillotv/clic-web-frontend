@@ -120,7 +120,8 @@ const layoutProps = {
   canonical: safeSeo.canonical_url,
   keywords: safeSeo.keywords,
   robots: safeSeo.robots,
-  hreflangData: safeSeo.hreflang || {},
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: legalData?.hreflangData || safeSeo.hreflang || {},
   globalConfig: legalData?.globalConfig || {},
   language,
   trackingString: legalData?.trackingString || '',

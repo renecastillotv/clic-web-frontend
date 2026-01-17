@@ -95,7 +95,8 @@ const layoutProps = {
   ogImage: safeSeo.ogImage,
   canonical: safeSeo.canonical_url,
   keywords: safeSeo.keywords,
-  hreflangData: safeSeo.hreflang || {},
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: locationsData?.hreflangData || safeSeo.hreflang || {},
   globalConfig: locationsData?.globalConfig || {},
   language,
   trackingString: locationsData?.trackingString || '',

@@ -247,13 +247,15 @@ const TEXTS = {
 const text = TEXTS[language] || TEXTS.es;
 
 // Props para el Layout (como en otros layouts)
+// IMPORTANTE: hreflangData viene del sistema centralizado en el nivel raíz de data
 const layoutProps = {
   title: safeString(seo.title, text.heroTitle),
   description: safeString(seo.description, text.heroSubtitle),
   ogImage: safeString(seo.ogImage || seo.open_graph?.image, '/og-sell.jpg'),
   canonical: safeString(seo.canonical_url),
   keywords: safeString(seo.keywords),
-  hreflangData: safeObject(seo.hreflang),
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: safeObject(sellData.hreflangData || seo.hreflang),
   globalConfig: globalConfig,
   language: language,
   trackingString: safeString(sellData.trackingString, ''),

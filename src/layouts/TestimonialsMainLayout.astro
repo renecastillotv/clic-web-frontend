@@ -289,7 +289,8 @@ const layoutProps = {
   ogImage: safeString(seo.ogImage || seo.open_graph?.image, '/og-testimonials.jpg'),
   canonical: safeString(seo.canonical_url),
   keywords: safeString(seo.keywords),
-  hreflangData: safeObject(seo.hreflang),
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: safeObject(testimonialsData.hreflangData || seo.hreflang),
   globalConfig: globalConfig,
   language: language,
   trackingString: safeString(testimonialsData.trackingString, ''),

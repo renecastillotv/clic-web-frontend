@@ -273,7 +273,8 @@ const layoutProps = {
   ogImage: safeSeo.ogImage || '/og-advisor.jpg',
   canonical: safeSeo.canonical_url,
   keywords: safeSeo.keywords,
-  hreflangData: safeSeo.hreflang || {},
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: advisorData?.hreflangData || safeSeo.hreflang || {},
   globalConfig: advisorData?.globalConfig || {},
   language: language,
   trackingString: advisorData?.trackingString || '',

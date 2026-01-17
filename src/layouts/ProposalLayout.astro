@@ -9,8 +9,16 @@ import Layout from './Layout.astro';
 const { data } = Astro.props;
 const language = data?.language || 'es';
 const globalConfig = data?.globalConfig || null;
-const hreflangData = data?.seo?.hreflang || {};
 const proposalToken = data?.proposalToken || '';
+
+// Generar hreflangData para propuestas basado en el token
+// Las propuestas usan la misma URL base con diferentes prefijos de idioma
+const baseUrl = Astro.url.origin;
+const hreflangData = proposalToken ? {
+  es: `${baseUrl}/propuestas/${proposalToken}`,
+  en: `${baseUrl}/en/proposals/${proposalToken}`,
+  fr: `${baseUrl}/fr/propositions/${proposalToken}`
+} : (data?.seo?.hreflang || {});
 
 // ===================================================================
 // TEXTOS POR IDIOMA
@@ -132,7 +140,8 @@ const text = TEXTS[language] || TEXTS.es;
 console.log('✅ ProposalLayout preparado:', {
   language,
   proposalToken,
-  originalUrl: data?.originalUrl
+  originalUrl: data?.originalUrl,
+  hreflangData: hreflangData
 });
 ---
 

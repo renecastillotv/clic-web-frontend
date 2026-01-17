@@ -524,7 +524,154 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
       }
     </script>
 
-    <!-- Language Selector Script - External -->
+    <!-- GLOBAL TRACKING SYSTEM - Preserva ref, utm_*, fbclid, gclid, msclkid en TODOS los enlaces -->
+    <!-- IMPORTANTE: Este script debe ir ANTES del language-selector para que window.getTrackingParams esté disponible -->
+    <script is:inline>
+      (function() {
+        // Lista de parámetros de tracking a preservar
+        const TRACKING_PARAMS = ['ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid', 'msclkid'];
+
+        // Obtener todos los parámetros de tracking de la URL actual
+        function getTrackingParams() {
+          const params = new URLSearchParams();
+          const currentParams = new URLSearchParams(window.location.search);
+
+          TRACKING_PARAMS.forEach(param => {
+            const value = currentParams.get(param);
+            if (value) {
+              params.set(param, value);
+            }
+          });
+
+          return params;
+        }
+
+        // Aplicar tracking a TODOS los enlaces de la página
+        function applyGlobalTracking() {
+          const trackingParams = getTrackingParams();
+          const trackingString = trackingParams.toString();
+
+          if (!trackingString) return; // No hay tracking que aplicar
+
+          // Encontrar TODOS los enlaces en la página
+          document.querySelectorAll('a').forEach(link => {
+            const href = link.getAttribute('href');
+
+            // Skip enlaces vacíos, anclas, protocolos externos, y ya procesados
+            if (!href ||
+                href === '#' ||
+                href.startsWith('mailto:') ||
+                href.startsWith('tel:') ||
+                href.startsWith('javascript:') ||
+                href.startsWith('whatsapp:') ||
+                link.dataset.trackingApplied) {
+              return;
+            }
+
+            try {
+              // Parsear la URL para manejar parámetros existentes
+              const url = new URL(href, window.location.origin);
+
+              // Solo aplicar a enlaces del mismo origen o relativos
+              if (url.origin === window.location.origin || href.startsWith('/')) {
+                // Agregar parámetros de tracking, evitando duplicados
+                trackingParams.forEach((value, key) => {
+                  if (!url.searchParams.has(key)) {
+                    url.searchParams.set(key, value);
+                  }
+                });
+
+                link.setAttribute('href', url.pathname + url.search + url.hash);
+                link.dataset.trackingApplied = 'true';
+              }
+            } catch (e) {
+              // Para URLs inválidas, usar concatenación simple
+              if (!href.includes('ref=') && !href.includes('utm_')) {
+                const separator = href.includes('?') ? '&' : '?';
+                link.setAttribute('href', `${href}${separator}${trackingString}`);
+                link.dataset.trackingApplied = 'true';
+              }
+            }
+          });
+        }
+
+        // Función helper global para obtener URL con tracking (para contenido dinámico)
+        window.getTrackedUrl = function(url) {
+          if (!url) return '#';
+
+          const trackingParams = getTrackingParams();
+          const trackingString = trackingParams.toString();
+
+          if (!trackingString) return url;
+
+          try {
+            const parsedUrl = new URL(url, window.location.origin);
+            trackingParams.forEach((value, key) => {
+              if (!parsedUrl.searchParams.has(key)) {
+                parsedUrl.searchParams.set(key, value);
+              }
+            });
+            return parsedUrl.pathname + parsedUrl.search + parsedUrl.hash;
+          } catch (e) {
+            const separator = url.includes('?') ? '&' : '?';
+            return `${url}${separator}${trackingString}`;
+          }
+        };
+
+        // Alias para compatibilidad con código existente
+        window.getRefUrl = window.getTrackedUrl;
+
+        // Función global para re-aplicar tracking (útil después de renderizar contenido dinámico)
+        window.applyGlobalTracking = applyGlobalTracking;
+        window.applyTrackingToLinks = applyGlobalTracking; // Alias
+        window.applyRefToLinks = applyGlobalTracking; // Alias legacy
+
+        // Exponer los parámetros de tracking para otros scripts
+        window.getTrackingParams = getTrackingParams;
+        window.TRACKING_PARAMS = TRACKING_PARAMS;
+
+        // Aplicar al cargar la página
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', applyGlobalTracking);
+        } else {
+          applyGlobalTracking();
+        }
+
+        // Observer para contenido dinámico (SPA-like behavior)
+        const observer = new MutationObserver(function(mutations) {
+          let hasNewLinks = false;
+          mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+              mutation.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) { // Element node
+                  if (node.tagName === 'A' || node.querySelectorAll?.('a').length > 0) {
+                    hasNewLinks = true;
+                  }
+                }
+              });
+            }
+          });
+          if (hasNewLinks) {
+            // Debounce para evitar múltiples llamadas
+            clearTimeout(window._trackingDebounce);
+            window._trackingDebounce = setTimeout(applyGlobalTracking, 100);
+          }
+        });
+
+        // Iniciar observer después de que el DOM esté listo
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() {
+            observer.observe(document.body, { childList: true, subtree: true });
+          });
+        } else {
+          observer.observe(document.body, { childList: true, subtree: true });
+        }
+
+        console.log('🔗 Global tracking system initialized. Params:', getTrackingParams().toString() || 'none');
+      })();
+    </script>
+
+    <!-- Language Selector Script - External (debe ir DESPUÉS del tracking system) -->
     <script src="/scripts/language-selector.js" defer></script>
 
     <!-- Main Content -->

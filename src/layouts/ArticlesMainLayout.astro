@@ -306,7 +306,8 @@ const layoutProps = {
   ogImage: safeSeo.ogImage || '/og-articles.jpg',
   canonical: safeSeo.canonical_url,
   keywords: safeSeo.keywords,
-  hreflangData: safeSeo.hreflang || {},
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: articlesData?.hreflangData || safeSeo.hreflang || {},
   globalConfig: data?.globalConfig || articlesData?.globalConfig || {},
   language: language,
   trackingString: articlesData?.trackingString || '',

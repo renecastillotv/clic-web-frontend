@@ -154,7 +154,8 @@ const layoutProps = {
   ogImage: safeGet(data, 'seo.ogImage') || '/og-videos.jpg',
   canonical: safeGet(data, 'seo.canonical_url') || (language === 'es' ? `/videos/${categorySlug}` : `/${language}/videos/${categorySlug}`),
   keywords: safeGet(data, 'seo.keywords') || `${safeCategoryData.title}, videos inmobiliarios`,
-  hreflangData: safeSeo.hreflang || {},
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: data?.hreflangData || safeSeo.hreflang || {},
   globalConfig: data?.globalConfig || {},
   language: language,
   trackingString: data?.trackingString || '',

@@ -23,7 +23,8 @@ const layoutProps = {
   ogImage: seo.ogImage || '/og-curated-listings.jpg',
   canonical: canonicalUrl,
   keywords: seo.keywords || '',
-  hreflangData: seo.hreflang || {},
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: data?.hreflangData || seo.hreflang || {},
   globalConfig: data?.globalConfig || {},
   language: language,
   trackingString: data?.trackingString || '',

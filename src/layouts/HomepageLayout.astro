@@ -141,7 +141,8 @@ const layoutProps = {
   twitterTitle: seoData.twitter_card?.title || seoData.title,
   twitterDescription: seoData.twitter_card?.description || seoData.description,
   twitterImage: seoData.twitter_card?.image || seoData.open_graph?.image || heroImage,
-  hreflangData: seoData.hreflang || {},
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: pageData.hreflangData || seoData.hreflang || {},
   structuredData: seoData.structured_data,
   globalConfig: globalConfig,
   language: language,

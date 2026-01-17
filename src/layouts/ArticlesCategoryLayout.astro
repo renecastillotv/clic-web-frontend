@@ -135,7 +135,8 @@ const layoutProps = {
   ogImage: safeString(rawSeo.ogImage, '/og-articles.jpg'),
   canonical: canonicalUrl,
   keywords: safeString(rawSeo.keywords, `${safeCategoryData.title}, artículos inmobiliarios`),
-  hreflangData: safeObject(rawSeo.hreflang),
+  // Usar hreflangData centralizado (nivel raíz) con fallback a seo.hreflang
+  hreflangData: safeObject(data?.hreflangData || rawSeo.hreflang),
   globalConfig: data?.globalConfig || {},
   language: language,
   breadcrumbs: safeBreadcrumbs
