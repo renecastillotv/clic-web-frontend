@@ -672,7 +672,8 @@ const contactButtonText = language === 'es' ? 'Contáctanos' :
     </script>
 
     <!-- Language Selector Script - External (debe ir DESPUÉS del tracking system) -->
-    <script src="/scripts/language-selector.js" defer></script>
+    <!-- v2: Added query param preservation on language change -->
+    <script src="/scripts/language-selector.js?v=2" defer></script>
 
     <!-- Main Content -->
     <main class="min-h-screen">
