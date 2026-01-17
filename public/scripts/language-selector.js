@@ -96,6 +96,8 @@ document.addEventListener('DOMContentLoaded', function() {
    */
   function changeLanguage(newLang) {
     console.log('🔄 Changing language from', window.currentLanguage, 'to', newLang);
+    console.log('🔍 Current URL search:', window.location.search);
+    console.log('🔍 hreflangData available:', window.hreflangData);
 
     // Skip if already in the target language
     if (newLang === window.currentLanguage) {
@@ -106,13 +108,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Obtener URL del hreflang data (generada por el backend centralizado)
     let targetUrl = window.hreflangData ? window.hreflangData[newLang] : null;
+    console.log('🔍 Raw targetUrl from hreflangData:', targetUrl);
 
     // Validar y limpiar la URL
     targetUrl = validateAndCleanUrl(targetUrl, newLang);
+    console.log('🔍 After validateAndCleanUrl:', targetUrl);
 
     if (targetUrl) {
       // Preservar TODOS los query parameters de la URL actual
+      const urlBeforeParams = targetUrl;
       targetUrl = preserveQueryParams(targetUrl);
+      console.log('🔍 After preserveQueryParams:', urlBeforeParams, '->', targetUrl);
 
       console.log('🚀 Redirecting to:', targetUrl);
       window.location.href = targetUrl;
@@ -122,10 +128,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // FALLBACK: Construir URL manualmente si no hay hreflang válido
       let fallbackUrl = buildFallbackUrl(newLang);
+      console.log('🔍 Fallback URL built:', fallbackUrl);
       if (fallbackUrl) {
         // También preservar query params en el fallback
         fallbackUrl = preserveQueryParams(fallbackUrl);
-        console.log('🔄 Using fallback URL:', fallbackUrl);
+        console.log('🔄 Using fallback URL with params:', fallbackUrl);
         window.location.href = fallbackUrl;
       }
     }
