@@ -58,6 +58,39 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   /**
+   * Preserva todos los query parameters de la URL actual
+   * Incluye: ref, utm_*, fbclid, gclid, y cualquier otro parámetro
+   */
+  function preserveQueryParams(targetUrl) {
+    const currentParams = new URLSearchParams(window.location.search);
+
+    // Si no hay parámetros que preservar, retornar la URL original
+    if (!currentParams.toString()) {
+      return targetUrl;
+    }
+
+    try {
+      const url = new URL(targetUrl, window.location.origin);
+
+      // Agregar todos los parámetros actuales que no existan en la URL destino
+      currentParams.forEach((value, key) => {
+        // No sobrescribir parámetros que ya existan en la URL destino
+        if (!url.searchParams.has(key)) {
+          url.searchParams.set(key, value);
+        }
+      });
+
+      console.log('🔗 Query params preserved:', currentParams.toString());
+      return url.pathname + url.search + url.hash;
+    } catch (e) {
+      // Fallback: concatenación simple
+      const separator = targetUrl.includes('?') ? '&' : '?';
+      console.log('🔗 Query params preserved (fallback):', currentParams.toString());
+      return `${targetUrl}${separator}${currentParams.toString()}`;
+    }
+  }
+
+  /**
    * Función principal de cambio de idioma
    * Usa las URLs de hreflang proporcionadas por el backend
    */
@@ -78,28 +111,8 @@ document.addEventListener('DOMContentLoaded', function() {
     targetUrl = validateAndCleanUrl(targetUrl, newLang);
 
     if (targetUrl) {
-      // Preserve tracking parameters when changing language
-      if (typeof window.getTrackingParams === 'function') {
-        const trackingParams = window.getTrackingParams();
-        const trackingString = trackingParams.toString();
-
-        if (trackingString) {
-          try {
-            const url = new URL(targetUrl, window.location.origin);
-            trackingParams.forEach((value, key) => {
-              if (!url.searchParams.has(key)) {
-                url.searchParams.set(key, value);
-              }
-            });
-            targetUrl = url.pathname + url.search + url.hash;
-          } catch (e) {
-            // Fallback: simple concatenation
-            const separator = targetUrl.includes('?') ? '&' : '?';
-            targetUrl = `${targetUrl}${separator}${trackingString}`;
-          }
-          console.log('🔗 Tracking params preserved:', trackingString);
-        }
-      }
+      // Preservar TODOS los query parameters de la URL actual
+      targetUrl = preserveQueryParams(targetUrl);
 
       console.log('🚀 Redirecting to:', targetUrl);
       window.location.href = targetUrl;
@@ -108,8 +121,10 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('Available hreflang data:', window.hreflangData);
 
       // FALLBACK: Construir URL manualmente si no hay hreflang válido
-      const fallbackUrl = buildFallbackUrl(newLang);
+      let fallbackUrl = buildFallbackUrl(newLang);
       if (fallbackUrl) {
+        // También preservar query params en el fallback
+        fallbackUrl = preserveQueryParams(fallbackUrl);
         console.log('🔄 Using fallback URL:', fallbackUrl);
         window.location.href = fallbackUrl;
       }
