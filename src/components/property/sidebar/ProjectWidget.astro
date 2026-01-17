@@ -251,8 +251,11 @@ console.log('🏗️ ProjectWidget loaded:', {
       </div>
     )}
 
-    <!-- Tipologías -->
-    {project.typologies && project.typologies.length > 0 && (
+    <!-- Tipologías - Solo mostrar si tienen datos válidos -->
+    {project.typologies && project.typologies.filter((typo: any) =>
+      // Filtrar tipologías que tengan al menos habitaciones o baños > 0, o un precio
+      (typo.bedrooms > 0 || typo.bathrooms > 0 || typo.priceFrom > 0 || typo.area > 0)
+    ).length > 0 && (
       <div class="mb-6">
         <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
           <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
@@ -261,22 +264,31 @@ console.log('🏗️ ProjectWidget loaded:', {
           {t.availableTypologies}
         </h4>
         <div class="space-y-2">
-          {project.typologies.slice(0, 3).map((typo: any) => (
+          {project.typologies
+            .filter((typo: any) => typo.bedrooms > 0 || typo.bathrooms > 0 || typo.priceFrom > 0 || typo.area > 0)
+            .slice(0, 3)
+            .map((typo: any) => (
             <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
               <div class="flex justify-between items-center">
                 <span class="text-sm font-medium text-gray-900">
-                  {typo.bedrooms}&nbsp;{t.bedrooms}, {typo.bathrooms}&nbsp;{t.bathrooms}
+                  {/* Solo mostrar habitaciones si > 0 */}
+                  {typo.bedrooms > 0 && <>{typo.bedrooms}&nbsp;{t.bedrooms}</>}
+                  {typo.bedrooms > 0 && typo.bathrooms > 0 && ', '}
+                  {/* Solo mostrar baños si > 0 */}
+                  {typo.bathrooms > 0 && <>{typo.bathrooms}&nbsp;{t.bathrooms}</>}
+                  {/* Si no hay hab ni baños pero hay área, mostrar área */}
+                  {!typo.bedrooms && !typo.bathrooms && typo.area > 0 && <>{typo.area}&nbsp;m²</>}
                 </span>
                 <span class="text-sm font-semibold text-gray-900">
-                  {typo.priceFrom ? `${typo.currency}${(typo.priceFrom / 1000).toFixed(0)}K` : t.consult}
+                  {typo.priceFrom ? `${typo.currency || 'US$'}${(typo.priceFrom / 1000).toFixed(0)}K` : t.consult}
                   {typo.priceTo && typo.priceFrom !== typo.priceTo && (
                     <>-{(typo.priceTo / 1000).toFixed(0)}K</>
                   )}
                 </span>
               </div>
-              {typo.area && (
+              {typo.area > 0 && (typo.bedrooms > 0 || typo.bathrooms > 0) && (
                 <div class="text-xs text-gray-600 mt-1">
-                  {typo.area}&nbsp;m² • {typo.availableUnits || 0}&nbsp;{t.available}
+                  {typo.area}&nbsp;m²{typo.availableUnits > 0 && <> • {typo.availableUnits}&nbsp;{t.available}</>}
                 </div>
               )}
             </div>
